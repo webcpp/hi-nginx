@@ -213,8 +213,8 @@ static char * ngx_http_cpp_merge_loc_conf(ngx_conf_t* cf, void* parent, void* ch
 
     nginx::cpp_tools_t &cpp_tools = CPP_TOOLS[conf->cpp_tools_index];
     cpp_tools.CLASS_LOADER.assign(new Poco::ClassLoader<nginx::view>);
-    cpp_tools.PLUGIN.assign(new nginx::plugin(std::string((const char*) conf->module_dir.data, conf->module_dir.len), cpp_tools.CLASS_LOADER.get()));
-    cpp_tools.ROUTER.assign(new nginx::route(std::string((const char*) conf->route_file.data, conf->route_file.len)));
+    cpp_tools.PLUGIN.assign(new nginx::plugin(std::string((char*) conf->module_dir.data, conf->module_dir.len), cpp_tools.CLASS_LOADER.get()));
+    cpp_tools.ROUTER.assign(new nginx::route(std::string((char*) conf->route_file.data, conf->route_file.len)));
     cpp_tools.CACHE.assign(new nginx::cache(conf->cache_size));
     cpp_tools.SESSION.assign(new nginx::session(conf->session_size));
 
@@ -256,23 +256,23 @@ static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::
             th = (ngx_table_elt_t*) part->elts;
             i = 0;
         }
-        input_headers[(const char*) th[i].key.data] = (const char*) th[i].value.data;
+        input_headers[(char*) th[i].key.data] = (char*) th[i].value.data;
     }
     ngx_http_cpp_loc_conf_t *conf;
     conf = (ngx_http_cpp_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_cpp_module);
-    input_headers["cpp_module_dir"] = (const char*) conf->module_dir.data;
-    input_headers["cpp_route_file"] = (const char*) conf->route_file.data;
-    input_headers["cpp_upload_dir"] = (const char*) conf->upload_dir.data;
-    input_headers["cpp_upload_field"] = (const char*) conf->upload_field.data;
-    input_headers["cpp_upload_type"] = (const char*) conf->upload_type.data;
+    input_headers["cpp_module_dir"] = (char*) conf->module_dir.data;
+    input_headers["cpp_route_file"] = (char*) conf->route_file.data;
+    input_headers["cpp_upload_dir"] = (char*) conf->upload_dir.data;
+    input_headers["cpp_upload_field"] = (char*) conf->upload_field.data;
+    input_headers["cpp_upload_type"] = (char*) conf->upload_type.data;
     input_headers["cpp_upload_size"] = Poco::NumberFormatter::format(conf->upload_size);
     input_headers["cpp_session_expire"] = Poco::NumberFormatter::format(conf->session_expire);
 
-    input_headers["path"] = std::string((const char*) r->uri.data, r->uri.len);
-    input_headers["query"] = std::string((const char*) r->args.data, r->args.len);
-    input_headers["uri"] = std::string((const char*) r->unparsed_uri.data, r->unparsed_uri.len);
-    input_headers["method"] = std::string((const char*) r->method_name.data, r->method_name.len);
-    input_headers["client"] = std::string((const char*) r->connection->addr_text.data, r->connection->addr_text.len);
+    input_headers["path"] = std::string((char*) r->uri.data, r->uri.len);
+    input_headers["query"] = std::string((char*) r->args.data, r->args.len);
+    input_headers["uri"] = std::string((char*) r->unparsed_uri.data, r->unparsed_uri.len);
+    input_headers["method"] = std::string((char*) r->method_name.data, r->method_name.len);
+    input_headers["client"] = std::string((char*) r->connection->addr_text.data, r->connection->addr_text.len);
 }
 
 static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string, std::string>& output_headers) {
@@ -421,7 +421,7 @@ static void set_form(ngx_http_request_t* r, const std::map<std::string, std::str
     if (r->method & (NGX_HTTP_GET)) {
         poco_form = new Poco::Net::HTMLForm(poco_req);
     } else if (r->method & (NGX_HTTP_POST | NGX_HTTP_PUT)) {
-        std::string body_temp_file_path = (const char*) r->request_body->temp_file->file.name.data;
+        std::string body_temp_file_path = (char*) r->request_body->temp_file->file.name.data;
         Poco::File temp_file(body_temp_file_path);
         if (temp_file.exists() && temp_file.canRead()) {
             Poco::FileInputStream is(body_temp_file_path);
@@ -430,9 +430,9 @@ static void set_form(ngx_http_request_t* r, const std::map<std::string, std::str
             } else {
                 ngx_http_cpp_loc_conf_t *conf;
                 conf = (ngx_http_cpp_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_cpp_module);
-                std::string allow_name = (const char*) conf->upload_field.data
-                        , allow_type = (const char*) conf->upload_type.data
-                        , upload_dir = (const char*) conf->upload_dir.data;
+                std::string allow_name = (char*) conf->upload_field.data
+                        , allow_type = (char*) conf->upload_type.data
+                        , upload_dir = (char*) conf->upload_dir.data;
                 double upload_size = (double) conf->upload_size;
                 nginx::upload_handler upload_handler(allow_name, allow_type, upload_dir, upload_size);
                 poco_form = new Poco::Net::HTMLForm(poco_req, is, upload_handler);
