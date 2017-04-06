@@ -164,6 +164,7 @@ case "$NGX_GCC_VER" in
     ;;
 esac
 
+
 # stop on warning
 CFLAGS="$CFLAGS -Werror"
 

@@ -8,20 +8,19 @@ A distribution of Nginx with c++ web development.
 see `init.sh`
 
 # Features
-- All features of nginx-1.11.12 are inherited, i.e., it is 100% compatible with nginx.
+- All features of nginx-1.11.13 are inherited, i.e., it is 100% compatible with nginx.
 
 # Directives
 - directives : context :  http, server, location
-    - cpp_module_dir
-    - cpp_route_file 
-    - cpp_upload_dir 
-    - cpp_upload_type
-    - cpp_upload_field 
-    - cpp_upload_field 
-    - cpp_upload_size
-    - cpp_session_expire 
-    - cpp_session_size
-    - cpp_cache_size 
+    - cpp_module_dir,           default ''
+    - cpp_route_file,           default ''
+    - cpp_upload_dir,           default ''
+    - cpp_upload_type,          default 'image/png|image/jpeg|image/gif|application/pdf|application/zip'
+    - cpp_upload_field,         default 'upload'
+    - cpp_upload_size,          default 10k
+    - cpp_session_expire,       default 1h
+    - cpp_session_size,         default 1024
+    - cpp_cache_size,           default 1024
 
     example:
 

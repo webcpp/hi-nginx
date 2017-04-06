@@ -26,7 +26,6 @@ CFLAGS = $CFLAGS
 CPP =	$CPP
 LINK =	$LINK
 
-
 END
 
 

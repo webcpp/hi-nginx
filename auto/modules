@@ -96,7 +96,6 @@ if [ $HTTP = YES ]; then
     fi
 
 
-
     if [ $HTTP_CACHE = YES ]; then
         have=NGX_HTTP_CACHE . auto/have
         HTTP_SRCS="$HTTP_SRCS $HTTP_FILE_CACHE_SRCS"
@@ -449,8 +448,6 @@ if [ $HTTP = YES ]; then
         . auto/module
     fi
 
-
-
     if :; then
         ngx_module_name=ngx_http_static_module
         ngx_module_incs=
@@ -461,7 +458,6 @@ if [ $HTTP = YES ]; then
 
         . auto/module
     fi
-
 
     if [ $HTTP_GZIP_STATIC = YES ]; then
         have=NGX_HTTP_GZIP . auto/have
@@ -895,9 +891,6 @@ if [ $HTTP = YES ]; then
 
         . auto/module
     fi
-
-
-
 fi
 
 
@@ -1316,13 +1309,12 @@ if [ $NGX_GOOGLE_PERFTOOLS = YES ]; then
     . auto/module
 fi
 
-
 if [ $NGX_CPP_TEST = YES ]; then
     ngx_module_name=
     ngx_module_incs=
     ngx_module_deps=
     ngx_module_srcs=src/misc/ngx_cpp_test_module.cpp
-    ngx_module_libs=
+    ngx_module_libs=-lstdc++
     ngx_module_link=$NGX_CPP_TEST
 
     . auto/module
