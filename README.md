@@ -211,7 +211,7 @@ namespace nginx {
 GET,^/hello/?$,nginx::hello
 GET,^/session/?$,nginx::ses
 GET,^/empty/?$,nginx::empty
-GET,^/form/?(\?((a|b)=[\w]+&?)+)?$,nginx::form
+GET,^/form/?(\?((a|b)=[[:alnum:]]+&?)+)?$,nginx::form
 POST,^/form/?$,nginx::form
 POST,^/thum/?$,nginx::thum
 
