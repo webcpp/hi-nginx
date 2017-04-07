@@ -9,11 +9,7 @@
 #include <map>
 #include <fstream>
 #include <Poco/StringTokenizer.h>
-#ifdef POCO_UNBUNDLED
-#include <Poco/RegularExpression.h>
-#else
-#include <regex>
-#endif
+#include <regex.h>
 
 namespace nginx {
 
@@ -91,32 +87,32 @@ namespace nginx {
             for (auto &item : this->route_data) {
                 const std::string& M = item.get_method();
                 const std::string& P = item.get_pattern();
-#ifdef POCO_UNBUNDLED
-                try {
-                    Poco::RegularExpression regex(P);
-                    if (method == M && regex.match(path)) {
-                        regex.split(path, route_part);
-                        result = item.get_class_name();
-                        break;
+                const int n_matches = 10;
+                int status = 0, nomatch = 0;
+                const char * p = 0;
+                regmatch_t m[n_matches];
+                if (method == M) {
+                    regex_t r;
+                    p = path.c_str();
+                    status = regcomp(&r, P.c_str(), REG_EXTENDED);
+                    if (status) {
+                        regfree(&r);
+                        continue;
                     }
-                } catch (Poco::RegularExpressionException& e) {
-
-                }
-#else
-                try {
-                    std::regex regex(P);
-                    std::smatch match;
-                    if (method == M && std::regex_match(path, match, regex)) {
-                        result = item.get_class_name();
-                        for (auto & sub : match) {
-                            route_part.push_back(sub.str());
+                    nomatch = regexec(&r, p, n_matches, m, 0);
+                    if (nomatch) {
+                        regfree(&r);
+                        continue;
+                    }
+                    for (int i = 0; i < n_matches; ++i) {
+                        if (m[i].rm_so > -1) {
+                            route_part.push_back(std::string(p + m[i].rm_so, m[i].rm_eo - m[i].rm_so));
                         }
-                        break;
                     }
-                } catch (std::exception& e) {
-
+                    result = item.get_class_name();
+                    regfree(&r);
+                    break;
                 }
-#endif              
             }
 
             return result;
