@@ -2,7 +2,6 @@ extern "C" {
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
-#include <ngx_event.h>
 }
 
 #include "include/request.hpp"
@@ -47,10 +46,6 @@ static void set_output_cookies(const std::map<std::string, std::string>& cookies
 static ngx_int_t normal_body_handler(ngx_http_request_t* r);
 static void default_body_handler(ngx_http_request_t* r);
 static void set_form(ngx_http_request_t* r, const std::map<std::string, std::string>& input_headers, std::map<std::string, std::string>& form);
-
-
-
-
 
 ngx_command_t ngx_http_cpp_commands[] = {
     {
@@ -226,7 +221,6 @@ static ngx_int_t ngx_http_cpp_handler(ngx_http_request_t *r) {
     if (r->headers_in.content_length_n) {
         r->request_body_in_file_only = 1;
         r->request_body_in_persistent_file = 1;
-        r->request_body_in_clean_file = 1;
         return ngx_http_read_client_request_body(r, default_body_handler);
     } else {
         ngx_http_discard_request_body(r);
@@ -343,7 +337,7 @@ static ngx_int_t normal_body_handler(ngx_http_request_t * r) {
 
 
     if (view_instance.isNull()) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to allocate view_instance.");
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, ("Failed to allocate view_instance " + class_name).c_str());
 
         return NGX_HTTP_NOT_FOUND;
     }
@@ -443,9 +437,9 @@ static void set_form(ngx_http_request_t* r, const std::map<std::string, std::str
                     }
                 }
             }
-            if (!(r->request_body_in_clean_file)) {
-                temp_file.remove();
-            }
+
+            temp_file.remove();
+
         }
     }
     if (poco_form) {

@@ -1,13 +1,19 @@
 #ifndef ROUTE_HPP
 #define ROUTE_HPP
 
+
+
+
 #include <string>
 #include <vector>
 #include <map>
 #include <fstream>
 #include <Poco/StringTokenizer.h>
-//#include <Poco/RegularExpression.h>
+#ifdef POCO_UNBUNDLED
+#include <Poco/RegularExpression.h>
+#else
 #include <regex>
+#endif
 
 namespace nginx {
 
@@ -85,26 +91,34 @@ namespace nginx {
             for (auto &item : this->route_data) {
                 const std::string& M = item.get_method();
                 const std::string& P = item.get_pattern();
-                std::regex regex(P);
-                std::smatch match;
-                if (method == M && std::regex_match(path, match, regex)) {
-                    result = item.get_class_name();
-                    for (auto & sub : match) {
-                        route_part.push_back(sub.str());
+#ifdef POCO_UNBUNDLED
+                try {
+                    Poco::RegularExpression regex(P);
+                    if (method == M && regex.match(path)) {
+                        regex.split(path, route_part);
+                        result = item.get_class_name();
+                        break;
                     }
-                    break;
+                } catch (Poco::RegularExpressionException& e) {
+
                 }
-                //                try {
-                //                    Poco::RegularExpression regex(P);
-                //                    if (method == M && regex.match(path)) {
-                //                        regex.split(path, result.second);
-                //                        result.first = item.get_class_name();
-                //                        break;
-                //                    }
-                //                } catch (Poco::RegularExpressionException& e) {
-                //
-                //                }
+#else
+                try {
+                    std::regex regex(P);
+                    std::smatch match;
+                    if (method == M && std::regex_match(path, match, regex)) {
+                        result = item.get_class_name();
+                        for (auto & sub : match) {
+                            route_part.push_back(sub.str());
+                        }
+                        break;
+                    }
+                } catch (std::exception& e) {
+
+                }
+#endif              
             }
+
             return result;
         }
     private:

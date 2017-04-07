@@ -27,11 +27,11 @@ see `init.sh`
     example:
 
 ```
-            cpp_module_dir      '/home/ubuntu1610/nginx/cpp';
-            cpp_route_file      '/home/ubuntu1610/nginx/cpp/route.conf';
-            cpp_upload_dir      '/home/ubuntu1610/nginx/html/upload';
-            cpp_upload_type     'image/jpeg|image/png';
-            cpp_upload_field    'upload|upload1|upload2';
+            cpp_module_dir      /home/ubuntu1610/nginx/cpp;
+            cpp_route_file      /home/ubuntu1610/nginx/cpp/route.conf;
+            cpp_upload_dir      /home/ubuntu1610/nginx/html/upload;
+            cpp_upload_type     image/jpeg|image/png;
+            cpp_upload_field    upload|upload1|upload2;
             cpp_upload_size     200k;
             cpp_session_expire  1m;
             cpp_session_size    1024;
