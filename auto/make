@@ -26,6 +26,10 @@ CFLAGS = $CFLAGS
 CPP =	$CPP
 LINK =	$LINK
 
+CXX = g++
+CXXFLAGS = -std=c++11
+
+
 END
 
 
@@ -290,6 +294,12 @@ if [ $HTTP = YES ]; then
     for ngx_source in $HTTP_SRCS
     do
         ngx_src=`echo $ngx_source | sed -e "s/\//$ngx_regex_dirsep/g"`
+        ngx_cpp_ext=`echo ${ngx_src#*.}`
+        if [ $ngx_cpp_ext = cpp ]; then
+            ngx_cc="\$(CXX) $ngx_compile_opt \$(CXXFLAGS) \$(CFLAGS) \$(CORE_INCS) \$(HTTP_INCS)"
+        else
+            ngx_cc="\$(CC) $ngx_compile_opt \$(CFLAGS) \$(CORE_INCS) \$(HTTP_INCS)"
+        fi
         ngx_obj=`echo $ngx_src \
             | sed -e "s#^\(.*\.\)cpp\\$#$ngx_objs_dir\1$ngx_objext#g" \
                   -e "s#^\(.*\.\)cc\\$#$ngx_objs_dir\1$ngx_objext#g" \

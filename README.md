@@ -4,10 +4,12 @@ A distribution of Nginx with c++ web development.
 [hi demo](https://github.com/webcpp/hi_demo).
 
 # Dependency
+- gcc,g++(c++11)
 - Poco framework
 
 # Installation
 see `init.sh`
+
 
 # Features
 - All features of nginx-1.11.13 are inherited, i.e., it is 100% compatible with nginx.
