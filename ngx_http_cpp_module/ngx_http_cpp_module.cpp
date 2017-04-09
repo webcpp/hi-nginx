@@ -11,9 +11,12 @@ extern "C" {
 #include "lib/upload_handler.hpp"
 #include "lib/cpp_tools.hpp"
 
-#define SESSION_ID_NAME  "NGINXCPPSESSION"
 
-static std::vector<nginx::cpp_tools_t> CPP_TOOLS;
+#ifndef SESSION_ID_NAME
+#define SESSION_ID_NAME "SESSION"
+#endif
+
+static std::vector<hi::cpp_tools_t> CPP_TOOLS;
 
 typedef struct {
     ngx_str_t route_file;
@@ -183,7 +186,7 @@ static void * ngx_http_cpp_create_loc_conf(ngx_conf_t *cf) {
         conf->session_size = NGX_CONF_UNSET;
         conf->cache_size = NGX_CONF_UNSET;
 
-        nginx::cpp_tools_t cpp_tools;
+        hi::cpp_tools_t cpp_tools;
         CPP_TOOLS.push_back(cpp_tools);
         conf->cpp_tools_index = CPP_TOOLS.size() - 1;
 
@@ -206,12 +209,12 @@ static char * ngx_http_cpp_merge_loc_conf(ngx_conf_t* cf, void* parent, void* ch
     ngx_conf_merge_value(conf->session_size, prev->session_size, (ngx_int_t) 1024);
     ngx_conf_merge_value(conf->cache_size, prev->cache_size, (ngx_int_t) 1024);
 
-    nginx::cpp_tools_t &cpp_tools = CPP_TOOLS[conf->cpp_tools_index];
-    cpp_tools.CLASS_LOADER.assign(new Poco::ClassLoader<nginx::view>);
-    cpp_tools.PLUGIN.assign(new nginx::plugin(std::string((char*) conf->module_dir.data, conf->module_dir.len), cpp_tools.CLASS_LOADER.get()));
-    cpp_tools.ROUTER.assign(new nginx::route(std::string((char*) conf->route_file.data, conf->route_file.len)));
-    cpp_tools.CACHE.assign(new nginx::cache(conf->cache_size));
-    cpp_tools.SESSION.assign(new nginx::session(conf->session_size));
+    hi::cpp_tools_t &cpp_tools = CPP_TOOLS[conf->cpp_tools_index];
+    cpp_tools.CLASS_LOADER.assign(new Poco::ClassLoader<hi::view>);
+    cpp_tools.PLUGIN.assign(new hi::plugin(std::string((char*) conf->module_dir.data, conf->module_dir.len), cpp_tools.CLASS_LOADER.get()));
+    cpp_tools.ROUTER.assign(new hi::route(std::string((char*) conf->route_file.data, conf->route_file.len)));
+    cpp_tools.CACHE.assign(new hi::cache(conf->cache_size));
+    cpp_tools.SESSION.assign(new hi::session(conf->session_size));
 
     return NGX_CONF_OK;
 }
@@ -314,16 +317,16 @@ static void set_output_cookies(const std::map<std::string, std::string>& cookies
 }
 
 static ngx_int_t normal_body_handler(ngx_http_request_t * r) {
-    nginx::request ngx_request;
-    nginx::response ngx_response;
+    hi::request ngx_request;
+    hi::response ngx_response;
     get_input_headers(r, ngx_request.headers);
     get_input_cookies(ngx_request.headers, ngx_request.cookies);
     set_form(r, ngx_request.headers, ngx_request.form);
 
     ngx_http_cpp_loc_conf_t * conf = (ngx_http_cpp_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_cpp_module);
-    nginx::cpp_tools_t &cpp_tools = CPP_TOOLS[conf->cpp_tools_index];
+    hi::cpp_tools_t &cpp_tools = CPP_TOOLS[conf->cpp_tools_index];
     std::string class_name = cpp_tools.ROUTER->get_route(ngx_request.headers["method"], ngx_request.headers["uri"], ngx_request.route);
-    Poco::SharedPtr<nginx::view> view_instance;
+    Poco::SharedPtr<hi::view> view_instance;
     if (!class_name.empty()) {
         //        if (cpp_tools.HANDLER.find(class_name) == cpp_tools.HANDLER.end()) {
         auto finded = cpp_tools.CLASS_LOADER->findClass(class_name);
@@ -353,11 +356,11 @@ static ngx_int_t normal_body_handler(ngx_http_request_t * r) {
 
 
     if (!cpp_tools.SESSION->has(session_id)) {
-        cpp_tools.SESSION->add(session_id, nginx::session_map(std::map<std::string, Poco::DynamicAny>(), conf->session_expire));
+        cpp_tools.SESSION->add(session_id, hi::session_map(std::map<std::string, Poco::DynamicAny>(), conf->session_expire));
     }
 
-    ngx_response.nginx_cache = cpp_tools.CACHE.get();
-    ngx_response.nginx_session = &(cpp_tools.SESSION->get(session_id)->value());
+    ngx_response.cache = cpp_tools.CACHE.get();
+    ngx_response.session = &(cpp_tools.SESSION->get(session_id)->value());
 
     view_instance->handler(ngx_request, ngx_response);
 
@@ -429,7 +432,7 @@ static void set_form(ngx_http_request_t* r, const std::map<std::string, std::str
                         , allow_type = (char*) conf->upload_type.data
                         , upload_dir = (char*) conf->upload_dir.data;
                 double upload_size = (double) conf->upload_size;
-                nginx::upload_handler upload_handler(allow_name, allow_type, upload_dir, upload_size);
+                hi::upload_handler upload_handler(allow_name, allow_type, upload_dir, upload_size);
                 poco_form = new Poco::Net::HTMLForm(poco_req, is, upload_handler);
                 auto result = upload_handler.get_data();
                 for (auto & item : result) {

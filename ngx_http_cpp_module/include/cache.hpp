@@ -5,7 +5,7 @@
 #include <Poco/UniqueExpireLRUCache.h>
 #include <Poco/ExpirationDecorator.h>
 
-namespace nginx {
+namespace hi{
     typedef Poco::ExpirationDecorator<std::string> cache_string;
     typedef Poco::UniqueExpireLRUCache<std::string, cache_string> cache;
 

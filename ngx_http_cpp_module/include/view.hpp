@@ -5,7 +5,7 @@
 #include "response.hpp"
 
 
-namespace nginx {
+namespace hi {
 
     class view {
     public:

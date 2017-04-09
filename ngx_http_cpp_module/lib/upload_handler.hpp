@@ -22,7 +22,7 @@
 
 
 
-namespace nginx {
+namespace hi {
 
     class upload_handler : public Poco::Net::PartHandler {
     public:
@@ -62,7 +62,7 @@ namespace nginx {
             Poco::Net::NameValueCollection nvc;
             Poco::Net::HTTPMessage::splitParameters(disposition, v, nvc);
 
-            nginx::upload_handler::fileinfo fileinfo;
+            hi::upload_handler::fileinfo fileinfo;
 
             fileinfo.filename = Poco::Net::HTTPCookie::escape(nvc.get("filename"));
             fileinfo.name = Poco::Net::HTTPCookie::escape(nvc.get("name"));

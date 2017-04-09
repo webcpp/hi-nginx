@@ -6,13 +6,13 @@
 #include <Poco/SortedDirectoryIterator.h>
 #include "../include/view.hpp"
 
-namespace nginx {
+namespace hi {
 
     class plugin {
     public:
         plugin() = delete;
 
-        plugin(const std::string dir, Poco::ClassLoader<nginx::view>* class_loader)
+        plugin(const std::string dir, Poco::ClassLoader<hi::view>* class_loader)
         : dir(dir)
         , class_loader(class_loader) {
             this->load();
@@ -51,7 +51,7 @@ namespace nginx {
 
         void unload() {
             std::vector<std::string> libpath;
-            Poco::ClassLoader<nginx::view>::Iterator it = this->class_loader->begin();
+            Poco::ClassLoader<hi::view>::Iterator it = this->class_loader->begin();
 
             for (; it != this->class_loader->end(); ++it) {
                 libpath.push_back(it->first);
@@ -63,7 +63,7 @@ namespace nginx {
 
     private:
         std::string dir;
-        Poco::ClassLoader<nginx::view>* class_loader;
+        Poco::ClassLoader<hi::view>* class_loader;
 
     };
 

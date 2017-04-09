@@ -5,7 +5,7 @@
 #include <map>
 #include <vector>
 
-namespace nginx {
+namespace hi {
 
     class request {
     public:

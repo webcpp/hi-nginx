@@ -8,9 +8,13 @@
 #include <Poco/ExpirationDecorator.h>
 #include <Poco/DynamicAny.h>
 
-#define SESSION_ID_NAME "NGINXCPPSESSION"
+#ifndef SESSION_ID_NAME
+#define SESSION_ID_NAME "SESSION"
+#endif
 
-namespace nginx {
+
+
+namespace hi {
 
     typedef Poco::ExpirationDecorator<std::map<std::string, Poco::DynamicAny>> session_map;
     typedef Poco::UniqueExpireLRUCache<std::string, session_map> session;

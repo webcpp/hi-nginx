@@ -18,7 +18,7 @@
 #include "../include/view.hpp"
 
 
-namespace nginx {
+namespace hi {
 
     class cpp_tools_t {
     public:
@@ -57,12 +57,12 @@ namespace nginx {
         }
 
 
-        Poco::SharedPtr<Poco::ClassLoader < nginx::view>> CLASS_LOADER;
-        Poco::SharedPtr<nginx::plugin> PLUGIN;
-        Poco::SharedPtr<nginx::route> ROUTER;
-        Poco::SharedPtr<nginx::cache> CACHE;
-        Poco::SharedPtr<nginx::session> SESSION;
-//        std::map<std::string, Poco::SharedPtr < nginx::view>> HANDLER;
+        Poco::SharedPtr<Poco::ClassLoader < hi::view>> CLASS_LOADER;
+        Poco::SharedPtr<hi::plugin> PLUGIN;
+        Poco::SharedPtr<hi::route> ROUTER;
+        Poco::SharedPtr<hi::cache> CACHE;
+        Poco::SharedPtr<hi::session> SESSION;
+//        std::map<std::string, Poco::SharedPtr < hi::view>> HANDLER;
     };
 
 }

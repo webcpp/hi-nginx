@@ -19,7 +19,7 @@
 #include <Poco/Net/SecureStreamSocket.h>
 #include <Poco/File.h>
 
-namespace nginx {
+namespace hi {
 
     class mail {
     public:

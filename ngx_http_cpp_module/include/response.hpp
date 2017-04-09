@@ -6,7 +6,7 @@
 #include "cache.hpp"
 #include "session.hpp"
 
-namespace nginx {
+namespace hi {
 
     class response {
     public:
@@ -16,8 +16,8 @@ namespace nginx {
         , content("<p style='text-align:center;margin:100px;'>404 Not Found</p>")
         , headers()
         , cookies()
-        , nginx_session(0)
-        , nginx_cache(0)
+        , session(0)
+        , cache(0)
         {
             this->headers.insert(std::make_pair("Content-Type", "text/html;charset=UTF-8"));
         }
@@ -27,8 +27,8 @@ namespace nginx {
         std::string content;
         std::multimap<std::string, std::string> headers;
         std::map<std::string, std::string> cookies;
-        std::map<std::string, Poco::DynamicAny> *nginx_session;
-        cache* nginx_cache;
+        std::map<std::string, Poco::DynamicAny> *session;
+        hi::cache* cache;
     };
 }
 

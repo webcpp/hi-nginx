@@ -11,7 +11,7 @@
 #include <Poco/StringTokenizer.h>
 #include <regex.h>
 
-namespace nginx {
+namespace hi {
 
     class route {
     private:
