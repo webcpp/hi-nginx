@@ -157,7 +157,7 @@ install:	build $NGX_INSTALL_PERL_MODULES
 	test -d '\$(DESTDIR)$NGX_PREFIX/html' \\
 		|| cp -R $NGX_HTML '\$(DESTDIR)$NGX_PREFIX'
 
-	cp -R src/http/cpp/include '\$(DESTDIR)$NGX_PREFIX/'
+	cp -R $NGX_ADDONS/include '\$(DESTDIR)$NGX_PREFIX/'
 
 	test -d '\$(DESTDIR)$NGX_PREFIX/cpp' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/cpp'
 

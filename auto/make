@@ -9,7 +9,6 @@ mkdir -p $NGX_OBJS/src/core $NGX_OBJS/src/event $NGX_OBJS/src/event/modules \
          $NGX_OBJS/src/os/unix $NGX_OBJS/src/os/win32 \
          $NGX_OBJS/src/http $NGX_OBJS/src/http/v2 $NGX_OBJS/src/http/modules \
          $NGX_OBJS/src/http/modules/perl \
-         $NGX_OBJS/src/http/cpp \
          $NGX_OBJS/src/mail \
          $NGX_OBJS/src/stream \
          $NGX_OBJS/src/misc
@@ -27,8 +26,7 @@ CPP =	$CPP
 LINK =	$LINK
 
 CXX = g++
-CXXFLAGS = -std=c++11
-
+CXXFLAGS = -O3
 
 END
 
@@ -294,12 +292,6 @@ if [ $HTTP = YES ]; then
     for ngx_source in $HTTP_SRCS
     do
         ngx_src=`echo $ngx_source | sed -e "s/\//$ngx_regex_dirsep/g"`
-        ngx_cpp_ext=`echo ${ngx_src#*.}`
-        if [ $ngx_cpp_ext = cpp ]; then
-            ngx_cc="\$(CXX) $ngx_compile_opt \$(CXXFLAGS) \$(CFLAGS) \$(CORE_INCS) \$(HTTP_INCS)"
-        else
-            ngx_cc="\$(CC) $ngx_compile_opt \$(CFLAGS) \$(CORE_INCS) \$(HTTP_INCS)"
-        fi
         ngx_obj=`echo $ngx_src \
             | sed -e "s#^\(.*\.\)cpp\\$#$ngx_objs_dir\1$ngx_objext#g" \
                   -e "s#^\(.*\.\)cc\\$#$ngx_objs_dir\1$ngx_objext#g" \

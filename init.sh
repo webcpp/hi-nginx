@@ -1,2 +1,2 @@
 #!/bin/bash
-./configure --with-ld-opt="-lPocoNet -lPocoFoundation" --with-cc-opt="-O3"  --prefix=/home/ubuntu1610/nginx
+./configure --add-module=ngx_http_cpp_module --prefix=/home/ubuntu1610/nginx

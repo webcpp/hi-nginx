@@ -54,7 +54,6 @@ NGX_HTTP_FASTCGI_TEMP_PATH=
 NGX_HTTP_UWSGI_TEMP_PATH=
 NGX_HTTP_SCGI_TEMP_PATH=
 
-HTTP_CPP=YES
 HTTP_CACHE=YES
 HTTP_CHARSET=YES
 HTTP_GZIP=YES
@@ -221,7 +220,6 @@ $0: warning: the \"--with-ipv6\" option is deprecated"
         --http-scgi-temp-path=*)         NGX_HTTP_SCGI_TEMP_PATH="$value" ;;
 
         --with-http_ssl_module)          HTTP_SSL=YES               ;;
-        --with-http_cpp_module)          HTTP_CPP=YES               ;;
         --with-http_v2_module)           HTTP_V2=YES                ;;
         --with-http_realip_module)       HTTP_REALIP=YES            ;;
         --with-http_addition_module)     HTTP_ADDITION=YES          ;;
@@ -432,7 +430,6 @@ cat << END
 
   --with-http_ssl_module             enable ngx_http_ssl_module
   --with-http_v2_module              enable ngx_http_v2_module
-  --with-http_cpp_module             enable ngx_http_cpp_module
   --with-http_realip_module          enable ngx_http_realip_module
   --with-http_addition_module        enable ngx_http_addition_module
   --with-http_xslt_module            enable ngx_http_xslt_module

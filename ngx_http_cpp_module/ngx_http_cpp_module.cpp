@@ -320,7 +320,6 @@ static ngx_int_t normal_body_handler(ngx_http_request_t * r) {
     get_input_cookies(ngx_request.headers, ngx_request.cookies);
     set_form(r, ngx_request.headers, ngx_request.form);
 
-
     ngx_http_cpp_loc_conf_t * conf = (ngx_http_cpp_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_cpp_module);
     nginx::cpp_tools_t &cpp_tools = CPP_TOOLS[conf->cpp_tools_index];
     std::string class_name = cpp_tools.ROUTER->get_route(ngx_request.headers["method"], ngx_request.headers["uri"], ngx_request.route);
