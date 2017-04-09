@@ -12,8 +12,8 @@ namespace nginx {
     public:
 
         response() :
-        status(200)
-        , content("Hello,world")
+        status(404)
+        , content("<p style='text-align:center;margin:100px;'>404 Not Found</p>")
         , headers()
         , cookies()
         , nginx_session(0)
