@@ -217,7 +217,6 @@ static char * ngx_http_cpp_merge_loc_conf(ngx_conf_t* cf, void* parent, void* ch
 }
 
 static ngx_int_t ngx_http_cpp_handler(ngx_http_request_t *r) {
-    r->keepalive = 1;
     if (r->headers_in.content_length_n) {
         r->request_body_in_file_only = 1;
         r->request_body_in_persistent_file = 1;
@@ -252,6 +251,9 @@ static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::
         }
         input_headers[(char*) th[i].key.data] = (char*) th[i].value.data;
     }
+    if (input_headers.find("Connection") != input_headers.end()) {
+        r->keepalive = 1;
+    }
     ngx_http_cpp_loc_conf_t *conf;
     conf = (ngx_http_cpp_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_cpp_module);
     input_headers["cpp_module_dir"] = (char*) conf->module_dir.data;
@@ -262,11 +264,11 @@ static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::
     input_headers["cpp_upload_size"] = Poco::NumberFormatter::format(conf->upload_size);
     input_headers["cpp_session_expire"] = Poco::NumberFormatter::format(conf->session_expire);
 
-    input_headers["path"] = std::string((char*) r->uri.data, r->uri.len);
-    input_headers["query"] = std::string((char*) r->args.data, r->args.len);
-    input_headers["uri"] = std::string((char*) r->unparsed_uri.data, r->unparsed_uri.len);
-    input_headers["method"] = std::string((char*) r->method_name.data, r->method_name.len);
-    input_headers["client"] = std::string((char*) r->connection->addr_text.data, r->connection->addr_text.len);
+    input_headers["path"].assign((char*) r->uri.data, r->uri.len);
+    input_headers["query"].assign((char*) r->args.data, r->args.len);
+    input_headers["uri"].assign((char*) r->unparsed_uri.data, r->unparsed_uri.len);
+    input_headers["method"].assign((char*) r->method_name.data, r->method_name.len);
+    input_headers["client"].assign((char*) r->connection->addr_text.data, r->connection->addr_text.len);
 }
 
 static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string, std::string>& output_headers) {
