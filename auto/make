@@ -423,6 +423,12 @@ if test -n "$NGX_ADDON_SRCS"; then
 
     for ngx_src in $NGX_ADDON_SRCS
     do
+        ngx_cpp_ext=`echo ${ngx_src#*.}`
+        if [ $ngx_cpp_ext = cpp ]; then
+            ngx_cc="\$(CXX) $ngx_compile_opt \$(CXXFLAGS) \$(CFLAGS) $ngx_use_pch \$(ALL_INCS)"
+        else
+            ngx_cc="\$(CC) $ngx_compile_opt \$(CFLAGS) $ngx_use_pch \$(ALL_INCS)"
+        fi
         ngx_obj="addon/`basename \`dirname $ngx_src\``"
 
         ngx_obj=`echo $ngx_obj/\`basename $ngx_src\` \
