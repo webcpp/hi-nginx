@@ -29,7 +29,6 @@ namespace hi {
         , ROUTER()
         , CACHE()
         , SESSION()
-//        , HANDLER()
         {
         }
         virtual~cpp_tools_t() = default;
@@ -40,7 +39,6 @@ namespace hi {
         , ROUTER(other.ROUTER)
         , CACHE(other.CACHE)
         , SESSION(other.SESSION)
-//        , HANDLER(other.HANDLER)
         {
         }
 
@@ -52,7 +50,6 @@ namespace hi {
             this->ROUTER = right.ROUTER;
             this->CACHE = right.CACHE;
             this->SESSION = right.SESSION;
-//            this->HANDLER = right.HANDLER;
             return *this;
         }
 
@@ -62,7 +59,6 @@ namespace hi {
         Poco::SharedPtr<hi::route> ROUTER;
         Poco::SharedPtr<hi::cache> CACHE;
         Poco::SharedPtr<hi::session> SESSION;
-//        std::map<std::string, Poco::SharedPtr < hi::view>> HANDLER;
     };
 
 }

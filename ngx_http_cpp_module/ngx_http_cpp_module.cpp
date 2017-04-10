@@ -328,17 +328,11 @@ static ngx_int_t normal_body_handler(ngx_http_request_t * r) {
     std::string class_name = cpp_tools.ROUTER->get_route(ngx_request.headers["method"], ngx_request.headers["uri"], ngx_request.route);
     Poco::SharedPtr<hi::view> view_instance;
     if (!class_name.empty()) {
-        //        if (cpp_tools.HANDLER.find(class_name) == cpp_tools.HANDLER.end()) {
         auto finded = cpp_tools.CLASS_LOADER->findClass(class_name);
         if (finded && finded->canCreate()) {
             view_instance = cpp_tools.CLASS_LOADER->create(class_name);
-            //                cpp_tools.HANDLER[class_name] = view_instance;
         }
-        //        } else {
-        //            view_instance = cpp_tools.HANDLER[class_name];
-        //        }
     }
-
 
     if (view_instance.isNull()) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, ("Failed to allocate view_instance " + class_name).c_str());
