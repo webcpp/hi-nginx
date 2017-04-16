@@ -26,7 +26,7 @@ CPP =	$CPP
 LINK =	$LINK
 
 CXX = g++
-CXXFLAGS = -O3
+CXXFLAGS = -O3 -std=c++11
 
 END
 
