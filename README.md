@@ -1,7 +1,7 @@
 # Introduction
 A distribution of Nginx with c++ web development. 
 
-[hinginx demo](https://github.com/webcpp/hinginx_demo).
+[hi_demo](https://github.com/webcpp/hinginx_demo).
 
 # Dependency
 - gcc,g++(c++11)
