@@ -14,10 +14,10 @@ modules:
 	$(MAKE) -f objs/Makefile modules
 
 upgrade:
-	/home/ubuntu1610/nginx/sbin/nginx -t
+	/home/centos7/hi/sbin/nginx -t
 
-	kill -USR2 `cat /home/ubuntu1610/nginx/logs/nginx.pid`
+	kill -USR2 `cat /home/centos7/hi/logs/nginx.pid`
 	sleep 1
-	test -f /home/ubuntu1610/nginx/logs/nginx.pid.oldbin
+	test -f /home/centos7/hi/logs/nginx.pid.oldbin
 
-	kill -QUIT `cat /home/ubuntu1610/nginx/logs/nginx.pid.oldbin`
+	kill -QUIT `cat /home/centos7/hi/logs/nginx.pid.oldbin`

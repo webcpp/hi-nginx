@@ -12,7 +12,7 @@ namespace hi {
         view() = default;
         virtual~view() = default;
 
-        virtual void handler(const request& req, response& res) = 0;
+        virtual void handler(request& req, response& res) = 0;
     };
 }
 
