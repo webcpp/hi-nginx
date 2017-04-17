@@ -229,11 +229,11 @@ static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::
     if (input_headers.find("Connection") != input_headers.end()) {
         r->keepalive = 1;
     }
-    input_headers["path"].assign((char*) r->uri.data, r->uri.len);
-    input_headers["query"].assign((char*) r->args.data, r->args.len);
-    input_headers["uri"].assign((char*) r->unparsed_uri.data, r->unparsed_uri.len);
-    input_headers["method"].assign((char*) r->method_name.data, r->method_name.len);
-    input_headers["client"].assign((char*) r->connection->addr_text.data, r->connection->addr_text.len);
+    input_headers["path"] = std::string((char*) r->uri.data, r->uri.len);
+    input_headers["query"] = std::string((char*) r->args.data, r->args.len);
+    input_headers["uri"] = std::string((char*) r->unparsed_uri.data, r->unparsed_uri.len);
+    input_headers["method"] = std::string((char*) r->method_name.data, r->method_name.len);
+    input_headers["client"] = std::string((char*) r->connection->addr_text.data, r->connection->addr_text.len);
 }
 
 static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string, std::string>& output_headers) {
