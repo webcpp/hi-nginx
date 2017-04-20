@@ -5,10 +5,6 @@
 #include <vector>
 #include <map>
 #include <Poco/SharedPtr.h>
-#include <Poco/Net/HTTPCookie.h>
-#include <Poco/Net/NameValueCollection.h>
-#include <Poco/Net/HTTPMessage.h>
-
 #include "plugin.hpp"
 #include "../include/view.hpp"
 

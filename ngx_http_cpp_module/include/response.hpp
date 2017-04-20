@@ -12,8 +12,7 @@ namespace hi {
         response() :
         status(404)
         , content("<p style='text-align:center;margin:100px;'>404 Not Found</p>")
-        , headers()
-        , cookies() {
+        , headers(){
             this->headers.insert(std::make_pair("Content-Type", "text/html;charset=UTF-8"));
         }
         virtual~response() = default;
@@ -21,7 +20,6 @@ namespace hi {
         int status;
         std::string content;
         std::multimap<std::string, std::string> headers;
-        std::map<std::string, std::string> cookies;
     };
 }
 

@@ -10,11 +10,11 @@ namespace hi {
     class request {
     public:
 
-        request() : headers(), cookies(), form(), route() {
+        request() : client(), method(), uri(), temp_body_file(), headers() {
         }
         virtual~request() = default;
-        std::map<std::string, std::string> headers, cookies, form;
-        std::vector<std::string> route;
+        std::string client, method, uri, temp_body_file;
+        std::map<std::string, std::string> headers;
     };
 }
 

@@ -31,9 +31,6 @@ static ngx_int_t ngx_http_cpp_normal_handler(ngx_http_request_t *r);
 static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::string>& input_headers);
 static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string, std::string>& output_headers);
 
-static void get_input_cookies(const std::map<std::string, std::string>& input_headers, std::map<std::string, std::string>& cookies);
-static void set_output_cookies(const std::map<std::string, std::string>& cookies, std::multimap<std::string, std::string>& output_headers, bool ssl);
-
 
 
 ngx_command_t ngx_http_cpp_commands[] = {
@@ -161,11 +158,16 @@ static ngx_int_t ngx_http_cpp_normal_handler(ngx_http_request_t *r) {
     hi::request ngx_request;
     hi::response ngx_response;
 
-
     get_input_headers(r, ngx_request.headers);
-    get_input_cookies(ngx_request.headers, ngx_request.cookies);
+    if (ngx_request.headers.find("Connection") != ngx_request.headers.end()) {
+        r->keepalive = 1;
+    }
+    ngx_request.uri = std::string((char*) r->uri.data, r->uri.len).append("?").append((char*) r->args.data, r->args.len);
+    ngx_request.method = std::string((char*) r->method_name.data, r->method_name.len);
+    ngx_request.client = std::string((char*) r->connection->addr_text.data, r->connection->addr_text.len);
+
     if (r->headers_in.content_length_n > 0) {
-        ngx_request.form["temp_body_file_path"] = (char*) (r->request_body->temp_file->file.name.data);
+        ngx_request.temp_body_file = (char*) (r->request_body->temp_file->file.name.data);
     }
     view_instance->handler(ngx_request, ngx_response);
 
@@ -190,7 +192,6 @@ static ngx_int_t ngx_http_cpp_normal_handler(ngx_http_request_t *r) {
     out.buf = buf;
     out.next = NULL;
 
-    set_output_cookies(ngx_response.cookies, ngx_response.headers, (r->http_connection->ssl ? true : false));
     set_output_headers(r, ngx_response.headers);
     r->headers_out.status = ngx_response.status;
     r->headers_out.content_length_n = response.len;
@@ -226,12 +227,6 @@ static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::
         }
         input_headers[(char*) th[i].key.data] = (char*) th[i].value.data;
     }
-    if (input_headers.find("Connection") != input_headers.end()) {
-        r->keepalive = 1;
-    }
-    input_headers["uri"] = std::string((char*) r->uri.data, r->uri.len).append("?").append((char*) r->args.data, r->args.len);
-    input_headers["method"] = std::string((char*) r->method_name.data, r->method_name.len);
-    input_headers["client"] = std::string((char*) r->connection->addr_text.data, r->connection->addr_text.len);
 }
 
 static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string, std::string>& output_headers) {
@@ -246,30 +241,4 @@ static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string,
         }
     }
 
-}
-
-static void get_input_cookies(const std::map<std::string, std::string>& input_headers, std::map<std::string, std::string>& cookies) {
-    if (input_headers.find("Cookie") != input_headers.end()) {
-        const std::string& cookie_header = input_headers.at("Cookie");
-        std::string cookie_string = "cookie;" + cookie_header, tmp;
-        Poco::Net::NameValueCollection nvc;
-        Poco::Net::HTTPMessage::splitParameters(cookie_string, tmp, nvc);
-        for (auto & item : nvc) {
-            cookies[item.first] = item.second;
-        }
-    }
-}
-
-static void set_output_cookies(const std::map<std::string, std::string>& cookies, std::multimap<std::string, std::string>& output_headers, bool ssl) {
-    std::string cookie_header("Set-Cookie");
-    for (auto & item : cookies) {
-        Poco::Net::HTTPCookie cookie(item.first, item.second);
-        cookie.setMaxAge(-1);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(ssl);
-        //cookie.setVersion(1);
-
-        output_headers.insert(std::make_pair(cookie_header, cookie.toString()));
-    }
 }
