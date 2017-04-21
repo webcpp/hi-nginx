@@ -159,15 +159,12 @@ static ngx_int_t ngx_http_cpp_normal_handler(ngx_http_request_t *r) {
     hi::response ngx_response;
 
     get_input_headers(r, ngx_request.headers);
-    //    if (ngx_request.headers.find("Connection") != ngx_request.headers.end()) {
-    //        r->keepalive = 1;
-    //    }
     ngx_request.uri.assign((char*) r->uri.data, r->uri.len).append("?").append((char*) r->args.data, r->args.len);
     ngx_request.method.assign((char*) r->method_name.data, r->method_name.len);
     ngx_request.client.assign((char*) r->connection->addr_text.data, r->connection->addr_text.len);
 
     if (r->headers_in.content_length_n > 0) {
-        ngx_request.temp_body_file = (char*) (r->request_body->temp_file->file.name.data);
+        ngx_request.temp_body_file.assign((char*) r->request_body->temp_file->file.name.data, r->request_body->temp_file->file.name.len);
     }
     view_instance->handler(ngx_request, ngx_response);
 
