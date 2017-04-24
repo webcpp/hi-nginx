@@ -1,4 +1,9 @@
 
+Changes with nginx 1.12.0                                        12 Apr 2017
+
+    *) 1.12.x stable branch.
+
+
 Changes with nginx 1.11.13                                       04 Apr 2017
 
     *) Feature: the "http_429" parameter of the "proxy_next_upstream",
