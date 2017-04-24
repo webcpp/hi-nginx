@@ -14,18 +14,18 @@ static hi::cpp_tools_t CPP_TOOLS;
 typedef struct {
     ngx_str_t module_dir;
     ngx_str_t class_name;
-} ngx_http_cpp_loc_conf_t;
+} ngx_http_hi_loc_conf_t;
 
 
 
-static void * ngx_http_cpp_create_loc_conf(ngx_conf_t *cf);
-static char * ngx_http_cpp_merge_loc_conf(ngx_conf_t* cf, void* parent, void* child);
-static char *ngx_http_cpp_conf_handler(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf);
+static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* child);
+static char *ngx_http_hi_conf_handler(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
-static ngx_int_t ngx_http_cpp_handler(ngx_http_request_t *r);
-static void ngx_http_cpp_body_handler(ngx_http_request_t* r);
-static ngx_int_t ngx_http_cpp_normal_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r);
+static void ngx_http_hi_body_handler(ngx_http_request_t* r);
+static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r);
 
 
 static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::string>& input_headers);
@@ -33,21 +33,21 @@ static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string,
 
 
 
-ngx_command_t ngx_http_cpp_commands[] = {
+ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("cpp_module_dir"),
         NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_CONF_TAKE1,
         ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
-        offsetof(ngx_http_cpp_loc_conf_t, module_dir),
+        offsetof(ngx_http_hi_loc_conf_t, module_dir),
         NULL
     },
     {
         ngx_string("cpp_call"),
         NGX_HTTP_LOC_CONF | NGX_CONF_TAKE1,
-        ngx_http_cpp_conf_handler,
+        ngx_http_hi_conf_handler,
         NGX_HTTP_LOC_CONF_OFFSET,
-        offsetof(ngx_http_cpp_loc_conf_t, class_name),
+        offsetof(ngx_http_hi_loc_conf_t, class_name),
         NULL
     },
 
@@ -55,7 +55,7 @@ ngx_command_t ngx_http_cpp_commands[] = {
 };
 
 
-ngx_http_module_t ngx_http_cpp_module_ctx = {
+ngx_http_module_t ngx_http_hi_module_ctx = {
     NULL, /* preconfiguration */
     NULL, /* postconfiguration */
 
@@ -65,17 +65,17 @@ ngx_http_module_t ngx_http_cpp_module_ctx = {
     NULL, /* create server configuration */
     NULL, /* merge server configuration */
 
-    ngx_http_cpp_create_loc_conf, /* create location configuration */
-    ngx_http_cpp_merge_loc_conf /* merge location configuration */
+    ngx_http_hi_create_loc_conf, /* create location configuration */
+    ngx_http_hi_merge_loc_conf /* merge location configuration */
 };
 
 
 
 
-ngx_module_t ngx_http_cpp_module = {
+ngx_module_t ngx_http_hi_module = {
     NGX_MODULE_V1,
-    &ngx_http_cpp_module_ctx, /* module context */
-    ngx_http_cpp_commands, /* module directives */
+    &ngx_http_hi_module_ctx, /* module context */
+    ngx_http_hi_commands, /* module directives */
     NGX_HTTP_MODULE, /* module type */
     NULL, /* init master */
     NULL, /* init module */
@@ -87,8 +87,8 @@ ngx_module_t ngx_http_cpp_module = {
     NGX_MODULE_V1_PADDING
 };
 
-static void * ngx_http_cpp_create_loc_conf(ngx_conf_t *cf) {
-    ngx_http_cpp_loc_conf_t *conf = (ngx_http_cpp_loc_conf_t*) ngx_pcalloc(cf->pool, sizeof (ngx_http_cpp_loc_conf_t));
+static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
+    ngx_http_hi_loc_conf_t *conf = (ngx_http_hi_loc_conf_t*) ngx_pcalloc(cf->pool, sizeof (ngx_http_hi_loc_conf_t));
     if (conf) {
         conf->module_dir.len = 0;
         conf->module_dir.data = NULL;
@@ -99,9 +99,9 @@ static void * ngx_http_cpp_create_loc_conf(ngx_conf_t *cf) {
     return NGX_CONF_ERROR;
 }
 
-static char * ngx_http_cpp_merge_loc_conf(ngx_conf_t* cf, void* parent, void* child) {
-    ngx_http_cpp_loc_conf_t * prev = (ngx_http_cpp_loc_conf_t*) parent;
-    ngx_http_cpp_loc_conf_t * conf = (ngx_http_cpp_loc_conf_t*) child;
+static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* child) {
+    ngx_http_hi_loc_conf_t * prev = (ngx_http_hi_loc_conf_t*) parent;
+    ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t*) child;
 
     ngx_conf_merge_str_value(conf->module_dir, prev->module_dir, "");
     ngx_conf_merge_str_value(conf->class_name, prev->class_name, "");
@@ -115,32 +115,32 @@ static char * ngx_http_cpp_merge_loc_conf(ngx_conf_t* cf, void* parent, void* ch
     return NGX_CONF_OK;
 }
 
-static char *ngx_http_cpp_conf_handler(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+static char *ngx_http_hi_conf_handler(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
     ngx_http_core_loc_conf_t *clcf;
     clcf = (ngx_http_core_loc_conf_t *) ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
-    clcf->handler = ngx_http_cpp_handler;
+    clcf->handler = ngx_http_hi_handler;
     ngx_conf_set_str_slot(cf, cmd, conf);
     return NGX_CONF_OK;
 }
 
-static ngx_int_t ngx_http_cpp_handler(ngx_http_request_t *r) {
+static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
     if (r->headers_in.content_length_n > 0) {
         r->request_body_in_file_only = 1;
         r->request_body_in_persistent_file = 1;
         r->request_body_file_log_level = 0;
-        ngx_int_t rc = ngx_http_read_client_request_body(r, ngx_http_cpp_body_handler);
+        ngx_int_t rc = ngx_http_read_client_request_body(r, ngx_http_hi_body_handler);
         if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
             return rc;
         }
         return NGX_DONE;
     } else {
         ngx_http_discard_request_body(r);
-        return ngx_http_cpp_normal_handler(r);
+        return ngx_http_hi_normal_handler(r);
     }
 }
 
-static ngx_int_t ngx_http_cpp_normal_handler(ngx_http_request_t *r) {
-    ngx_http_cpp_loc_conf_t * conf = (ngx_http_cpp_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_cpp_module);
+static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
+    ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
     char* class_name = (char*) conf->class_name.data;
     Poco::SharedPtr<hi::view> view_instance;
     if (conf->class_name.len) {
@@ -204,8 +204,8 @@ static ngx_int_t ngx_http_cpp_normal_handler(ngx_http_request_t *r) {
 
 }
 
-static void ngx_http_cpp_body_handler(ngx_http_request_t* r) {
-    ngx_http_finalize_request(r, ngx_http_cpp_normal_handler(r));
+static void ngx_http_hi_body_handler(ngx_http_request_t* r) {
+    ngx_http_finalize_request(r, ngx_http_hi_normal_handler(r));
 }
 
 static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::string>& input_headers) {
