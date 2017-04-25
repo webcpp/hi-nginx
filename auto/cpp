@@ -1,0 +1,8 @@
+case `echo ${ngx_src#*.}` in
+    cpp|cc)
+        ngx_cc="g++ -O3 -std=c++11 $ngx_compile_opt \$(CFLAGS) $ngx_use_pch \$(ALL_INCS)"
+        ;;
+    *)
+        ngx_cc="\$(CC) $ngx_compile_opt \$(CFLAGS) $ngx_use_pch \$(ALL_INCS)"
+        ;;
+esac
