@@ -8,7 +8,7 @@ A distribution of Nginx with c++ web development.
 - Poco framework
 
 # Installation
-see `init.sh`
+see `init.sh` or `--add-module=ngx_http_hi_module`
 
 
 # Features
