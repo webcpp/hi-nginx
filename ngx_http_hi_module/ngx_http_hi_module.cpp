@@ -35,7 +35,7 @@ static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string,
 
 ngx_command_t ngx_http_hi_commands[] = {
     {
-        ngx_string("cpp_module_dir"),
+        ngx_string("hi_module_dir"),
         NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_CONF_TAKE1,
         ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
@@ -43,7 +43,7 @@ ngx_command_t ngx_http_hi_commands[] = {
         NULL
     },
     {
-        ngx_string("cpp_call"),
+        ngx_string("hi_call"),
         NGX_HTTP_LOC_CONF | NGX_CONF_TAKE1,
         ngx_http_hi_conf_handler,
         NGX_HTTP_LOC_CONF_OFFSET,
