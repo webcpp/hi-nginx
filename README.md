@@ -12,7 +12,7 @@ see `init.sh` or `--add-module=ngx_http_hi_module`
 
 
 # Features
-- All features of nginx-1.12.0 are inherited, i.e., it is 100% compatible with nginx.
+- All features of nginx-1.13.0 are inherited, i.e., it is 100% compatible with nginx.
 
 # Directives
 - directives : context :  http, server
