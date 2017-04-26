@@ -16,21 +16,21 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 
 # Directives
 - directives : context :  http, server
-    - cpp_module_dir,           default ''
+    - hi_module_dir,           default ''
 
     example:
 
 ```
-            cpp_module_dir      /home/centos7/hi/cpp;
+            hi_module_dir      /home/centos7/nginx/hi;
 ```
 - directives : content: location
-    - cpp_call 
+    - hi_call 
 
     example:
     
 ```
             location /hello {
-                cpp_call hi::hello ;
+                hi_call hi::hello ;
             }
 ```
 
@@ -58,10 +58,10 @@ namespace hi {
 ## nginx.conf
 
 ```
-        cpp_module_dir /home/centos7/hi/cpp;
+        hi_module_dir /home/centos7/nginx/hi;
 
         location = /hello {
-            cpp_call hi::hello;
+            hi_call hi::hello;
         }
 
 ```
