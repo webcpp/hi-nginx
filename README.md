@@ -15,22 +15,14 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 - All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
 
 # Directives
-- directives : context :  http, server
-    - hi_module_dir,           default ''
-
-    example:
-
-```
-            hi_module_dir      /home/centos7/nginx/hi;
-```
 - directives : content: location
-    - hi_call 
+    - hi 
 
     example:
     
 ```
             location /hello {
-                hi_call hi::hello ;
+                hi hi/hello.so ;
             }
 ```
 
@@ -58,10 +50,8 @@ namespace hi {
 ## nginx.conf
 
 ```
-        hi_module_dir /home/centos7/nginx/hi;
-
         location = /hello {
-            hi_call hi::hello;
+            hi hi::hello;
         }
 
 ```

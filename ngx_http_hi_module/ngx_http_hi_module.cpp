@@ -4,16 +4,19 @@ extern "C" {
 #include <ngx_http.h>
 }
 
+#include <vector>
+
 #include "include/request.hpp"
 #include "include/response.hpp"
-#include "lib/cpp_tools.hpp"
+#include "include/view.hpp"
+#include "lib/module_class.hpp"
 
 
-static hi::cpp_tools_t CPP_TOOLS;
+static std::vector<std::shared_ptr<hi::module_class<hi::view>>> PLUGIN;
 
 typedef struct {
-    ngx_str_t module_dir;
-    ngx_str_t class_name;
+    ngx_str_t module_path;
+    ngx_int_t module_index;
 } ngx_http_hi_loc_conf_t;
 
 
@@ -35,19 +38,11 @@ static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string,
 
 ngx_command_t ngx_http_hi_commands[] = {
     {
-        ngx_string("hi_module_dir"),
-        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_CONF_TAKE1,
-        ngx_conf_set_str_slot,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        offsetof(ngx_http_hi_loc_conf_t, module_dir),
-        NULL
-    },
-    {
-        ngx_string("hi_call"),
+        ngx_string("hi"),
         NGX_HTTP_LOC_CONF | NGX_CONF_TAKE1,
         ngx_http_hi_conf_handler,
         NGX_HTTP_LOC_CONF_OFFSET,
-        offsetof(ngx_http_hi_loc_conf_t, class_name),
+        offsetof(ngx_http_hi_loc_conf_t, module_path),
         NULL
     },
 
@@ -90,10 +85,9 @@ ngx_module_t ngx_http_hi_module = {
 static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
     ngx_http_hi_loc_conf_t *conf = (ngx_http_hi_loc_conf_t*) ngx_pcalloc(cf->pool, sizeof (ngx_http_hi_loc_conf_t));
     if (conf) {
-        conf->module_dir.len = 0;
-        conf->module_dir.data = NULL;
-        conf->class_name.len = 0;
-        conf->class_name.data = NULL;
+        conf->module_path.len = 0;
+        conf->module_path.data = NULL;
+        conf->module_index = NGX_CONF_UNSET;
         return conf;
     }
     return NGX_CONF_ERROR;
@@ -103,14 +97,29 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_http_hi_loc_conf_t * prev = (ngx_http_hi_loc_conf_t*) parent;
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t*) child;
 
-    ngx_conf_merge_str_value(conf->module_dir, prev->module_dir, "");
-    ngx_conf_merge_str_value(conf->class_name, prev->class_name, "");
+    ngx_conf_merge_str_value(conf->module_path, prev->module_path, "");
+    if (conf->module_index == NGX_CONF_UNSET && conf->module_path.len > 0) {
+        std::string tmp((char*) conf->module_path.data, conf->module_path.len);
+        if (tmp.front() != '/') {
+            tmp.insert(0, NGX_PREFIX);
+        }
 
-    if (CPP_TOOLS.CLASS_LOADER.isNull())
-        CPP_TOOLS.CLASS_LOADER.assign(new Poco::ClassLoader<hi::view>);
-    if (CPP_TOOLS.PLUGIN.isNull())
-        CPP_TOOLS.PLUGIN.assign(new hi::plugin(std::string((char*) conf->module_dir.data, conf->module_dir.len), CPP_TOOLS.CLASS_LOADER.get()));
-
+        ngx_int_t index = NGX_CONF_UNSET;
+        bool found = false;
+        for (auto& item : PLUGIN) {
+            ++index;
+            if (item->get_module() == tmp) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            conf->module_index = index;
+        } else {
+            PLUGIN.push_back(std::make_shared<hi::module_class < hi::view >> (tmp));
+            conf->module_index = PLUGIN.size() - 1;
+        }
+    }
 
     return NGX_CONF_OK;
 }
@@ -141,18 +150,12 @@ static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
 
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
-    char* class_name = (char*) conf->class_name.data;
-    Poco::SharedPtr<hi::view> view_instance;
-    if (conf->class_name.len) {
-        auto finded = CPP_TOOLS.CLASS_LOADER->findClass(class_name);
-        if (finded && finded->canCreate()) {
-            view_instance = CPP_TOOLS.CLASS_LOADER->create(class_name);
-        }
+    std::shared_ptr<hi::view> view_instance;
+    if (conf->module_index != NGX_CONF_UNSET) {
+        view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
     }
-
-    if (view_instance.isNull()) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, ("Failed to allocate view_instance " + std::string(class_name)).c_str());
-
+    if (!view_instance) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, ("Failed to allocate view_instance "));
         return NGX_HTTP_NOT_FOUND;
     }
 

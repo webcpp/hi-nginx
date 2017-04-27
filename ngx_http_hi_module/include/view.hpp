@@ -13,6 +13,8 @@ namespace hi {
         virtual~view() = default;
 
         virtual void handler(request& req, response& res) = 0;
+        typedef view * create_t();
+        typedef void destroy_t(view *);
     };
 }
 
