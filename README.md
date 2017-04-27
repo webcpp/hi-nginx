@@ -5,7 +5,6 @@ A distribution of Nginx with c++ web development.
 
 # Dependency
 - gcc,g++(c++11)
-- Poco framework
 
 # Installation
 see `install_demo.sh` or `--add-module=ngx_http_hi_module`
