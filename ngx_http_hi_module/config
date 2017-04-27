@@ -1,3 +1,5 @@
+CXX=g++
+CXXFLAGS="$CXXFLAGS -O3 -std=c++11"
 CORE_LIBS="$CORE_LIBS -lstdc++"
 ngx_addon_name=ngx_http_hi_module
 HTTP_MODULES="$HTTP_MODULES ngx_http_hi_module"
