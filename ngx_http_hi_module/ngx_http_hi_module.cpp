@@ -155,8 +155,8 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
     }
     if (!view_instance) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, ("Failed to allocate view_instance "));
-        return NGX_HTTP_NOT_FOUND;
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, std::string("Failed to allocate view_instance from ").append((char*) conf->module_path.data).c_str());
+        return NGX_HTTP_NOT_IMPLEMENTED;
     }
 
     hi::request ngx_request;

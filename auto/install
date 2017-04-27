@@ -113,7 +113,7 @@ install:	build $NGX_INSTALL_PERL_MODULES
 		|| mv '\$(DESTDIR)$NGX_SBIN_PATH' \\
 			'\$(DESTDIR)$NGX_SBIN_PATH.old'
 	cp $NGX_OBJS/nginx '\$(DESTDIR)$NGX_SBIN_PATH'
-	ln -s $(DESTDIR)$NGX_SBIN_PATH $(DESTDIR)`dirname "$NGX_SBIN_PATH"`/hi
+	ln -sf $(DESTDIR)$NGX_SBIN_PATH $(DESTDIR)`dirname "$NGX_SBIN_PATH"`/hi
 
 	test -d '\$(DESTDIR)$NGX_CONF_PREFIX' \\
 		|| mkdir -p '\$(DESTDIR)$NGX_CONF_PREFIX'
