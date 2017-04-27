@@ -31,9 +31,9 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 ## class
 
 ```
-namespace hi {
-
-    class hello : public view {
+#include "view.hpp"
+namespace hi{
+class hello : public view {
     public:
 
         void handler(request& req, response& res) {
@@ -43,15 +43,32 @@ namespace hi {
         }
 
     };
+}
 
+extern "C" hi::view* create() {
+    return new hi::hello();
+}
+
+extern "C" void destroy(hi::view* p) {
+    delete p;
 }
 
 ```
+
+## compile
+
+```
+g++ -std=c++11 -I/home/centos7/nginx/include  -shared -fPIC hello.cpp -o hello.so
+install hello.so /home/centos7/nginx/hi
+
+```
+
+
 ## nginx.conf
 
 ```
         location = /hello {
-            hi hi::hello;
+            hi hi/hello.so;
         }
 
 ```
