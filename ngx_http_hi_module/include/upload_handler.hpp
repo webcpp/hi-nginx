@@ -38,7 +38,7 @@ namespace hi {
         upload_handler(
                 const std::string& allowName
                 , const std::string& allowType
-                , const std::string& uploadDirectory 
+                , const std::string& uploadDirectory
                 , double allowMaxSize)
         : data()
         , allowName(allowName)
@@ -79,44 +79,48 @@ namespace hi {
                 fileinfo.savepath = Poco::format("%[0]s/%[1]s"
                         , this->directory
                         , Poco::DateTimeFormatter::format(now, "%Y/%m/%d/%H"));
-                Poco::File uploaddir(fileinfo.savepath);
-                if (!uploaddir.exists()) {
-                    uploaddir.createDirectories();
-                }
-
-                Poco::Path path(fileinfo.filename);
-                Poco::MD5Engine md5;
-                md5.update(Poco::DateTimeFormatter::format(now, Poco::DateTimeFormat::HTTP_FORMAT) + fileinfo.filename);
-                fileinfo.savepath += Poco::format("/%[0]s.%[1]s", Poco::MD5Engine::digestToHex(md5.digest()), path.getExtension());
-
-
-                Poco::FileOutputStream fileoutstream(fileinfo.savepath);
-
-
-                bool allowSave = true;
-                int ch = stream.get();
-                double size(0);
-
-                while (allowSave && ch >= 0) {
-                    if (size <= this->allowMaxSize) {
-                        fileoutstream.put((char) ch);
-                        ch = stream.get();
-                        size += 1;
-
-                    } else {
-                        allowSave = false;
-                        fileinfo.message += " The file size is too big.";
+                try {
+                    Poco::File uploaddir(fileinfo.savepath);
+                    if (!uploaddir.exists()) {
+                        uploaddir.createDirectories();
                     }
-                }
 
-                if (allowSave) {
-                    fileinfo.webpath = Poco::replace(fileinfo.savepath, this->directory, std::string());
-                    fileinfo.size = size;
-                    fileinfo.ok = true;
-                    fileinfo.message = "Allow upload.";
-                } else {
-                    Poco::File tempFile(fileinfo.savepath);
-                    tempFile.remove();
+                    Poco::Path path(fileinfo.filename);
+                    Poco::MD5Engine md5;
+                    md5.update(Poco::DateTimeFormatter::format(now, Poco::DateTimeFormat::HTTP_FORMAT) + fileinfo.filename);
+                    fileinfo.savepath += Poco::format("/%[0]s.%[1]s", Poco::MD5Engine::digestToHex(md5.digest()), path.getExtension());
+
+
+                    Poco::FileOutputStream fileoutstream(fileinfo.savepath);
+
+
+                    bool allowSave = true;
+                    int ch = stream.get();
+                    double size(0);
+
+                    while (allowSave && ch >= 0) {
+                        if (size <= this->allowMaxSize) {
+                            fileoutstream.put((char) ch);
+                            ch = stream.get();
+                            size += 1;
+
+                        } else {
+                            allowSave = false;
+                            fileinfo.message += " The file size is too big.";
+                        }
+                    }
+
+                    if (allowSave) {
+                        fileinfo.webpath = Poco::replace(fileinfo.savepath, this->directory, std::string());
+                        fileinfo.size = size;
+                        fileinfo.ok = true;
+                        fileinfo.message = "Allow upload.";
+                    } else {
+                        Poco::File tempFile(fileinfo.savepath);
+                        tempFile.remove();
+                    }
+                } catch (std::exception& e) {
+                    fileinfo.message += "The directory is not writeable.";
                 }
             }
 
