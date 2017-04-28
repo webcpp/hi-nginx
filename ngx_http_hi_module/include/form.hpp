@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <sstream>
 #include <Poco/Net/HTMLForm.h>
 #include <Poco/Net/HTTPRequest.h>
 #include "request.hpp"
@@ -30,9 +31,25 @@ namespace hi {
         poco_req.setContentType(req.headers.at("Content-Type"));
 
         Poco::Net::HTMLForm* poco_form = 0;
-        Poco::File temp_file(req.temp_body_file);
-        if (temp_file.exists() && temp_file.canRead()) {
-            Poco::FileInputStream is(req.temp_body_file);
+        if (req.save_body_in_file) {
+            Poco::File temp_file(req.temp_body_file);
+            if (temp_file.exists() && temp_file.canRead()) {
+                Poco::FileInputStream is(req.temp_body_file);
+                if (upload_handler) {
+                    poco_form = new Poco::Net::HTMLForm(poco_req, is, *upload_handler);
+                    auto result = upload_handler->get_data();
+                    for (auto & item : result) {
+                        if (item.ok) {
+                            form[item.name] = item.webpath;
+                        }
+                    }
+                } else {
+                    poco_form = new Poco::Net::HTMLForm(poco_req, is);
+                }
+                temp_file.remove();
+            }
+        } else {
+            std::istringstream is(req.temp_body_file);
             if (upload_handler) {
                 poco_form = new Poco::Net::HTMLForm(poco_req, is, *upload_handler);
                 auto result = upload_handler->get_data();
@@ -44,7 +61,6 @@ namespace hi {
             } else {
                 poco_form = new Poco::Net::HTMLForm(poco_req, is);
             }
-            temp_file.remove();
         }
         if (poco_form) {
             for (auto & item : *poco_form) {

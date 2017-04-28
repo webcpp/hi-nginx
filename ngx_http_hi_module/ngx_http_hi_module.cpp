@@ -5,7 +5,7 @@ extern "C" {
 }
 
 #include <vector>
-
+#include <memory>
 #include "include/request.hpp"
 #include "include/response.hpp"
 #include "include/view.hpp"
@@ -33,7 +33,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r);
 
 static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::string>& input_headers);
 static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string, std::string>& output_headers);
-
+static ngx_str_t get_input_body(ngx_http_request_t *r);
 
 
 ngx_command_t ngx_http_hi_commands[] = {
@@ -134,8 +134,11 @@ static char *ngx_http_hi_conf_handler(ngx_conf_t *cf, ngx_command_t *cmd, void *
 
 static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
     if (r->headers_in.content_length_n > 0) {
-        r->request_body_in_file_only = 1;
-        r->request_body_in_persistent_file = 1;
+        if (r->request_body_in_file_only == 1) {
+            r->request_body_in_persistent_file = 1;
+        } else {
+            r->request_body_in_single_buf = 1;
+        }
         r->request_body_file_log_level = 0;
         ngx_int_t rc = ngx_http_read_client_request_body(r, ngx_http_hi_body_handler);
         if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
@@ -167,8 +170,12 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     ngx_request.method.assign((char*) r->method_name.data, r->method_name.len);
     ngx_request.client.assign((char*) r->connection->addr_text.data, r->connection->addr_text.len);
 
-    if (r->headers_in.content_length_n > 0) {
+    if (r->request_body_in_file_only == 1) {
         ngx_request.temp_body_file.assign((char*) r->request_body->temp_file->file.name.data, r->request_body->temp_file->file.name.len);
+        ngx_request.save_body_in_file = true;
+    } else {
+        ngx_str_t body = get_input_body(r);
+        ngx_request.temp_body_file.assign((char*) body.data, body.len);
     }
     view_instance->handler(ngx_request, ngx_response);
 
@@ -242,4 +249,52 @@ static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string,
         }
     }
 
+}
+
+static ngx_str_t get_input_body(ngx_http_request_t *r) {
+    u_char *p;
+    u_char *data;
+    size_t len;
+    ngx_buf_t *buf, *next;
+    ngx_chain_t *cl;
+    ngx_str_t body = ngx_null_string;
+
+    if (r->request_body == NULL || r->request_body->bufs == NULL) {
+        return body;
+    }
+
+    if (r->request_body->temp_file) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "temp_file: %s", r->request_body->temp_file->file.name.data);
+        body = r->request_body->temp_file->file.name;
+        return body;
+    } else {
+        cl = r->request_body->bufs;
+        buf = cl->buf;
+
+        if (cl->next == NULL) {
+            len = buf->last - buf->pos;
+            p = (u_char*) ngx_pnalloc(r->pool, len + 1);
+            if (p == NULL) {
+                return body;
+            }
+            data = p;
+            ngx_memcpy(p, buf->pos, len);
+            data[len] = 0;
+        } else {
+            next = cl->next->buf;
+            len = (buf->last - buf->pos) + (next->last - next->pos);
+            p = (u_char*) ngx_pnalloc(r->pool, len + 1);
+            data = p;
+            if (p == NULL) {
+                return body;
+            }
+            p = ngx_cpymem(p, buf->pos, buf->last - buf->pos);
+            ngx_memcpy(p, next->pos, next->last - next->pos);
+            data[len] = 0;
+        }
+    }
+
+    body.len = len;
+    body.data = data;
+    return body;
 }
