@@ -8,11 +8,11 @@ extern "C" {
 #include <memory>
 #include "include/request.hpp"
 #include "include/response.hpp"
-#include "include/view.hpp"
+#include "include/servlet.hpp"
 #include "lib/module_class.hpp"
 
 
-static std::vector<std::shared_ptr<hi::module_class<hi::view>>> PLUGIN;
+static std::vector<std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
 
 typedef struct {
     ngx_str_t module_path;
@@ -116,7 +116,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         if (found) {
             conf->module_index = index;
         } else {
-            PLUGIN.push_back(std::make_shared<hi::module_class < hi::view >> (tmp));
+            PLUGIN.push_back(std::make_shared<hi::module_class < hi::servlet >> (tmp));
             conf->module_index = PLUGIN.size() - 1;
         }
     }
@@ -153,12 +153,12 @@ static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
 
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
-    std::shared_ptr<hi::view> view_instance;
+    std::shared_ptr<hi::servlet> view_instance;
     if (conf->module_index != NGX_CONF_UNSET) {
         view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
     }
     if (!view_instance) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, std::string("Failed to allocate view_instance from ").append((char*) conf->module_path.data).c_str());
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, std::string("Failed to allocate servlet_instance from ").append((char*) conf->module_path.data).c_str());
         return NGX_HTTP_NOT_IMPLEMENTED;
     }
 
@@ -166,7 +166,10 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     hi::response ngx_response;
 
     get_input_headers(r, ngx_request.headers);
-    ngx_request.uri.assign((char*) r->uri.data, r->uri.len).append("?").append((char*) r->args.data, r->args.len);
+    ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
+    if (r->args.len > 0) {
+        ngx_request.uri.append("?").append((char*) r->args.data, r->args.len);
+    }
     ngx_request.method.assign((char*) r->method_name.data, r->method_name.len);
     ngx_request.client.assign((char*) r->connection->addr_text.data, r->connection->addr_text.len);
 
