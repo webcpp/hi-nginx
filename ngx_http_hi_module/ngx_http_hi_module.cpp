@@ -20,7 +20,7 @@ typedef struct {
 } ngx_http_hi_loc_conf_t;
 
 
-
+static ngx_int_t preconfiguration(ngx_conf_t *cf);
 static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* child);
 static char *ngx_http_hi_conf_handler(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -51,7 +51,7 @@ ngx_command_t ngx_http_hi_commands[] = {
 
 
 ngx_http_module_t ngx_http_hi_module_ctx = {
-    NULL, /* preconfiguration */
+    preconfiguration, /* preconfiguration */
     NULL, /* postconfiguration */
 
     NULL, /* create main configuration */
@@ -81,6 +81,11 @@ ngx_module_t ngx_http_hi_module = {
     NULL, /* exit master */
     NGX_MODULE_V1_PADDING
 };
+
+static ngx_int_t preconfiguration(ngx_conf_t *cf) {
+    PLUGIN.clear();
+    return NGX_OK;
+}
 
 static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
     ngx_http_hi_loc_conf_t *conf = (ngx_http_hi_loc_conf_t*) ngx_pcalloc(cf->pool, sizeof (ngx_http_hi_loc_conf_t));
