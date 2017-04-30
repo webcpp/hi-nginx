@@ -21,9 +21,9 @@ typedef struct {
 
 
 static ngx_int_t preconfiguration(ngx_conf_t *cf);
+static ngx_int_t postconfiguration(ngx_conf_t *cf);
 static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* child);
-static char *ngx_http_hi_conf_handler(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r);
@@ -40,7 +40,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi"),
         NGX_HTTP_LOC_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_handler,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, module_path),
         NULL
@@ -52,7 +52,7 @@ ngx_command_t ngx_http_hi_commands[] = {
 
 ngx_http_module_t ngx_http_hi_module_ctx = {
     preconfiguration, /* preconfiguration */
-    NULL, /* postconfiguration */
+    postconfiguration, /* postconfiguration */
 
     NULL, /* create main configuration */
     NULL, /* init main configuration */
@@ -84,6 +84,22 @@ ngx_module_t ngx_http_hi_module = {
 
 static ngx_int_t preconfiguration(ngx_conf_t *cf) {
     PLUGIN.clear();
+    return NGX_OK;
+}
+
+static ngx_int_t postconfiguration(ngx_conf_t *cf) {
+    ngx_http_handler_pt *h;
+    ngx_http_core_main_conf_t *cmcf;
+
+    cmcf = (ngx_http_core_main_conf_t *) ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
+
+    h = (ngx_http_handler_pt *) ngx_array_push(&cmcf->phases[NGX_HTTP_CONTENT_PHASE].handlers);
+    if (h == NULL) {
+        return NGX_ERROR;
+    }
+
+    *h = ngx_http_hi_handler;
+
     return NGX_OK;
 }
 
@@ -126,14 +142,6 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         }
     }
 
-    return NGX_CONF_OK;
-}
-
-static char *ngx_http_hi_conf_handler(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
-    ngx_http_core_loc_conf_t *clcf;
-    clcf = (ngx_http_core_loc_conf_t *) ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
-    clcf->handler = ngx_http_hi_handler;
-    ngx_conf_set_str_slot(cf, cmd, conf);
     return NGX_CONF_OK;
 }
 
