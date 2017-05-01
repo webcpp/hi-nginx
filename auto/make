@@ -412,7 +412,7 @@ if test -n "$NGX_ADDON_SRCS"; then
 
     for ngx_src in $NGX_ADDON_SRCS
     do
-        . auto/cpp
+        . auto/hi
         ngx_obj="addon/`basename \`dirname $ngx_src\``"
 
         ngx_obj=`echo $ngx_obj/\`basename $ngx_src\` \
