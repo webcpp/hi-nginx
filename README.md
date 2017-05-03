@@ -14,7 +14,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 - All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
 
 # Directives
-- directives : content: location
+- directives : content: loc
     - hi 
 
     example:
@@ -23,6 +23,24 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
             location /hello {
                 hi hi/hello.so ;
             }
+```
+
+- directives : content: main,srv,loc
+    - hi_cache_size
+
+        example:
+
+```
+        hi_cache_size 10;
+```
+
+- directives : content: main,srv,loc
+    - hi_cache_expires
+
+        example:
+
+```
+        hi_cache_expires 300s;
 ```
 
 # hello,world
