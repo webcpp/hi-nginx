@@ -7,7 +7,6 @@ extern "C" {
 
 #include <vector>
 #include <memory>
-#include <future>
 #include "include/request.hpp"
 #include "include/response.hpp"
 #include "include/servlet.hpp"
