@@ -2,21 +2,34 @@ extern "C" {
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+#include <ngx_md5.h>
 }
 
 #include <vector>
 #include <memory>
+#include <future>
 #include "include/request.hpp"
 #include "include/response.hpp"
 #include "include/servlet.hpp"
 #include "lib/module_class.hpp"
+#include "lib/lrucache.hpp"
+
+struct cache_ele_t {
+    int status = 200;
+    time_t t;
+    std::string header, content;
+};
 
 
 static std::vector<std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
+static std::vector<std::shared_ptr<cache::lru_cache<std::string, cache_ele_t>>> CACHE;
 
 typedef struct {
     ngx_str_t module_path;
     ngx_int_t module_index;
+    ngx_int_t cache_expires;
+    ngx_int_t cache_index;
+    size_t cache_size;
 } ngx_http_hi_loc_conf_t;
 
 
@@ -43,6 +56,22 @@ ngx_command_t ngx_http_hi_commands[] = {
         ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, module_path),
+        NULL
+    },
+    {
+        ngx_string("hi_cache_size"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_num_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, cache_size),
+        NULL
+    },
+    {
+        ngx_string("hi_cache_expires"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_sec_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, cache_expires),
         NULL
     },
 
@@ -84,6 +113,7 @@ ngx_module_t ngx_http_hi_module = {
 
 static ngx_int_t preconfiguration(ngx_conf_t *cf) {
     PLUGIN.clear();
+    CACHE.clear();
     return NGX_OK;
 }
 
@@ -109,6 +139,9 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->module_path.len = 0;
         conf->module_path.data = NULL;
         conf->module_index = NGX_CONF_UNSET;
+        conf->cache_size = NGX_CONF_UNSET_UINT;
+        conf->cache_expires = NGX_CONF_UNSET;
+        conf->cache_index = NGX_CONF_UNSET;
         return conf;
     }
     return NGX_CONF_ERROR;
@@ -119,6 +152,8 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t*) child;
 
     ngx_conf_merge_str_value(conf->module_path, prev->module_path, "");
+    ngx_conf_merge_uint_value(conf->cache_size, prev->cache_size, (size_t) 10);
+    ngx_conf_merge_sec_value(conf->cache_expires, prev->cache_expires, (ngx_int_t) 500);
     if (conf->module_index == NGX_CONF_UNSET && conf->module_path.len > 0) {
         std::string tmp((char*) conf->module_path.data, conf->module_path.len);
         if (tmp.front() != '/') {
@@ -141,6 +176,12 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
             conf->module_index = PLUGIN.size() - 1;
         }
     }
+
+    if (conf->cache_index == NGX_CONF_UNSET) {
+        CACHE.push_back(std::make_shared<cache::lru_cache < std::string, cache_ele_t >> (conf->cache_size));
+        conf->cache_index = CACHE.size() - 1;
+    }
+
 
     return NGX_CONF_OK;
 }
@@ -166,34 +207,69 @@ static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
 
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
-    std::shared_ptr<hi::servlet> view_instance;
-    if (conf->module_index != NGX_CONF_UNSET) {
-        view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
-    }
-    if (!view_instance) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, std::string("Failed to allocate servlet_instance from ").append((char*) conf->module_path.data).c_str());
-        return NGX_HTTP_NOT_IMPLEMENTED;
-    }
-
     hi::request ngx_request;
     hi::response ngx_response;
+    std::shared_ptr<hi::servlet> view_instance;
 
-    get_input_headers(r, ngx_request.headers);
-    ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
+    std::string cache_k((char*) r->uri.data, r->uri.len);
     if (r->args.len > 0) {
-        ngx_request.uri.append("?").append((char*) r->args.data, r->args.len);
+        cache_k.append("?").append((char*) r->args.data, r->args.len);
     }
-    ngx_request.method.assign((char*) r->method_name.data, r->method_name.len);
-    ngx_request.client.assign((char*) r->connection->addr_text.data, r->connection->addr_text.len);
+    u_char *p;
+    ngx_md5_t md5;
+    u_char md5_buf[16];
 
-    if (r->request_body_in_file_only == 1) {
-        ngx_request.temp_body_file.assign((char*) r->request_body->temp_file->file.name.data, r->request_body->temp_file->file.name.len);
-        ngx_request.save_body_in_file = true;
-    } else {
-        ngx_str_t body = get_input_body(r);
-        ngx_request.temp_body_file.assign((char*) body.data, body.len);
+    p = (u_char*) ngx_palloc(r->pool, 32);
+    if (p == NULL) {
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-    view_instance->handler(ngx_request, ngx_response);
+
+    ngx_md5_init(&md5);
+    ngx_md5_update(&md5, (u_char*) cache_k.c_str(), cache_k.size());
+    ngx_md5_final(md5_buf, &md5);
+
+    ngx_hex_dump(p, md5_buf, sizeof (md5_buf));
+    cache_k.assign((char*) p, 32);
+
+    if (CACHE[conf->cache_index]->exists(cache_k)) {
+        const cache_ele_t& cache_v = CACHE[conf->cache_index]->get(cache_k);
+        ngx_response.content = cache_v.content;
+        ngx_response.headers.find("Content-Type")->second = cache_v.header;
+        ngx_response.status = cache_v.status;
+        time_t now = time(NULL);
+        if (difftime(now, cache_v.t) > conf->cache_expires) {
+            CACHE[conf->cache_index]->erase(cache_k);
+        }
+    } else {
+        view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
+        if (!view_instance) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, std::string("Failed to allocate servlet_instance from ").append((char*) conf->module_path.data).c_str());
+            return NGX_HTTP_NOT_IMPLEMENTED;
+        }
+
+        get_input_headers(r, ngx_request.headers);
+        ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
+        if (r->args.len > 0) {
+            ngx_request.uri.append("?").append((char*) r->args.data, r->args.len);
+        }
+        ngx_request.method.assign((char*) r->method_name.data, r->method_name.len);
+        ngx_request.client.assign((char*) r->connection->addr_text.data, r->connection->addr_text.len);
+
+        if (r->request_body_in_file_only == 1) {
+            ngx_request.temp_body_file.assign((char*) r->request_body->temp_file->file.name.data, r->request_body->temp_file->file.name.len);
+            ngx_request.save_body_in_file = true;
+        } else {
+            ngx_str_t body = get_input_body(r);
+            ngx_request.temp_body_file.assign((char*) body.data, body.len);
+        }
+        view_instance->handler(ngx_request, ngx_response);
+        cache_ele_t cache_v;
+        cache_v.content = ngx_response.content;
+        cache_v.header = ngx_response.headers.find("Content-Type")->second;
+        cache_v.status = ngx_response.status;
+        cache_v.t = time(NULL);
+        CACHE[conf->cache_index]->put(cache_k, cache_v);
+    }
 
     ngx_str_t response;
     response.data = (u_char*) ngx_response.content.c_str();
