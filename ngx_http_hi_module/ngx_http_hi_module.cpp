@@ -51,7 +51,7 @@ static ngx_str_t get_input_body(ngx_http_request_t *r);
 ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi"),
-        NGX_HTTP_LOC_CONF | NGX_CONF_TAKE1,
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
         ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, module_path),
@@ -59,7 +59,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     },
     {
         ngx_string("hi_cache_size"),
-        NGX_HTTP_LOC_CONF | NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_CONF_TAKE1,
+        NGX_HTTP_LOC_CONF | NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
         ngx_conf_set_num_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, cache_size),
@@ -67,7 +67,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     },
     {
         ngx_string("hi_cache_expires"),
-        NGX_HTTP_LOC_CONF | NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_CONF_TAKE1,
+        NGX_HTTP_LOC_CONF | NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
         ngx_conf_set_sec_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, cache_expires),
@@ -262,12 +262,14 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             ngx_request.temp_body_file.assign((char*) body.data, body.len);
         }
         view_instance->handler(ngx_request, ngx_response);
-        cache_ele_t cache_v;
-        cache_v.content = ngx_response.content;
-        cache_v.header = ngx_response.headers.find("Content-Type")->second;
-        cache_v.status = ngx_response.status;
-        cache_v.t = time(NULL);
-        CACHE[conf->cache_index]->put(cache_k, cache_v);
+        if (conf->cache_expires > 0) {
+            cache_ele_t cache_v;
+            cache_v.content = ngx_response.content;
+            cache_v.header = ngx_response.headers.find("Content-Type")->second;
+            cache_v.status = ngx_response.status;
+            cache_v.t = time(NULL);
+            CACHE[conf->cache_index]->put(cache_k, cache_v);
+        }
     }
 
     ngx_str_t response;
