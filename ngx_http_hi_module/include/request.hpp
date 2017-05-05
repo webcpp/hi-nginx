@@ -9,12 +9,19 @@ namespace hi {
     class request {
     public:
 
-        request() : save_body_in_file(false), client(), method(), uri(), temp_body_file(), headers() {
+        request() :
+        client()
+        , user_agent()
+        , method()
+        , uri()
+        , param()
+        , headers()
+        , form()
+        , cookies() {
         }
         virtual~request() = default;
-        bool save_body_in_file;
-        std::string client, method, uri, temp_body_file;
-        std::map<std::string, std::string> headers;
+        std::string client, user_agent, method, uri, param;
+        std::map<std::string, std::string> headers, form, cookies;
     };
 }
 
