@@ -14,8 +14,8 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 - All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
 
 # Directives
-- directives : content: loc
-    - hi 
+- directives : content: loc,if in loc
+    - hi,default: ""
 
     example:
     
@@ -24,23 +24,49 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
                 hi hi/hello.so ;
             }
 ```
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_need_cache,default: on
 
-- directives : content: main,srv,loc
-    - hi_cache_size
+    example:
 
-        example:
+```
+        hi_need_cache on|off;
+```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_cache_size,default: 10
+
+    example:
 
 ```
         hi_cache_size 10;
 ```
 
-- directives : content: main,srv,loc
-    - hi_cache_expires
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_cache_expires,default: 500s
+
+    example:
+
+```
+        hi_cache_expires 300s;
+```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_need_headers,default: off
 
         example:
 
 ```
-        hi_cache_expires 300s;
+        hi_need_headers on|off;
+```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_need_cookies,default: on
+
+        example:
+
+```
+        hi_need_cookies on|off;
 ```
 
 # hello,world
@@ -83,9 +109,4 @@ install hello.so /home/centos7/nginx/hi
 
 ## nginx.conf
 
-```
-        location = /hello {
-            hi hi/hello.so;
-        }
-
-```
+[hi_demo_conf](https://github.com/webcpp/hi_demo/blob/master/demo.conf)
