@@ -29,3 +29,4 @@
 *.app
 /objs/
 nbproject
+/nginx.service

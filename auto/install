@@ -220,3 +220,28 @@ upgrade:
 
 	kill -QUIT \`cat $NGX_PID_PATH.oldbin\`
 END
+
+
+# create systemd service file
+
+cat << END > nginx.service
+
+[Unit]
+Description=The NGINX HTTP and reverse proxy server
+After=syslog.target network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+PIDFile=$NGX_PID_PATH
+ExecStartPre=$NGX_SBIN_PATH -t
+ExecStart=$NGX_SBIN_PATH
+ExecReload=/bin/kill -s HUP \$MAINPID
+ExecStop=/bin/kill -s QUIT \$MAINPID
+PrivateTmp=true
+#Restart=on-failure
+#RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+
+END
