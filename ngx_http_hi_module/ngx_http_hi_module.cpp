@@ -274,14 +274,15 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
         if (CACHE[conf->cache_index]->exists(*cache_k)) {
             const cache_ele_t& cache_v = CACHE[conf->cache_index]->get(*cache_k);
-            ngx_response.content = cache_v.content;
-            ngx_response.headers.find("Content-Type")->second = cache_v.header;
-            ngx_response.status = cache_v.status;
             time_t now = time(NULL);
             if (difftime(now, cache_v.t) > conf->cache_expires) {
                 CACHE[conf->cache_index]->erase(*cache_k);
+            } else {
+                ngx_response.content = cache_v.content;
+                ngx_response.headers.find("Content-Type")->second = cache_v.header;
+                ngx_response.status = cache_v.status;
+                goto done;
             }
-            goto done;
         }
     }
     if (conf->need_headers == 1) {
