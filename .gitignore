@@ -30,3 +30,4 @@
 /objs/
 nbproject
 /nginx.service
+/Makefile
