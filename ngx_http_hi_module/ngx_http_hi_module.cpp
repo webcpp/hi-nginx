@@ -178,10 +178,10 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 
     ngx_conf_merge_str_value(conf->module_path, prev->module_path, "");
     ngx_conf_merge_uint_value(conf->cache_size, prev->cache_size, (size_t) 10);
-    ngx_conf_merge_sec_value(conf->cache_expires, prev->cache_expires, (ngx_int_t) 500);
+    ngx_conf_merge_sec_value(conf->cache_expires, prev->cache_expires, (ngx_int_t) 300);
     ngx_conf_merge_value(conf->need_headers, prev->need_headers, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_cache, prev->need_cache, (ngx_flag_t) 1);
-    ngx_conf_merge_value(conf->need_cookies, prev->need_cookies, (ngx_flag_t) 1);
+    ngx_conf_merge_value(conf->need_cookies, prev->need_cookies, (ngx_flag_t) 0);
     if (conf->module_index == NGX_CONF_UNSET && conf->module_path.len > 0) {
         std::string tmp((char*) conf->module_path.data, conf->module_path.len);
         if (tmp.front() != '/') {

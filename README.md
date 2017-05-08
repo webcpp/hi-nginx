@@ -43,7 +43,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_cache_expires,default: 500s
+    - hi_cache_expires,default: 300s
 
     example:
 
@@ -61,7 +61,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_need_cookies,default: on
+    - hi_need_cookies,default: off
 
         example:
 
