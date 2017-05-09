@@ -52,8 +52,8 @@ static void ngx_http_hi_body_handler(ngx_http_request_t* r);
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r);
 
 
-static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::string>& input_headers);
-static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string, std::string>& output_headers);
+static void get_input_headers(ngx_http_request_t* r, std::unordered_map<std::string, std::string>& input_headers);
+static void set_output_headers(ngx_http_request_t* r, std::unordered_multimap<std::string, std::string>& output_headers);
 static ngx_str_t get_input_body(ngx_http_request_t *r);
 
 
@@ -360,7 +360,7 @@ static void ngx_http_hi_body_handler(ngx_http_request_t* r) {
     ngx_http_finalize_request(r, ngx_http_hi_normal_handler(r));
 }
 
-static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::string>& input_headers) {
+static void get_input_headers(ngx_http_request_t* r, std::unordered_map<std::string, std::string>& input_headers) {
     ngx_table_elt_t *th;
     ngx_list_part_t *part;
     part = &r->headers_in.headers.part;
@@ -375,11 +375,11 @@ static void get_input_headers(ngx_http_request_t* r, std::map<std::string, std::
             th = (ngx_table_elt_t*) part->elts;
             i = 0;
         }
-        input_headers[(char*) th[i].key.data] = (char*) th[i].value.data;
+        input_headers[(char*) th[i].key.data] = std::move(std::string((char*) th[i].value.data, th[i].value.len));
     }
 }
 
-static void set_output_headers(ngx_http_request_t* r, std::multimap<std::string, std::string>& output_headers) {
+static void set_output_headers(ngx_http_request_t* r, std::unordered_multimap<std::string, std::string>& output_headers) {
     for (auto& item : output_headers) {
         ngx_table_elt_t * h = (ngx_table_elt_t *) ngx_list_push(&r->headers_out.headers);
         if (h) {

@@ -3,7 +3,7 @@
 
 
 #include <string>
-#include <map>
+#include <unordered_map>
 
 namespace hi {
 
@@ -19,21 +19,21 @@ namespace hi {
         return std::string(it, rit.base());
     }
 
-    static void parser_param(const std::string& data, std::map<std::string, std::string>& result, char c = '&', char cc = '=') {
-        if(data.empty())return;
+    static void parser_param(const std::string& data, std::unordered_map<std::string, std::string>& result, char c = '&', char cc = '=') {
+        if (data.empty())return;
         size_t start = 0, p, q;
         while (true) {
             p = data.find(c, start);
             if (p == std::string::npos) {
                 q = data.find(cc, start);
                 if (q != std::string::npos) {
-                    result[trim(data.substr(start, q - start))] = trim(data.substr(q + 1));
+                    result[trim(data.substr(start, q - start))] = std::move(trim(data.substr(q + 1)));
                 }
                 break;
             } else {
                 q = data.find(cc, start);
                 if (q != std::string::npos) {
-                    result[trim(data.substr(start, q - start))] = trim(data.substr(q + 1, p - q - 1));
+                    result[trim(data.substr(start, q - start))] = std::move(trim(data.substr(q + 1, p - q - 1)));
                 }
                 start = p + 1;
             }

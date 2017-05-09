@@ -2,7 +2,7 @@
 #define REQUEST_HPP
 
 #include <string>
-#include <map>
+#include <unordered_map>
 
 namespace hi {
 
@@ -21,7 +21,7 @@ namespace hi {
         }
         virtual~request() = default;
         std::string client, user_agent, method, uri, param;
-        std::map<std::string, std::string> headers, form, cookies;
+        std::unordered_map<std::string, std::string> headers, form, cookies;
     };
 }
 
