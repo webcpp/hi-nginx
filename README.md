@@ -4,6 +4,7 @@ A distribution of Nginx with c++ web development.
 [hi_demo](https://github.com/webcpp/hi_demo).
 
 # Dependency
+- linux
 - gcc,g++(c++11)
 
 # Installation
