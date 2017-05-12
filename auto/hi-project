@@ -1,0 +1,86 @@
+if test -n "$1";then
+    if test "$1" = "help";then
+        echo \$1:project name.
+        echo ----default:demo
+        echo \$2:hi\(nginx\) install directory.
+        echo ----default:/home/centos7/nginx
+        exit
+    fi
+fi
+
+echo "create hi project."
+
+if test -n "$1";then 
+    PROJECT=$1
+else 
+    PROJECT=demo
+fi
+
+if test -n "$2";then 
+    NGINX_INSTALL_DIR=$2
+else
+    NGINX_INSTALL_DIR=/home/centos7/nginx
+fi
+
+echo "create hi project $PROJECT Makefile."
+
+mkdir -pv $PROJECT
+
+cat << END                                                     > $PROJECT/Makefile
+
+PROJECT=$PROJECT.so
+SRC=\$(wildcard *.cpp)
+OBJ=\$(patsubst %.cpp,%.o,\$(SRC))
+NGINX_INSTALL_DIR=$NGINX_INSTALL_DIR
+
+CC=g++ 
+CXXFLAGS+=-O3 -std=c++11 -fPIC -Wall -I\$(NGINX_INSTALL_DIR)/include
+LDLIBS+=
+LDFLAGS+=-shared 
+
+all:\$(PROJECT)
+
+\$(PROJECT): \$(OBJ)
+	g++ \$(CXXFLAGS) \$(LDFLAGS)  \$(LDLIBS) -o \$@ \$^
+
+clean:
+	rm -f  \$(OBJ) \$(PROJECT)
+
+install:
+	install \$(PROJECT) \$(NGINX_INSTALL_DIR)/hi
+
+END
+
+
+echo "create hi project $PROJECT demo source file."
+
+cat << END                                                     > $PROJECT/$PROJECT.cpp
+
+#include "servlet.hpp"
+
+
+namespace hi {
+
+    class $PROJECT : public servlet {
+    public:
+
+        void handler(request& req, response& res) {
+            res.headers.find("Content-Type")->second = "text/plain;charset=UTF-8";
+            res.content = "hello,world";
+            res.status = 200;
+        }
+
+    };
+}
+
+extern "C" hi::servlet* create() {
+    return new hi::$PROJECT();
+}
+
+extern "C" void destroy(hi::servlet* p) {
+    delete p;
+}
+
+END
+
+

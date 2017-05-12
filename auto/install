@@ -160,6 +160,7 @@ install:	build $NGX_INSTALL_PERL_MODULES
 	cp -R $NGX_ADDONS/include '\$(DESTDIR)$NGX_PREFIX/'
 
 	test -d '\$(DESTDIR)$NGX_PREFIX/hi' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/hi'
+	cp auto/hi-project '\$(DESTDIR)$NGX_PREFIX/hi'
 END
 
 
