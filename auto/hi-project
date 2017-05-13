@@ -1,9 +1,9 @@
 if test -n "$1";then
-    if test "$1" = "help";then
+    if test "$1" = "--help" || test "$1" = "-h" ;then
         echo \$1:project name.
-        echo ----default:demo
+        echo -e "\tdefault:demo"
         echo \$2:hi\(nginx\) install directory.
-        echo ----default:/home/centos7/nginx
+        echo -e "\tdefault:/home/centos7/nginx"
         exit
     fi
 fi
