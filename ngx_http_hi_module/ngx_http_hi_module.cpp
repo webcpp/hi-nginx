@@ -374,11 +374,10 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             } else {
                 REDIS->hgetall(SESSION_ID_VALUE, ngx_request.session);
             }
-        }
 #ifdef USE_HIREDIS
-        view_instance->REDIS = REDIS;
+            view_instance->REDIS = REDIS;
 #endif
-
+        }
     }
 
     view_instance->handler(ngx_request, ngx_response);
