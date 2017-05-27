@@ -9,8 +9,9 @@ extern "C" {
 #include <memory>
 #include "include/request.hpp"
 #include "include/response.hpp"
-#include "include/servlet.hpp"
 #include "include/redis.hpp"
+#include "include/servlet.hpp"
+
 #include "lib/module_class.hpp"
 #include "lib/lrucache.hpp"
 #include "lib/param.hpp"
