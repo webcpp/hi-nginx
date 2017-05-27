@@ -12,25 +12,38 @@ namespace hi {
     public:
 
         redis() :
-        ready(false)
-        , content(0) {
+        content(0)
+        , host()
+        , port(0) {
         }
 
         virtual~redis() {
-            if (this->ready && this->content) {
+            if (this->content) {
                 redisFree(this->content);
             }
         }
 
         void connect(const std::string& host = "127.0.0.1", int port = 6379) {
+            this->host = host;
+            this->port = port;
             this->content = redisConnect(host.c_str(), port);
             if (this->content && this->content->err == 0) {
-                this->ready = true;
+                redisEnableKeepAlive(this->content);
+            }
+        }
+
+        void reconnect() {
+            if (!this->is_connected()) {
+                redisFree(this->content);
+                this->content = redisConnect(this->host.c_str(), this->port);
+                if (this->content && this->content->err == 0) {
+                    redisEnableKeepAlive(this->content);
+                }
             }
         }
 
         bool is_connected()const {
-            return this->ready;
+            return this->content && this->content->err == 0;
         }
 
         std::string get(const std::string& key, bool &has) {
@@ -223,10 +236,76 @@ namespace hi {
             freeReplyObject(reply);
         }
 
-    private:
-        bool ready;
-        redisContext* content;
+        void lpush(const std::string& key, const std::vector<std::string>& vlist) {
+            std::string cmd("LPUSH " + key + " ");
+            for (const auto& item : vlist) {
+                cmd.append(item + " ");
+            }
+            redisReply* reply = (redisReply*) redisCommand(this->content, cmd.c_str());
+            freeReplyObject(reply);
+        }
 
+        std::string lpop(const std::string& key) {
+            std::string result;
+            redisReply* reply = (redisReply*) redisCommand(this->content, "LPOP %s", key.c_str());
+            result.assign(reply->str, reply->len);
+            freeReplyObject(reply);
+            return result;
+        }
+
+        long long llen(const std::string& key) {
+            long long result;
+            redisReply* reply = (redisReply*) redisCommand(this->content, "LLEN %s", key.c_str());
+            result = reply->integer;
+            freeReplyObject(reply);
+            return result;
+        }
+
+        void lrange(const std::string& key, long long start, long long end, std::vector<std::string>& list) {
+            redisReply* reply = (redisReply*) redisCommand(this->content, "LRANGE %s %d %d", key.c_str(), start, end);
+            std::string v;
+            for (size_t i = 0; i < reply->elements; ++i) {
+                v.assign(reply->element[i]->str, reply->element[i]->len);
+                list.push_back(v);
+            }
+            freeReplyObject(reply);
+        }
+
+        void lrem(const std::string& key, long long c, const std::string& v) {
+            redisReply* reply = (redisReply*) redisCommand(this->content, "LREM %s %d %s", key.c_str(), c, v.c_str());
+            freeReplyObject(reply);
+        }
+
+        void lset(const std::string& key, long long i, const std::string& v) {
+            redisReply* reply = (redisReply*) redisCommand(this->content, "LSET %s %d %s", key.c_str(), i, v.c_str());
+            freeReplyObject(reply);
+        }
+
+        void rpush(const std::string& key, const std::vector<std::string>& vlist) {
+            std::string cmd("RPUSH " + key + " ");
+            for (const auto& item : vlist) {
+                cmd.append(item + " ");
+            }
+            redisReply* reply = (redisReply*) redisCommand(this->content, cmd.c_str());
+            freeReplyObject(reply);
+        }
+
+        std::string rpop(const std::string& key) {
+            std::string result;
+            redisReply* reply = (redisReply*) redisCommand(this->content, "RPOP %s", key.c_str());
+            result.assign(reply->str, reply->len);
+            freeReplyObject(reply);
+            return result;
+        }
+
+        void rename(const std::string& old_key, const std::string& new_key) {
+            redisReply* reply = (redisReply*) redisCommand(this->content, "RENAME %s %s", old_key.c_str(), new_key.c_str());
+            freeReplyObject(reply);
+        }
+    private:
+        redisContext* content;
+        std::string host;
+        int port;
     };
 }
 

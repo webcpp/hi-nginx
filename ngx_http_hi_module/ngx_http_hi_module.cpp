@@ -10,10 +10,11 @@ extern "C" {
 #include "include/request.hpp"
 #include "include/response.hpp"
 #include "include/servlet.hpp"
+#include "include/redis.hpp"
 #include "lib/module_class.hpp"
 #include "lib/lrucache.hpp"
 #include "lib/param.hpp"
-#include "lib/redis.hpp"
+
 
 #define SESSION_ID_NAME "SESSIONID"
 #define form_urlencoded_type "application/x-www-form-urlencoded"
@@ -28,6 +29,7 @@ struct cache_ele_t {
 
 static std::vector<std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<cache::lru_cache<std::string, cache_ele_t>>> CACHE;
+static std::shared_ptr<hi::redis> REDIS;
 
 typedef struct {
     ngx_str_t module_path;
@@ -291,7 +293,6 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     hi::request ngx_request;
     hi::response ngx_response;
     std::string SESSION_ID_VALUE;
-    std::shared_ptr<hi::redis> redis;
 
     ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
     if (r->args.len > 0) {
@@ -356,19 +357,27 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             }
         }
     }
-    if (conf->need_session == 1 && conf->redis_host.len > 0 && conf->redis_port > 0 && ngx_request.cookies.find(SESSION_ID_NAME) != ngx_request.cookies.end()) {
-        SESSION_ID_VALUE = ngx_request.cookies[SESSION_ID_NAME ];
-        redis = std::make_shared<hi::redis>();
-        redis->connect((char*) conf->redis_host.data, (int) conf->redis_port);
-        if (redis->is_connected()) {
-            if (!redis->exists(SESSION_ID_VALUE)) {
-                redis->hset(SESSION_ID_VALUE, SESSION_ID_NAME, SESSION_ID_VALUE);
-                redis->expire(SESSION_ID_VALUE, conf->session_expires);
+    if (conf->need_session == 1 && ngx_request.cookies.find(SESSION_ID_NAME) != ngx_request.cookies.end()) {
+        if (!REDIS) {
+            REDIS = std::make_shared<hi::redis>();
+        }
+        if (REDIS && !REDIS->is_connected() && conf->redis_host.len > 0 && conf->redis_port > 0) {
+            REDIS->connect((char*) conf->redis_host.data, (int) conf->redis_port);
+        }
+        if (REDIS && REDIS->is_connected()) {
+            SESSION_ID_VALUE = ngx_request.cookies[SESSION_ID_NAME ];
+            if (!REDIS->exists(SESSION_ID_VALUE)) {
+                REDIS->hset(SESSION_ID_VALUE, SESSION_ID_NAME, SESSION_ID_VALUE);
+                REDIS->expire(SESSION_ID_VALUE, conf->session_expires);
                 ngx_request.session[SESSION_ID_VALUE] = SESSION_ID_VALUE;
             } else {
-                redis->hgetall(SESSION_ID_VALUE, ngx_request.session);
+                REDIS->hgetall(SESSION_ID_VALUE, ngx_request.session);
             }
         }
+#ifdef USE_HIREDIS
+        view_instance->REDIS = REDIS;
+#endif
+
     }
 
     view_instance->handler(ngx_request, ngx_response);
@@ -380,8 +389,8 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         cache_v.t = time(NULL);
         CACHE[conf->cache_index]->put(*cache_k, cache_v);
     }
-    if (redis && redis->is_connected() && !SESSION_ID_VALUE.empty()) {
-        redis->hmset(SESSION_ID_VALUE, ngx_response.session);
+    if (REDIS && REDIS->is_connected() && !SESSION_ID_VALUE.empty()) {
+        REDIS->hmset(SESSION_ID_VALUE, ngx_response.session);
     }
 
 done:
