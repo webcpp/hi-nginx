@@ -7,6 +7,7 @@ extern "C" {
 
 #include <vector>
 #include <memory>
+#include <exception>
 #include "include/request.hpp"
 #include "include/response.hpp"
 #include "include/redis.hpp"
@@ -15,6 +16,10 @@ extern "C" {
 #include "lib/module_class.hpp"
 #include "lib/lrucache.hpp"
 #include "lib/param.hpp"
+
+#include "lib/py_request.hpp"
+#include "lib/py_response.hpp"
+#include "lib/boost_py.hpp"
 
 
 #define SESSION_ID_NAME "SESSIONID"
@@ -31,10 +36,14 @@ struct cache_ele_t {
 static std::vector<std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<cache::lru_cache<std::string, cache_ele_t>>> CACHE;
 static std::shared_ptr<hi::redis> REDIS;
+static std::shared_ptr<hi::boost_py> PYTHON;
+
+
 
 typedef struct {
     ngx_str_t module_path;
     ngx_str_t redis_host;
+    ngx_str_t python_script;
     ngx_int_t redis_port;
     ngx_int_t module_index;
     ngx_int_t cache_expires;
@@ -145,6 +154,14 @@ ngx_command_t ngx_http_hi_commands[] = {
         offsetof(ngx_http_hi_loc_conf_t, session_expires),
         NULL
     },
+    {
+        ngx_string("hi_python_script"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_http_hi_conf_init,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, python_script),
+        NULL
+    },
     ngx_null_command
 };
 
@@ -202,6 +219,8 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->module_index = NGX_CONF_UNSET;
         conf->redis_host.len = 0;
         conf->redis_host.data = NULL;
+        conf->python_script.len = 0;
+        conf->python_script.data = NULL;
         conf->redis_port = NGX_CONF_UNSET;
         conf->cache_size = NGX_CONF_UNSET_UINT;
         conf->cache_expires = NGX_CONF_UNSET;
@@ -222,6 +241,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 
     ngx_conf_merge_str_value(conf->module_path, prev->module_path, "");
     ngx_conf_merge_str_value(conf->redis_host, prev->redis_host, "");
+    ngx_conf_merge_str_value(conf->python_script, prev->python_script, "");
     ngx_conf_merge_value(conf->redis_port, prev->redis_port, (ngx_int_t) 0);
     ngx_conf_merge_uint_value(conf->cache_size, prev->cache_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->cache_expires, prev->cache_expires, (ngx_int_t) 300);
@@ -285,10 +305,13 @@ static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
-    std::shared_ptr<hi::servlet> view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
-    if (!view_instance) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, std::string("Failed to allocate servlet_instance from ").append((char*) conf->module_path.data).c_str());
-        return NGX_HTTP_NOT_IMPLEMENTED;
+    std::shared_ptr<hi::servlet> view_instance;
+    if (conf->module_index != NGX_CONF_UNSET) {
+        view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
+        if (!view_instance) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, std::string("Failed to allocate servlet_instance from ").append((char*) conf->module_path.data).c_str());
+            return NGX_HTTP_NOT_IMPLEMENTED;
+        }
     }
 
     hi::request ngx_request;
@@ -380,7 +403,33 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         }
     }
 
-    view_instance->handler(ngx_request, ngx_response);
+    if (conf->module_index != NGX_CONF_UNSET) {
+        view_instance->handler(ngx_request, ngx_response);
+    } else if (conf->python_script.len > 0) {
+        hi::py_request py_req;
+        hi::py_response py_res;
+        py_req.init(&ngx_request);
+        py_res.init(&ngx_response);
+        if (!PYTHON) {
+            PYTHON = std::make_shared<hi::boost_py>();
+        }
+        if (PYTHON) {
+            PYTHON->set_req(&py_req);
+            PYTHON->set_res(&py_res);
+            try {
+                if (conf->python_script.len > 0) {
+                    PYTHON->call_script(std::string((char*) conf->python_script.data, conf->python_script.len).append(ngx_request.uri));
+                } else {
+                    PYTHON->call_script(std::string(NGX_PREFIX).append("python").append(ngx_request.uri));
+                }
+            } catch (std::exception& e) {
+                return NGX_HTTP_INTERNAL_SERVER_ERROR;
+            }
+        } else {
+            return NGX_HTTP_NOT_IMPLEMENTED;
+        }
+    }
+
     if (conf->need_cache == 1 && conf->cache_expires > 0) {
         cache_ele_t cache_v;
         cache_v.content = ngx_response.content;
