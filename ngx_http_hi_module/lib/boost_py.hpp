@@ -60,7 +60,17 @@ namespace hi {
         void call_script(const std::string& py_script) {
             try {
                 boost::python::exec_file(py_script.c_str(), this->dict, this->dict);
-            } catch (boost::python::error_already_set) {
+            } catch (const boost::python::error_already_set&) {
+                PyErr_Clear();
+                this->res->status(500);
+                this->res->content("<p style='text-align:center;margin:100px;'>Server script error</p>");
+            }
+        }
+
+        void call_content(const std::string& py_content) {
+            try {
+                boost::python::exec(py_content.c_str(), this->dict, this->dict);
+            } catch (const boost::python::error_already_set&) {
                 PyErr_Clear();
                 this->res->status(500);
                 this->res->content("<p style='text-align:center;margin:100px;'>Server script error</p>");
