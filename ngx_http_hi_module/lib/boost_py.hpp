@@ -71,10 +71,14 @@ namespace hi {
             try {
                 boost::python::exec(py_content.c_str(), this->dict, this->dict);
             } catch (const boost::python::error_already_set&) {
-                PyErr_Clear();
+                this->clear_error();
                 this->res->status(500);
                 this->res->content("<p style='text-align:center;margin:100px;'>Server script error</p>");
             }
+        }
+
+        void clear_error() {
+            PyErr_Clear();
         }
     private:
         boost::python::object main, dict;

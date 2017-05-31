@@ -433,6 +433,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                     PYTHON->call_content((char*) conf->python_content.data);
                 }
             } catch (std::exception& e) {
+                PYTHON->clear_error();
                 return NGX_HTTP_INTERNAL_SERVER_ERROR;
             }
         } else {
