@@ -74,6 +74,45 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 ```
         hi_need_cookies on|off;
 ```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_need_session,default: off
+
+        example:
+
+```
+        hi_need_session on|off;
+```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_session_expires,default: 300s
+
+    example:
+
+```
+        hi_session_expires 300s;
+```
+     
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_redis_host,default: ""
+
+    example:
+
+```
+        hi_redis_host 127.0.0.1;
+```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_redis_port,default: 0
+
+    example:
+
+```
+        hi_redis_port 6379;
+```
+
+
 - directives : content: loc,if in loc
     - hi_python_content,default: ""
 
