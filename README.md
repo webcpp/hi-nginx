@@ -1,5 +1,7 @@
 # Introduction
-A distribution of Nginx with c++ web development. 
+A distribution of Nginx with c++ and python web development. 
+
+![hi-nginx-image](https://github.com/webcpp/hi/blob/master/hi-nginx.png)
 
 [hi_demo](https://github.com/webcpp/hi_demo).
 
@@ -7,6 +9,8 @@ A distribution of Nginx with c++ web development.
 - linux
 - gcc,g++(c++11)
 - hiredis-devel
+- python-devel
+- boost_python
 
 # Installation
 see `install_demo.sh` or `--add-module=ngx_http_hi_module`
@@ -22,7 +26,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
     example:
     
 ```
-            location /hello {
+            location = /hello {
                 hi hi/hello.so ;
             }
 ```
@@ -69,6 +73,26 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 
 ```
         hi_need_cookies on|off;
+```
+- directives : content: loc,if in loc
+    - hi_python_content,default: ""
+
+    example:
+    
+```
+            location = /pyecho {
+                hi_python_content "hi_res.status(200)\nhi_res.content('hello,world')" ;
+            }
+```
+- directives : content: loc,if in loc
+    - hi_python_srcipt,default: ""
+
+    example:
+    
+```
+            location ~ \.py$  {
+                hi_python_script python;
+            }
 ```
 
 # hello,world
