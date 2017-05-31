@@ -32,7 +32,6 @@ struct cache_ele_t {
     std::string header, content;
 };
 
-
 static std::vector<std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<cache::lru_cache<std::string, cache_ele_t>>> CACHE;
 static std::shared_ptr<hi::redis> REDIS;

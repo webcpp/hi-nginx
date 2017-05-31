@@ -61,7 +61,7 @@ namespace hi {
             try {
                 boost::python::exec_file(py_script.c_str(), this->dict, this->dict);
             } catch (const boost::python::error_already_set&) {
-                PyErr_Clear();
+                this->clear_error();
                 this->res->status(500);
                 this->res->content("<p style='text-align:center;margin:100px;'>Server script error</p>");
             }
