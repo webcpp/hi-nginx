@@ -1,6 +1,7 @@
 #ifndef BOOST_PY_HPP
 #define BOOST_PY_HPP
 
+#include <unistd.h>
 #include <string>
 #include <boost/python.hpp>
 
@@ -18,7 +19,8 @@ namespace hi {
         boost_py() :
         main()
         , dict()
-        , res(0) {
+        , res(0)
+        , error_message("<p style='text-align:center;margin:100px;'>Server script error</p>") {
             Py_Initialize();
             this->main = boost::python::import("__main__");
             this->dict = this->main.attr("__dict__");
@@ -40,7 +42,7 @@ namespace hi {
                     .def("status", &hi::py_response::status)
                     .def("content", &hi::py_response::content)
                     .def("header", &hi::py_response::header)
-                    .def("session", &hi::py_response::status);
+                    .def("session", &hi::py_response::session);
         }
 
         virtual~boost_py() {
@@ -58,12 +60,14 @@ namespace hi {
         }
 
         void call_script(const std::string& py_script) {
-            try {
-                boost::python::exec_file(py_script.c_str(), this->dict, this->dict);
-            } catch (const boost::python::error_already_set&) {
-                this->clear_error();
-                this->res->status(500);
-                this->res->content("<p style='text-align:center;margin:100px;'>Server script error</p>");
+            if (access(py_script.c_str(), F_OK) == 0) {
+                try {
+                    boost::python::exec_file(py_script.c_str(), this->dict, this->dict);
+                } catch (const boost::python::error_already_set&) {
+                    this->clear_error();
+                    this->res->status(500);
+                    this->res->content(this->error_message);
+                }
             }
         }
 
@@ -73,7 +77,7 @@ namespace hi {
             } catch (const boost::python::error_already_set&) {
                 this->clear_error();
                 this->res->status(500);
-                this->res->content("<p style='text-align:center;margin:100px;'>Server script error</p>");
+                this->res->content(this->error_message);
             }
         }
 
@@ -83,6 +87,7 @@ namespace hi {
     private:
         boost::python::object main, dict;
         py_response* res;
+        std::string error_message;
     };
 }
 

@@ -10,7 +10,7 @@ A distribution of Nginx with c++ and python web development.
 - gcc,g++(c++11)
 - hiredis-devel
 - python-devel
-- boost_python
+- boost-devel
 
 # Installation
 see `install_demo.sh` or `--add-module=ngx_http_hi_module`
@@ -133,6 +133,27 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
                 hi_python_script python;
             }
 ```
+
+# python api
+## hi_req
+- uri
+- method
+- client
+- param
+- user_agent
+- has_header
+- get_header
+- has_form
+- get_form
+- has_session
+- get_session
+- has_cookie
+- get_cookie
+## hi_res
+- status
+- content
+- header
+- session
 
 # hello,world
 

@@ -407,7 +407,9 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                 REDIS->hgetall(SESSION_ID_VALUE, ngx_request.session);
             }
 #ifdef USE_HIREDIS
-            view_instance->REDIS = REDIS;
+            if (view_instance) {
+                view_instance->REDIS = REDIS;
+            }
 #endif
         }
     }
@@ -425,15 +427,10 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         if (PYTHON) {
             PYTHON->set_req(&py_req);
             PYTHON->set_res(&py_res);
-            try {
-                if (conf->python_script.len > 0) {
-                    PYTHON->call_script(std::string((char*) conf->python_script.data, conf->python_script.len).append(ngx_request.uri));
-                } else if (conf->python_content.len > 0) {
-                    PYTHON->call_content((char*) conf->python_content.data);
-                }
-            } catch (std::exception& e) {
-                PYTHON->clear_error();
-                return NGX_HTTP_INTERNAL_SERVER_ERROR;
+            if (conf->python_script.len > 0) {
+                PYTHON->call_script(std::string((char*) conf->python_script.data, conf->python_script.len).append(ngx_request.uri));
+            } else if (conf->python_content.len > 0) {
+                PYTHON->call_content((char*) conf->python_content.data);
             }
         } else {
             return NGX_HTTP_NOT_IMPLEMENTED;
