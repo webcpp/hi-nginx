@@ -7,7 +7,6 @@ extern "C" {
 
 #include <vector>
 #include <memory>
-#include <exception>
 #include "include/request.hpp"
 #include "include/response.hpp"
 #include "include/redis.hpp"
@@ -402,7 +401,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             if (!REDIS->exists(SESSION_ID_VALUE)) {
                 REDIS->hset(SESSION_ID_VALUE, SESSION_ID_NAME, SESSION_ID_VALUE);
                 REDIS->expire(SESSION_ID_VALUE, conf->session_expires);
-                ngx_request.session[SESSION_ID_VALUE] = SESSION_ID_VALUE;
+                ngx_request.session[SESSION_ID_NAME] = SESSION_ID_VALUE;
             } else {
                 REDIS->hgetall(SESSION_ID_VALUE, ngx_request.session);
             }
