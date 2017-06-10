@@ -1,7 +1,7 @@
 CXX=g++
-CXXFLAGS="$CXXFLAGS -O3 -std=c++11 -DUSE_HIREDIS `python-config --cflags`"
+CXXFLAGS="$CXXFLAGS -O3 -std=c++11 -DUSE_HIREDIS `pkg-config --cflags  python luajit`"
 CORE_LIBS="$CORE_LIBS -lstdc++"
-NGX_LD_OPT="$NGX_LD_OPT -lhiredis -lboost_python `python-config --libs`"
+NGX_LD_OPT="$NGX_LD_OPT -lhiredis -lboost_python `pkg-config --libs  python luajit`"
 ngx_addon_name=ngx_http_hi_module
 HTTP_MODULES="$HTTP_MODULES ngx_http_hi_module"
 NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_hi_module.cpp"

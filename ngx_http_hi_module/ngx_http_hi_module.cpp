@@ -19,6 +19,7 @@ extern "C" {
 #include "lib/py_request.hpp"
 #include "lib/py_response.hpp"
 #include "lib/boost_py.hpp"
+#include "lib/lua.hpp"
 
 
 #define SESSION_ID_NAME "SESSIONID"
@@ -35,12 +36,15 @@ static std::vector<std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<cache::lru_cache<std::string, cache_ele_t>>> CACHE;
 static std::shared_ptr<hi::redis> REDIS;
 static std::shared_ptr<hi::boost_py> PYTHON;
+static std::shared_ptr<hi::lua> LUA;
 
 typedef struct {
     ngx_str_t module_path;
     ngx_str_t redis_host;
     ngx_str_t python_script;
     ngx_str_t python_content;
+    ngx_str_t lua_script;
+    ngx_str_t lua_content;
     ngx_int_t redis_port;
     ngx_int_t module_index;
     ngx_int_t cache_expires;
@@ -167,6 +171,22 @@ ngx_command_t ngx_http_hi_commands[] = {
         offsetof(ngx_http_hi_loc_conf_t, python_content),
         NULL
     },
+    {
+        ngx_string("hi_lua_script"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_http_hi_conf_init,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, lua_script),
+        NULL
+    },
+    {
+        ngx_string("hi_lua_content"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_http_hi_conf_init,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, lua_content),
+        NULL
+    },
     ngx_null_command
 };
 
@@ -228,6 +248,10 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->python_script.data = NULL;
         conf->python_content.len = 0;
         conf->python_content.data = NULL;
+        conf->lua_script.len = 0;
+        conf->lua_script.data = NULL;
+        conf->lua_content.len = 0;
+        conf->lua_content.data = NULL;
         conf->redis_port = NGX_CONF_UNSET;
         conf->cache_size = NGX_CONF_UNSET_UINT;
         conf->cache_expires = NGX_CONF_UNSET;
@@ -250,6 +274,8 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_str_value(conf->redis_host, prev->redis_host, "");
     ngx_conf_merge_str_value(conf->python_script, prev->python_script, "");
     ngx_conf_merge_str_value(conf->python_content, prev->python_content, "");
+    ngx_conf_merge_str_value(conf->lua_script, prev->lua_script, "");
+    ngx_conf_merge_str_value(conf->lua_content, prev->lua_content, "");
     ngx_conf_merge_value(conf->redis_port, prev->redis_port, (ngx_int_t) 0);
     ngx_conf_merge_uint_value(conf->cache_size, prev->cache_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->cache_expires, prev->cache_expires, (ngx_int_t) 300);
@@ -258,6 +284,9 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_value(conf->need_cache, prev->need_cache, (ngx_flag_t) 1);
     ngx_conf_merge_value(conf->need_cookies, prev->need_cookies, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_session, prev->need_session, (ngx_flag_t) 0);
+    if (conf->need_session == 1 && conf->need_cookies == 0) {
+        conf->need_cookies = 1;
+    }
     if (conf->module_index == NGX_CONF_UNSET && conf->module_path.len > 0) {
         std::string tmp((char*) conf->module_path.data, conf->module_path.len);
         if (tmp.front() != '/') {
@@ -439,6 +468,25 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                 PYTHON->call_script(std::string((char*) conf->python_script.data, conf->python_script.len).append(ngx_request.uri));
             } else if (conf->python_content.len > 0) {
                 PYTHON->call_content((char*) conf->python_content.data);
+            }
+        } else {
+            return NGX_HTTP_NOT_IMPLEMENTED;
+        }
+    } else if (conf->lua_script.len > 0 || conf->lua_content.len > 0) {
+        hi::py_request py_req;
+        hi::py_response py_res;
+        py_req.init(&ngx_request);
+        py_res.init(&ngx_response);
+        if (!LUA) {
+            LUA = std::make_shared<hi::lua>();
+        }
+        if (LUA) {
+            LUA->set_req(&py_req);
+            LUA->set_res(&py_res);
+            if (conf->lua_script.len > 0) {
+                LUA->call_script(std::string((char*) conf->lua_script.data, conf->lua_script.len).append(ngx_request.uri));
+            } else if (conf->lua_content.len > 0) {
+                LUA->call_content((char*) conf->lua_content.data);
             }
         } else {
             return NGX_HTTP_NOT_IMPLEMENTED;
