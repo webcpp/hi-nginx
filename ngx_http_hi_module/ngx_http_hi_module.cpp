@@ -313,6 +313,14 @@ static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
+
+    if (r->headers_in.if_modified_since && r->headers_in.if_modified_since->value.data) {
+        time_t now = time(NULL), old = ngx_http_parse_time(r->headers_in.if_modified_since->value.data, r->headers_in.if_modified_since->value.len);
+        if (difftime(now, old) <= conf->cache_expires) {
+            return NGX_HTTP_NOT_MODIFIED;
+        }
+    }
+
     std::shared_ptr<hi::servlet> view_instance;
     if (conf->module_index != NGX_CONF_UNSET) {
         view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
@@ -332,6 +340,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     }
     std::shared_ptr<std::string> cache_k;
     if (conf->need_cache == 1) {
+        ngx_response.headers.insert(std::make_pair("Last-Modified", (char*) ngx_cached_http_time.data));
         cache_k = std::make_shared<std::string>(ngx_request.uri);
         if (r->args.len > 0) {
             cache_k->append("?").append(ngx_request.param);
