@@ -1,5 +1,5 @@
 # Introduction
-A distribution of Nginx with c++ and python web development. 
+A distribution of Nginx with c++,python and lua web development. 
 
 ![hi-nginx-image](https://github.com/webcpp/hi/blob/master/hi-nginx.png)
 
@@ -11,6 +11,7 @@ A distribution of Nginx with c++ and python web development.
 - hiredis-devel
 - python-devel
 - boost-devel
+- luajit-devel
 
 # Installation
 see `install_demo.sh` or `--add-module=ngx_http_hi_module`
@@ -134,7 +135,28 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
             }
 ```
 
-# python api
+- directives : content: loc,if in loc
+    - hi_lua_content,default: ""
+
+    example:
+    
+```
+            location = /luaecho {
+                hi_lua_content "hi_res:status(200)\nhi_res:content('hello,world')" ;
+            }
+```
+- directives : content: loc,if in loc
+    - hi_lua_srcipt,default: ""
+
+    example:
+    
+```
+            location ~ \.lua$  {
+                hi_lua_script python;
+            }
+```
+
+# python and lua api
 ## hi_req
 - uri
 - method
