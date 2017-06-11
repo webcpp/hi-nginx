@@ -38,7 +38,6 @@ namespace hi {
                     .addFunction("header", &hi::py_response::header)
                     .addFunction("session", &hi::py_response::session)
                     );
-            this->state.setErrorHandler(error_handler);
         }
 
         virtual~lua() {
@@ -75,10 +74,6 @@ namespace hi {
         std::string error_message;
         py_response * res;
         kaguya::State state;
-
-        static void error_handler(int, const char*) {
-        }
-
     };
 }
 
