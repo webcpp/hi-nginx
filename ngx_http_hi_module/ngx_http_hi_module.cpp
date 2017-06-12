@@ -38,6 +38,10 @@ static std::shared_ptr<hi::redis> REDIS;
 static std::shared_ptr<hi::boost_py> PYTHON;
 static std::shared_ptr<hi::lua> LUA;
 
+enum APP_T {
+    cpp, python, lua, unkown
+};
+
 typedef struct {
     ngx_str_t module_path;
     ngx_str_t redis_host;
@@ -55,6 +59,7 @@ typedef struct {
     ngx_flag_t need_cache;
     ngx_flag_t need_cookies;
     ngx_flag_t need_session;
+    APP_T app_type;
 } ngx_http_hi_loc_conf_t;
 
 
@@ -72,6 +77,10 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r);
 static void get_input_headers(ngx_http_request_t* r, std::unordered_map<std::string, std::string>& input_headers);
 static void set_output_headers(ngx_http_request_t* r, std::unordered_multimap<std::string, std::string>& output_headers);
 static ngx_str_t get_input_body(ngx_http_request_t *r);
+
+static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
+static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
+static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
 
 
 ngx_command_t ngx_http_hi_commands[] = {
@@ -261,6 +270,7 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->need_cache = NGX_CONF_UNSET;
         conf->need_cookies = NGX_CONF_UNSET;
         conf->need_session = NGX_CONF_UNSET;
+        conf->app_type = unkown;
         return conf;
     }
     return NGX_CONF_ERROR;
@@ -308,6 +318,14 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
             PLUGIN.push_back(std::make_shared<hi::module_class < hi::servlet >> (tmp));
             conf->module_index = PLUGIN.size() - 1;
         }
+        conf->app_type = cpp;
+    }
+
+    if (conf->python_content.len > 0 || conf->python_script.len > 0) {
+        conf->app_type = python;
+    }
+    if (conf->lua_content.len > 0 || conf->lua_script.len > 0) {
+        conf->app_type = lua;
     }
 
     if (conf->need_cache == 1 && conf->cache_index == NGX_CONF_UNSET) {
@@ -347,15 +365,6 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         time_t now = time(NULL), old = ngx_http_parse_time(r->headers_in.if_modified_since->value.data, r->headers_in.if_modified_since->value.len);
         if (difftime(now, old) <= conf->cache_expires) {
             return NGX_HTTP_NOT_MODIFIED;
-        }
-    }
-
-    std::shared_ptr<hi::servlet> view_instance;
-    if (conf->module_index != NGX_CONF_UNSET) {
-        view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
-        if (!view_instance) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, std::string("Failed to allocate servlet_instance from ").append((char*) conf->module_path.data).c_str());
-            return NGX_HTTP_NOT_IMPLEMENTED;
         }
     }
 
@@ -443,54 +452,16 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             } else {
                 REDIS->hgetall(SESSION_ID_VALUE, ngx_request.session);
             }
-#ifdef USE_HIREDIS
-            if (view_instance) {
-                view_instance->REDIS = REDIS;
-            }
-#endif
         }
     }
-
-    if (conf->module_index != NGX_CONF_UNSET) {
-        view_instance->handler(ngx_request, ngx_response);
-    } else if (conf->python_script.len > 0 || conf->python_content.len > 0) {
-        hi::py_request py_req;
-        hi::py_response py_res;
-        py_req.init(&ngx_request);
-        py_res.init(&ngx_response);
-        if (!PYTHON) {
-            PYTHON = std::make_shared<hi::boost_py>();
-        }
-        if (PYTHON) {
-            PYTHON->set_req(&py_req);
-            PYTHON->set_res(&py_res);
-            if (conf->python_script.len > 0) {
-                PYTHON->call_script(std::string((char*) conf->python_script.data, conf->python_script.len).append(ngx_request.uri));
-            } else if (conf->python_content.len > 0) {
-                PYTHON->call_content((char*) conf->python_content.data);
-            }
-        } else {
-            return NGX_HTTP_NOT_IMPLEMENTED;
-        }
-    } else if (conf->lua_script.len > 0 || conf->lua_content.len > 0) {
-        hi::py_request py_req;
-        hi::py_response py_res;
-        py_req.init(&ngx_request);
-        py_res.init(&ngx_response);
-        if (!LUA) {
-            LUA = std::make_shared<hi::lua>();
-        }
-        if (LUA) {
-            LUA->set_req(&py_req);
-            LUA->set_res(&py_res);
-            if (conf->lua_script.len > 0) {
-                LUA->call_script(std::string((char*) conf->lua_script.data, conf->lua_script.len).append(ngx_request.uri));
-            } else if (conf->lua_content.len > 0) {
-                LUA->call_content((char*) conf->lua_content.data);
-            }
-        } else {
-            return NGX_HTTP_NOT_IMPLEMENTED;
-        }
+    switch (conf->app_type) {
+        case cpp:ngx_http_hi_cpp_handler(conf, ngx_request, ngx_response);
+            break;
+        case python:ngx_http_hi_python_handler(conf, ngx_request, ngx_response);
+            break;
+        case lua:ngx_http_hi_lua_handler(conf, ngx_request, ngx_response);
+            break;
+        default:break;
     }
 
     if (conf->need_cache == 1 && conf->cache_expires > 0) {
@@ -624,4 +595,53 @@ static ngx_str_t get_input_body(ngx_http_request_t *r) {
     body.len = len;
     body.data = data;
     return body;
+}
+
+static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    std::shared_ptr<hi::servlet> view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
+    if (view_instance) {
+#ifdef USE_HIREDIS
+        view_instance->REDIS = REDIS;
+#endif
+        view_instance->handler(req, res);
+    }
+
+}
+
+static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    hi::py_request py_req;
+    hi::py_response py_res;
+    py_req.init(&req);
+    py_res.init(&res);
+    if (!PYTHON) {
+        PYTHON = std::make_shared<hi::boost_py>();
+    }
+    if (PYTHON) {
+        PYTHON->set_req(&py_req);
+        PYTHON->set_res(&py_res);
+        if (conf->python_script.len > 0) {
+            PYTHON->call_script(std::string((char*) conf->python_script.data, conf->python_script.len).append(req.uri));
+        } else if (conf->python_content.len > 0) {
+            PYTHON->call_content((char*) conf->python_content.data);
+        }
+    }
+}
+
+static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    hi::py_request py_req;
+    hi::py_response py_res;
+    py_req.init(&req);
+    py_res.init(&res);
+    if (!LUA) {
+        LUA = std::make_shared<hi::lua>();
+    }
+    if (LUA) {
+        LUA->set_req(&py_req);
+        LUA->set_res(&py_res);
+        if (conf->lua_script.len > 0) {
+            LUA->call_script(std::string((char*) conf->lua_script.data, conf->lua_script.len).append(req.uri));
+        } else if (conf->lua_content.len > 0) {
+            LUA->call_content((char*) conf->lua_content.data);
+        }
+    }
 }
