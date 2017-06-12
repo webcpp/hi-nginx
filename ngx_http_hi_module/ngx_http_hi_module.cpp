@@ -9,13 +9,12 @@ extern "C" {
 #include <memory>
 #include "include/request.hpp"
 #include "include/response.hpp"
-#include "include/redis.hpp"
 #include "include/servlet.hpp"
 
 #include "lib/module_class.hpp"
 #include "lib/lrucache.hpp"
 #include "lib/param.hpp"
-
+#include "lib/redis.hpp"
 #include "lib/py_request.hpp"
 #include "lib/py_response.hpp"
 #include "lib/boost_py.hpp"
@@ -38,7 +37,7 @@ static std::shared_ptr<hi::redis> REDIS;
 static std::shared_ptr<hi::boost_py> PYTHON;
 static std::shared_ptr<hi::lua> LUA;
 
-enum APP_T {
+enum application_t {
     cpp, python, lua, unkown
 };
 
@@ -59,7 +58,7 @@ typedef struct {
     ngx_flag_t need_cache;
     ngx_flag_t need_cookies;
     ngx_flag_t need_session;
-    APP_T app_type;
+    application_t app_type;
 } ngx_http_hi_loc_conf_t;
 
 
@@ -600,9 +599,6 @@ static ngx_str_t get_input_body(ngx_http_request_t *r) {
 static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
     std::shared_ptr<hi::servlet> view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
     if (view_instance) {
-#ifdef USE_HIREDIS
-        view_instance->REDIS = REDIS;
-#endif
         view_instance->handler(req, res);
     }
 
