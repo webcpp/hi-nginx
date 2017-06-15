@@ -41,7 +41,10 @@ cat << END                                                     > $PROJECT/Makefi
 PROJECT=$PROJECT.so
 SRC=\$(wildcard *.cpp)
 OBJ=\$(patsubst %.cpp,%.o,\$(SRC))
-NGINX_INSTALL_DIR=$NGINX_INSTALL_DIR
+
+ifndef NGINX_INSTALL_DIR
+NGINX_INSTALL_DIR=/home/centos7/nginx
+endif
 
 CXX=g++ 
 CXXFLAGS+=-O3 -std=c++11 -fPIC -Wall -I\$(NGINX_INSTALL_DIR)/include
@@ -101,8 +104,9 @@ cat << END                                                     > $PROJECT/Makefi
 
 SRC=\$(wildcard *.py)
 
-NGINX_INSTALL_DIR=$NGINX_INSTALL_DIR
-
+ifndef NGINX_INSTALL_DIR
+NGINX_INSTALL_DIR=/home/centos7/nginx
+endif
 
 all:
 	@echo 'ok'
@@ -133,7 +137,9 @@ cat << END                                                     > $PROJECT/Makefi
 
 SRC=\$(wildcard *.lua)
 
-NGINX_INSTALL_DIR=$NGINX_INSTALL_DIR
+ifndef NGINX_INSTALL_DIR
+NGINX_INSTALL_DIR=/home/centos7/nginx
+endif
 
 
 all:
