@@ -3,7 +3,9 @@ A distribution of Nginx with c++,python and lua web development.
 
 ![hi-nginx-image](https://github.com/webcpp/hi/blob/master/hi-nginx.png)
 
-[hi_demo](https://github.com/webcpp/hi_demo).
+[hi-nginx-demo](https://github.com/webcpp/hi_demo).
+
+[hi-nginx-doc](https://github.com/webcpp/hi-nginx-doc)
 
 # Dependency
 - linux
