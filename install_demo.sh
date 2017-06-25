@@ -5,6 +5,7 @@
                 --add-module=ngx_http_hi_module  \
                 --add-module=3rd/ngx_devel_kit-0.3.0 \
                 --add-module=3rd/nginx-http-concat-1.2.2 \
+                --add-module=3rd/echo-nginx-module-0.60 \
                 --add-module=3rd/array-var-nginx-module-0.05 \
                 --add-module=3rd/form-input-nginx-module-0.12  \
                 --add-module=3rd/headers-more-nginx-module-0.32 \
@@ -16,5 +17,8 @@
                 --add-module=3rd/redis2-nginx-module-0.14 \
                 --add-module=3rd/set-misc-nginx-module-0.31 \
                 --add-module=3rd/srcache-nginx-module-0.31 \
-                --add-module=3rd/xss-nginx-module-0.05
+                --add-module=3rd/xss-nginx-module-0.05 \
+                --add-module=3rd/nginx-push-stream-module-0.5.2 \
+                --add-module=3rd/nchan-1.1.6 \
+                --add-module=3rd/nginx-rtmp-module-1.1.7.10
 

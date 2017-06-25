@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class=" js no-flexbox flexbox-legacy canvas canvastext no-webgl no-touch geolocation postmessage no-websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients no-cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers applicationcache svg inlinesvg smil svgclippaths mozilla">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <title><%= filename %> - Preview to GitHub</title>
+
+    <link href="file://<%= base_path %>/css/github.css" media="screen" rel="stylesheet" type="text/css" />
+    <link href="file://<%= base_path %>/css/github2.css" media="screen" rel="stylesheet" type="text/css" />
+    <style>
+    #preview-content .markdown-body, #preview-content .plain {
+        background-color: #FFFFFF;
+        border: 1px solid #CACACA;
+        padding: 30px;
+    }
+    </style>
+  </head>
+  <body class="logged_out page-blob linux vis-public env-production ">
+    <div class="site">
+      <div class="container">
+        <div id="slider">
+          <div class="frames">
+            <div class="frame frame-center">
+              <div id="files" class="bubble">
+                <div class="file">
+                  <div id="preview-content" class="blob instapaper_body">
+                    <article class="markdown-body">
+                      <%= content %>
+                    </article>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
