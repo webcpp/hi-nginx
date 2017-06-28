@@ -40,7 +40,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 
 
 # Features
-- All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
+- All features of nginx-1.13.2(latest release) are inherited, i.e., it is 100% compatible with nginx.
 
 # Directives
 - directives : content: loc,if in loc
