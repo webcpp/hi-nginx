@@ -1,11 +1,10 @@
 # Introduction
 A distribution of Nginx with c++,python and lua web development. 
 
-![hi-nginx-image](https://github.com/webcpp/hi/blob/master/hi-nginx.png)
 
 [hi-nginx-demo](https://github.com/webcpp/hi_demo).
 
-[hi-nginx-doc](https://github.com/webcpp/hi-nginx-doc)
+[hi-nginx-doc](https://github.com/webcpp/hi-nginx-doc).
 
 # Dependency
 - linux
@@ -14,6 +13,18 @@ A distribution of Nginx with c++,python and lua web development.
 - python-devel
 - boost-devel
 - luajit-devel
+
+## centos
+`
+sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel boost-devel luajit-devel
+
+`
+## ubuntu
+`
+sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhiredis-dev python-dev libboost-all-dev libluajit-5.1-dev 
+
+`
+
 
 # Installation
 see `install_demo.sh` or `--add-module=ngx_http_hi_module`
