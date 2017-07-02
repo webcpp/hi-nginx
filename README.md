@@ -15,15 +15,15 @@ A distribution of Nginx with c++,python and lua web development.
 - luajit-devel
 
 ## centos
-`
+```
 sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel boost-devel luajit-devel
 
-`
+```
 ## ubuntu
-`
+```
 sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhiredis-dev python-dev libboost-all-dev libluajit-5.1-dev 
 
-`
+```
 
 
 # Installation
