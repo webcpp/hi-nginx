@@ -20,5 +20,6 @@
                 --add-module=3rd/xss-nginx-module-0.05 \
                 --add-module=3rd/nginx-push-stream-module-0.5.2 \
                 --add-module=3rd/nchan-1.1.6 \
-                --add-module=3rd/nginx-rtmp-module-1.1.7.10
+                --add-module=3rd/nginx-rtmp-module-1.1.7.10 \
+                --add-module=3rd/nginx-upload-module-2.255
 
