@@ -48,6 +48,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
   -  nginx-rtmp-module-1.1.7.10
   -  nchan-1.1.6
   -  echo-nginx-module-0.60
+  -  nginx-upload-module-2.255
 
 
 # Features
