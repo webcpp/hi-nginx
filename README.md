@@ -139,7 +139,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 ```
      
 
-- directives : content: http,srv,loc,if in loc ,if in srv
+- directives : content: http,srv ,if in srv
     - hi_redis_host,default: ""
 
     example:
@@ -148,7 +148,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
         hi_redis_host 127.0.0.1;
 ```
 
-- directives : content: http,srv,loc,if in loc ,if in srv
+- directives : content: http,srv,if in srv
     - hi_redis_port,default: 0
 
     example:
@@ -198,6 +198,43 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
             location ~ \.lua$  {
                 hi_lua_script python;
             }
+```
+- directives : content: http,srv,if in srv
+    - hi_java_classpath,default:"-Djava.class.path=."
+    example:
+```
+hi_java_classpath "-Djava.class.path=.:/home/centos7/nginx/java:/home/centos7/nginx/java/hi-nginx-java.jar";
+
+```
+
+- directives : content: loc,if in loc
+    - hi_java_servlet,default:""
+    example:
+```
+hi_java_servlet hi/jhello;
+
+
+```
+- directives : content : http,srv,loc,if in loc ,if in srv
+    - hi_java_servlet_cache_expires,default:300s
+    example:
+```
+hi_java_servlet_cache_expires 300s;
+
+```
+- directives : content : http,srv,loc,if in loc ,if in srv
+    - hi_java_servlet_cache_size,default:10
+    example:
+```
+hi_java_servlet_cache_size 10;
+
+```
+- directives : content: http,srv,if in srv
+    - hi_java_version,default:8
+    example:
+```
+hi_java_version 8;
+
 ```
 
 # python and lua api
