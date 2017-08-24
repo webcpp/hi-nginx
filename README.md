@@ -223,7 +223,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 
 # hello,world
 
-## class
+## cpp servlet class
 
 ```
 #include "servlet.hpp"
@@ -250,11 +250,38 @@ extern "C" void destroy(hi::servlet* p) {
 
 ```
 
-## compile
+## cpp compile
 
 ```
 g++ -std=c++11 -I/home/centos7/nginx/include  -shared -fPIC hello.cpp -o hello.so
 install hello.so /home/centos7/nginx/hi
+
+```
+
+## java servlet class
+
+```
+package hi;
+
+public class jhello implements hi.servlet {
+
+    public jhello() {
+
+    }
+
+    public void handler(hi.request req, hi.response res) {
+        res.status = 200;
+        res.content = "hello,world";
+
+    }
+}
+
+```
+
+## java compile
+
+```
+${JAVA_HOME}/bin/javac -classpath .:${NGINX_INSTALL_DIR}/java/hi-nginx-java.jar hi/jhello.java
 
 ```
 
