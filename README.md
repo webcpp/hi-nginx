@@ -1,5 +1,5 @@
 # Introduction
-A distribution of Nginx with c++,python and lua web development. 
+A distribution of Nginx with c++,python,lua and java web development. 
 
 
 [hi-nginx-demo](https://github.com/webcpp/hi_demo).
@@ -13,6 +13,7 @@ A distribution of Nginx with c++,python and lua web development.
 - python-devel
 - boost-devel
 - luajit-devel
+- java
 
 ## centos
 ```
@@ -22,6 +23,15 @@ sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-de
 ## ubuntu
 ```
 sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhiredis-dev python-dev libboost-all-dev libluajit-5.1-dev 
+
+```
+
+## about java install
+```
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk selfupdate force
+sdk install java
 
 ```
 

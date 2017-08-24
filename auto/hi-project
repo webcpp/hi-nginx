@@ -2,7 +2,7 @@ if test -n "$1";then
     if test "$1" = "--help" || test "$1" = "-h" ;then
         echo \$1:project name.
         echo -e "\tdefault:demo"
-        echo \$2:type:cpp,python or lua
+        echo \$2:type:cpp,python,lua or java
         echo -e "\tdefault:cpp"
         echo \$3:hi\(nginx\) install directory.
         echo -e "\tdefault:/home/centos7/nginx"
@@ -166,6 +166,65 @@ END
 
 }
 
+java_makefile_tpl(){
+
+cat << END                                                     > $PROJECT/Makefile
+
+SRC=\$(shell echo \`find . -type f | egrep *.java\$\$\`)
+OBJ=\$(patsubst %.java,%.class,\$(SRC))
+
+ifndef NGINX_INSTALL_DIR
+NGINX_INSTALL_DIR=/home/centos7/nginx
+endif
+
+JFLAGS = -classpath .:\${NGINX_INSTALL_DIR}/java/hi-nginx-java.jar
+JC = \${JAVA_HOME}/bin/javac
+
+%.class:%.java
+	\$(JC) \$(JFLAGS) \$^
+
+
+default: classes
+
+
+classes:\$(OBJ)
+
+clean:
+	rm -f \${OBJ}
+
+install:\${OBJ}
+	for i in \${OBJ};do test -d \$(NGINX_INSTALL_DIR)/java/`dirname \$\$i` || mkdir -p \$(NGINX_INSTALL_DIR)/java/`dirname \$\$i` && install \$\$i \$(NGINX_INSTALL_DIR)/java/\$\$i ;done
+
+
+
+END
+
+echo "create hi project $PROJECT demo source file."
+mkdir -p $PROJECT/hi
+
+cat << END                                                     > $PROJECT/hi/$PROJECT.java
+
+package hi;
+
+public class $PROJECT implements hi.servlet {
+
+    public $PROJECT() {
+
+    }
+
+    public void handler(hi.request req, hi.response res) {
+        res.status = 200;
+        res.content = "hello,world";
+    }
+}
+
+
+END
+
+
+
+}
+
 pre_makefile_tpl(){
 
 cat << END                                                     > Makefile
@@ -193,7 +252,8 @@ case $TYPE in
     cpp) cpp_makefile_tpl;;
     python) python_makefile_tpl;;
     lua) lua_makefile_tpl;;
-    *) echo 'Please set TYPE in (cpp,python or lua)';;
+    java) java_makefile_tpl;;
+    *) echo 'Please set TYPE in (cpp,python,lua or java)';;
 esac
 
 if ! test -f Makefile ;

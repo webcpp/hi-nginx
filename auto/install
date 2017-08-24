@@ -163,6 +163,8 @@ install:	build $NGX_INSTALL_PERL_MODULES
 	cp auto/hi-project '\$(DESTDIR)$NGX_PREFIX/hi'
 	test -d '\$(DESTDIR)$NGX_PREFIX/python' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/python'
 	test -d '\$(DESTDIR)$NGX_PREFIX/lua' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/lua'
+	test -d '\$(DESTDIR)$NGX_PREFIX/java' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/java'
+	cp contrib/hi-nginx-java.jar '\$(DESTDIR)$NGX_PREFIX/java'
 END
 
 
