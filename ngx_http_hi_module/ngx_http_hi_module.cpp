@@ -52,6 +52,7 @@ typedef struct {
     , lua_script
     , lua_content
     , java_classpath
+    , java_options
     , java_servlet;
     ngx_int_t redis_port
     , module_index
@@ -213,6 +214,14 @@ ngx_command_t ngx_http_hi_commands[] = {
         NULL
     },
     {
+        ngx_string("hi_java_options"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_str_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, java_options),
+        NULL
+    },
+    {
         ngx_string("hi_java_servlet"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
         ngx_http_hi_conf_init,
@@ -347,6 +356,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_str_value(conf->lua_script, prev->lua_script, "");
     ngx_conf_merge_str_value(conf->lua_content, prev->lua_content, "");
     ngx_conf_merge_str_value(conf->java_classpath, prev->java_classpath, "-Djava.class.path=.");
+    ngx_conf_merge_str_value(conf->java_options, prev->java_options, "-server -d64 -Xmx3G -Xms3G -Xmn768m -XX:+DisableExplicitGC -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+UseNUMA -XX:+CMSParallelRemarkEnabled -XX:MaxTenuringThreshold=15 -XX:MaxGCPauseMillis=30 -XX:GCPauseIntervalMillis=150 -XX:+UseAdaptiveGCBoundary -XX:-UseGCOverheadLimit -XX:+UseBiasedLocking -XX:SurvivorRatio=8 -XX:TargetSurvivorRatio=90 -XX:MaxTenuringThreshold=15 -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -XX:+UseFastAccessorMethods -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+AggressiveOpts -XX:ReservedCodeCacheSize=2048m -XX:+UseCodeCacheFlushing -XX:SoftRefLRUPolicyMSPerMB=10000 -XX:ParallelGCThreads=10");
     ngx_conf_merge_str_value(conf->java_servlet, prev->java_servlet, "");
     ngx_conf_merge_uint_value(conf->java_servlet_cache_size, prev->java_servlet_cache_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->java_servlet_cache_expires, prev->java_servlet_cache_expires, (ngx_int_t) 300);
@@ -719,7 +729,7 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
 
     if (!JAVA) {
-        JAVA = std::make_shared<hi::java>((char*) conf->java_classpath.data, conf->java_version);
+        JAVA = std::make_shared<hi::java>((char*) conf->java_classpath.data, (char*) conf->java_options.data, conf->java_version);
         if (JAVA && JAVA->is_ok()) {
             JAVA->request = JAVA->env->FindClass("hi/request");
             if (JAVA->request == NULL)return;
