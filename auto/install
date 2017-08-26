@@ -236,6 +236,7 @@ Description=The NGINX HTTP and reverse proxy server
 After=syslog.target network.target remote-fs.target nss-lookup.target
 
 [Service]
+WorkingDirectory=$NGX_PREFIX
 Type=forking
 PIDFile=$NGX_PID_PATH
 ExecStartPre=$NGX_SBIN_PATH -t
