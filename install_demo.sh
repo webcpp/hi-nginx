@@ -1,7 +1,7 @@
 #!/bin/bash
 ./configure     --with-http_ssl_module \
                 --with-http_v2_module \
-                --prefix=/home/centos7/nginx \
+                --prefix=/usr/local/nginx \
                 --add-module=ngx_http_hi_module  \
                 --add-module=3rd/ngx_devel_kit-0.3.0 \
                 --add-module=3rd/nginx-http-concat-1.2.2 \

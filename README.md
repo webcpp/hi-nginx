@@ -13,7 +13,7 @@ A distribution of Nginx with c++,python,lua and java web development.
 - python-devel
 - boost-devel
 - luajit-devel
-- java 8
+- java 8+
 
 ## centos
 ```
@@ -31,10 +31,22 @@ sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhired
 curl -s "https://get.sdkman.io" | bash
 source "$HOME/.sdkman/bin/sdkman-init.sh"
 sdk selfupdate force
-sdk install java
+sdk install java 8u141-oracle
 
 ```
+You must set $JAVA_HOME!!!
 
+Create the file /etc/profile.d/java.sh
+
+Create the file /etc/ld.so.conf.d/java.conf with the following entries，replace $JAVA_HOME as true path:
+```
+$JAVA_HOME/jre/lib/amd64
+$JAVA_HOME/jre/lib/amd64/server
+```
+then
+```
+sudo ldconfig
+```
 
 # Installation
 see `install_demo.sh` or `--add-module=ngx_http_hi_module`
@@ -209,7 +221,7 @@ hi_java_classpath "-Djava.class.path=.:/home/centos7/nginx/java:/home/centos7/ng
 ```
 
 - directives : content: http,srv,if in srv
-    - hi_java_options,default:"-server -d64 -Xmx3G -Xms3G -Xmn768m -XX:+DisableExplicitGC -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+UseNUMA -XX:+CMSParallelRemarkEnabled -XX:MaxTenuringThreshold=15 -XX:MaxGCPauseMillis=30 -XX:GCPauseIntervalMillis=150 -XX:+UseAdaptiveGCBoundary -XX:-UseGCOverheadLimit -XX:+UseBiasedLocking -XX:SurvivorRatio=8 -XX:TargetSurvivorRatio=90 -XX:MaxTenuringThreshold=15 -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -XX:+UseFastAccessorMethods -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+AggressiveOpts -XX:ReservedCodeCacheSize=2048m -XX:+UseCodeCacheFlushing -XX:SoftRefLRUPolicyMSPerMB=10000 -XX:ParallelGCThreads=10"
+    - hi_java_options,default:"-server -d64 -Xmx1G -Xms1G -Xmn256m"
 
     example:
 ```

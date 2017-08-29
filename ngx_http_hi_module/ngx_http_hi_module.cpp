@@ -39,6 +39,7 @@ static std::shared_ptr<hi::boost_py> PYTHON;
 static std::shared_ptr<hi::lua> LUA;
 static std::shared_ptr<hi::java> JAVA;
 static std::shared_ptr<hi::cache::lru_cache<std::string, hi::java_servlet_t>> JAVA_SERVLET_CACHE;
+static bool JAVA_IS_READY = false;
 
 enum application_t {
     cpp, python, lua, java, unkown
@@ -90,6 +91,10 @@ static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
 static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
 static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
+
+static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
+static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
+static bool java_init_handler(ngx_http_hi_loc_conf_t * conf);
 
 
 ngx_command_t ngx_http_hi_commands[] = {
@@ -296,6 +301,7 @@ static ngx_int_t clean_up(ngx_conf_t *cf) {
     LUA.reset();
     JAVA.reset();
     JAVA_SERVLET_CACHE.reset();
+    JAVA_IS_READY = false;
     return NGX_OK;
 }
 
@@ -356,7 +362,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_str_value(conf->lua_script, prev->lua_script, "");
     ngx_conf_merge_str_value(conf->lua_content, prev->lua_content, "");
     ngx_conf_merge_str_value(conf->java_classpath, prev->java_classpath, "-Djava.class.path=.");
-    ngx_conf_merge_str_value(conf->java_options, prev->java_options, "-server -d64 -Xmx3G -Xms3G -Xmn768m -XX:+DisableExplicitGC -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+UseNUMA -XX:+CMSParallelRemarkEnabled -XX:MaxTenuringThreshold=15 -XX:MaxGCPauseMillis=30 -XX:GCPauseIntervalMillis=150 -XX:+UseAdaptiveGCBoundary -XX:-UseGCOverheadLimit -XX:+UseBiasedLocking -XX:SurvivorRatio=8 -XX:TargetSurvivorRatio=90 -XX:MaxTenuringThreshold=15 -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -XX:+UseFastAccessorMethods -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+AggressiveOpts -XX:ReservedCodeCacheSize=2048m -XX:+UseCodeCacheFlushing -XX:SoftRefLRUPolicyMSPerMB=10000 -XX:ParallelGCThreads=10");
+    ngx_conf_merge_str_value(conf->java_options, prev->java_options, "-server -d64 -Xmx1G -Xms1G -Xmn256m");
     ngx_conf_merge_str_value(conf->java_servlet, prev->java_servlet, "");
     ngx_conf_merge_uint_value(conf->java_servlet_cache_size, prev->java_servlet_cache_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->java_servlet_cache_expires, prev->java_servlet_cache_expires, (ngx_int_t) 300);
@@ -373,16 +379,16 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         conf->need_cookies = 1;
     }
     if (conf->module_index == NGX_CONF_UNSET && conf->module_path.len > 0) {
-        std::string tmp((char*) conf->module_path.data, conf->module_path.len);
-        if (tmp.front() != '/') {
-            tmp.insert(0, NGX_PREFIX);
-        }
+        //        std::string tmp((char*) conf->module_path.data, conf->module_path.len);
+        //        if (tmp.front() != '/') {
+        //            tmp.insert(0, NGX_PREFIX);
+        //        }
 
         ngx_int_t index = NGX_CONF_UNSET;
         bool found = false;
         for (auto& item : PLUGIN) {
             ++index;
-            if (item->get_module() == tmp) {
+            if (item->get_module() == (char*) conf->module_path.data) {
                 found = true;
                 break;
             }
@@ -390,7 +396,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         if (found) {
             conf->module_index = index;
         } else {
-            PLUGIN.push_back(std::make_shared<hi::module_class < hi::servlet >> (tmp));
+            PLUGIN.push_back(std::make_shared<hi::module_class < hi::servlet >> ((char*) conf->module_path.data));
             conf->module_index = PLUGIN.size() - 1;
         }
         conf->app_type = cpp;
@@ -727,79 +733,50 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 }
 
 static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    if (java_init_handler(conf)) {
 
-    if (!JAVA) {
-        JAVA = std::make_shared<hi::java>((char*) conf->java_classpath.data, (char*) conf->java_options.data, conf->java_version);
-        if (JAVA && JAVA->is_ok()) {
-            JAVA->request = JAVA->env->FindClass("hi/request");
-            if (JAVA->request == NULL)return;
-            JAVA->request_ctor = JAVA->env->GetMethodID(JAVA->request, "<init>", "()V");
-            JAVA->client = JAVA->env->GetFieldID(JAVA->request, "client", "Ljava/lang/String;");
-            JAVA->user_agent = JAVA->env->GetFieldID(JAVA->request, "user_agent", "Ljava/lang/String;");
-            JAVA->method = JAVA->env->GetFieldID(JAVA->request, "method", "Ljava/lang/String;");
-            JAVA->uri = JAVA->env->GetFieldID(JAVA->request, "uri", "Ljava/lang/String;");
-            JAVA->param = JAVA->env->GetFieldID(JAVA->request, "param", "Ljava/lang/String;");
-            JAVA->req_headers = JAVA->env->GetFieldID(JAVA->request, "headers", "Ljava/util/HashMap;");
-            JAVA->form = JAVA->env->GetFieldID(JAVA->request, "form", "Ljava/util/HashMap;");
-            JAVA->cookies = JAVA->env->GetFieldID(JAVA->request, "cookies", "Ljava/util/HashMap;");
-            JAVA->req_session = JAVA->env->GetFieldID(JAVA->request, "session", "Ljava/util/HashMap;");
+        jobject request_instance, response_instance;
 
 
-            JAVA->response = JAVA->env->FindClass("hi/response");
-            if (JAVA->response == NULL)return;
-            JAVA->response_ctor = JAVA->env->GetMethodID(JAVA->response, "<init>", "()V");
-            JAVA->status = JAVA->env->GetFieldID(JAVA->response, "status", "I");
-            JAVA->content = JAVA->env->GetFieldID(JAVA->response, "content", "Ljava/lang/String;");
-            JAVA->res_headers = JAVA->env->GetFieldID(JAVA->response, "headers", "Ljava/util/HashMap;");
-            JAVA->res_session = JAVA->env->GetFieldID(JAVA->response, "session", "Ljava/util/HashMap;");
+        request_instance = JAVA->env->NewObject(JAVA->request, JAVA->request_ctor);
+        response_instance = JAVA->env->NewObject(JAVA->response, JAVA->response_ctor);
 
-            JAVA->hashmap = JAVA->env->FindClass("java/util/HashMap");
-            JAVA->hashmap_put = JAVA->env->GetMethodID(JAVA->hashmap, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
-            JAVA->hashmap_get = JAVA->env->GetMethodID(JAVA->hashmap, "get", "(Ljava/lang/Object;)Ljava/lang/Object;");
-            JAVA->hashmap_keyset = JAVA->env->GetMethodID(JAVA->hashmap, "keySet", "()Ljava/util/Set;");
+        java_input_handler(conf, req, res, request_instance, response_instance);
 
-            JAVA->arraylist = JAVA->env->FindClass("java/util/ArrayList");
-            JAVA->arraylist_get = JAVA->env->GetMethodID(JAVA->arraylist, "get", "(I)Ljava/lang/Object;");
-            JAVA->arraylist_size = JAVA->env->GetMethodID(JAVA->arraylist, "size", "()I");
-            JAVA->arraylist_iterator = JAVA->env->GetMethodID(JAVA->arraylist, "iterator", "()Ljava/util/Iterator;");
 
-            JAVA->iterator = JAVA->env->FindClass("java/util/Iterator");
-            JAVA->hasnext = JAVA->env->GetMethodID(JAVA->iterator, "hasNext", "()Z");
-            JAVA->next = JAVA->env->GetMethodID(JAVA->iterator, "next", "()Ljava/lang/Object;");
 
-            JAVA->set = JAVA->env->FindClass("java/util/Set");
-            JAVA->set_iterator = JAVA->env->GetMethodID(JAVA->set, "iterator", "()Ljava/util/Iterator;");
-
+        hi::java_servlet_t jtmp;
+        if (JAVA_SERVLET_CACHE->exists((const char*) conf->java_servlet.data)) {
+            jtmp = JAVA_SERVLET_CACHE->get((const char*) conf->java_servlet.data);
+            time_t now = time(0);
+            if (difftime(now, jtmp.t) > conf->java_servlet_cache_expires) {
+                JAVA_SERVLET_CACHE->erase((const char*) conf->java_servlet.data);
+                goto java_servlet_update;
+            }
         } else {
-            return;
-        }
-    }
-
-    hi::java_servlet_t jtmp;
-
-    if (JAVA_SERVLET_CACHE->exists((const char*) conf->java_servlet.data)) {
-        jtmp = JAVA_SERVLET_CACHE->get((const char*) conf->java_servlet.data);
-        time_t now = time(0);
-        if (difftime(now, jtmp.t) > conf->java_servlet_cache_expires) {
-            JAVA_SERVLET_CACHE->erase((const char*) conf->java_servlet.data);
-            goto java_servlet_update;
-        }
-    } else {
 java_servlet_update:
-        jtmp.SERVLET = JAVA->env->FindClass((const char*) conf->java_servlet.data);
-        if (jtmp.SERVLET == NULL)return;
-        jtmp.CTOR = JAVA->env->GetMethodID(jtmp.SERVLET, "<init>", "()V");
-        jtmp.HANDLER = JAVA->env->GetMethodID(jtmp.SERVLET, "handler", "(Lhi/request;Lhi/response;)V");
-        jtmp.t = time(0);
-        JAVA_SERVLET_CACHE->put((const char*) conf->java_servlet.data, jtmp);
+            jtmp.SERVLET = JAVA->env->FindClass((const char*) conf->java_servlet.data);
+            if (jtmp.SERVLET == NULL)return;
+            jtmp.CTOR = JAVA->env->GetMethodID(jtmp.SERVLET, "<init>", "()V");
+            jtmp.HANDLER = JAVA->env->GetMethodID(jtmp.SERVLET, "handler", "(Lhi/request;Lhi/response;)V");
+            jtmp.t = time(0);
+            JAVA_SERVLET_CACHE->put((const char*) conf->java_servlet.data, jtmp);
+        }
+        jobject servlet_instance = JAVA->env->NewObject(jtmp.SERVLET, jtmp.CTOR);
+        JAVA->env->CallVoidMethod(servlet_instance, jtmp.HANDLER, request_instance, response_instance);
+        JAVA->env->DeleteLocalRef(servlet_instance);
+
+
+        java_output_handler(conf, req, res, request_instance, response_instance);
+
+
+        JAVA->env->DeleteLocalRef(request_instance);
+        JAVA->env->DeleteLocalRef(response_instance);
     }
 
-    jobject servlet_instance, request_instance, response_instance;
+}
 
-    servlet_instance = JAVA->env->NewObject(jtmp.SERVLET, jtmp.CTOR);
-    request_instance = JAVA->env->NewObject(JAVA->request, JAVA->request_ctor);
-    response_instance = JAVA->env->NewObject(JAVA->response, JAVA->response_ctor);
-
+static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance) {
     jstring client = JAVA->env->NewStringUTF(req.client.c_str());
     JAVA->env->SetObjectField(request_instance, JAVA->client, client);
     JAVA->env->ReleaseStringUTFChars(client, 0);
@@ -879,9 +856,9 @@ java_servlet_update:
         JAVA->env->DeleteLocalRef(req_session);
     }
 
+}
 
-    JAVA->env->CallVoidMethod(servlet_instance, jtmp.HANDLER, request_instance, response_instance);
-
+static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance) {
     jobject res_headers = JAVA->env->GetObjectField(response_instance, JAVA->res_headers);
     jobject keyset = JAVA->env->CallObjectMethod(res_headers, JAVA->hashmap_keyset);
     jobject iterator = JAVA->env->CallObjectMethod(keyset, JAVA->set_iterator);
@@ -932,10 +909,55 @@ java_servlet_update:
     res.content = contentstr;
     JAVA->env->ReleaseStringUTFChars(content, contentstr);
     JAVA->env->DeleteLocalRef(content);
+}
+
+static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
+    if (JAVA_IS_READY)return JAVA_IS_READY;
+    if (!JAVA) {
+        JAVA = std::make_shared<hi::java>((char*) conf->java_classpath.data, (char*) conf->java_options.data, conf->java_version);
+        if (JAVA->is_ok()) {
+            JAVA->request = JAVA->env->FindClass("hi/request");
+            if (JAVA->request != NULL) {
+                JAVA->request_ctor = JAVA->env->GetMethodID(JAVA->request, "<init>", "()V");
+                JAVA->client = JAVA->env->GetFieldID(JAVA->request, "client", "Ljava/lang/String;");
+                JAVA->user_agent = JAVA->env->GetFieldID(JAVA->request, "user_agent", "Ljava/lang/String;");
+                JAVA->method = JAVA->env->GetFieldID(JAVA->request, "method", "Ljava/lang/String;");
+                JAVA->uri = JAVA->env->GetFieldID(JAVA->request, "uri", "Ljava/lang/String;");
+                JAVA->param = JAVA->env->GetFieldID(JAVA->request, "param", "Ljava/lang/String;");
+                JAVA->req_headers = JAVA->env->GetFieldID(JAVA->request, "headers", "Ljava/util/HashMap;");
+                JAVA->form = JAVA->env->GetFieldID(JAVA->request, "form", "Ljava/util/HashMap;");
+                JAVA->cookies = JAVA->env->GetFieldID(JAVA->request, "cookies", "Ljava/util/HashMap;");
+                JAVA->req_session = JAVA->env->GetFieldID(JAVA->request, "session", "Ljava/util/HashMap;");
 
 
-    JAVA->env->DeleteLocalRef(servlet_instance);
-    JAVA->env->DeleteLocalRef(request_instance);
-    JAVA->env->DeleteLocalRef(response_instance);
+                JAVA->response = JAVA->env->FindClass("hi/response");
+                if (JAVA->response != NULL) {
+                    JAVA->response_ctor = JAVA->env->GetMethodID(JAVA->response, "<init>", "()V");
+                    JAVA->status = JAVA->env->GetFieldID(JAVA->response, "status", "I");
+                    JAVA->content = JAVA->env->GetFieldID(JAVA->response, "content", "Ljava/lang/String;");
+                    JAVA->res_headers = JAVA->env->GetFieldID(JAVA->response, "headers", "Ljava/util/HashMap;");
+                    JAVA->res_session = JAVA->env->GetFieldID(JAVA->response, "session", "Ljava/util/HashMap;");
 
+                    JAVA->hashmap = JAVA->env->FindClass("java/util/HashMap");
+                    JAVA->hashmap_put = JAVA->env->GetMethodID(JAVA->hashmap, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+                    JAVA->hashmap_get = JAVA->env->GetMethodID(JAVA->hashmap, "get", "(Ljava/lang/Object;)Ljava/lang/Object;");
+                    JAVA->hashmap_keyset = JAVA->env->GetMethodID(JAVA->hashmap, "keySet", "()Ljava/util/Set;");
+
+                    JAVA->arraylist = JAVA->env->FindClass("java/util/ArrayList");
+                    JAVA->arraylist_get = JAVA->env->GetMethodID(JAVA->arraylist, "get", "(I)Ljava/lang/Object;");
+                    JAVA->arraylist_size = JAVA->env->GetMethodID(JAVA->arraylist, "size", "()I");
+                    JAVA->arraylist_iterator = JAVA->env->GetMethodID(JAVA->arraylist, "iterator", "()Ljava/util/Iterator;");
+
+                    JAVA->iterator = JAVA->env->FindClass("java/util/Iterator");
+                    JAVA->hasnext = JAVA->env->GetMethodID(JAVA->iterator, "hasNext", "()Z");
+                    JAVA->next = JAVA->env->GetMethodID(JAVA->iterator, "next", "()Ljava/lang/Object;");
+
+                    JAVA->set = JAVA->env->FindClass("java/util/Set");
+                    JAVA->set_iterator = JAVA->env->GetMethodID(JAVA->set, "iterator", "()Ljava/util/Iterator;");
+                    JAVA_IS_READY = true;
+                }
+            }
+        }
+    }
+    return JAVA_IS_READY;
 }

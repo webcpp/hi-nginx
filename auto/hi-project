@@ -5,7 +5,7 @@ if test -n "$1";then
         echo \$2:type:cpp,python,lua or java
         echo -e "\tdefault:cpp"
         echo \$3:hi\(nginx\) install directory.
-        echo -e "\tdefault:/home/centos7/nginx"
+        echo -e "\tdefault:/usr/local/nginx"
         exit
     fi
 fi
@@ -27,7 +27,7 @@ fi
 if test -n "$3";then 
     NGINX_INSTALL_DIR=$3
 else
-    NGINX_INSTALL_DIR=/home/centos7/nginx
+    NGINX_INSTALL_DIR=/usr/local/nginx
 fi
 
 echo "create hi project $PROJECT Makefile."
@@ -43,7 +43,7 @@ SRC=\$(wildcard *.cpp)
 OBJ=\$(patsubst %.cpp,%.o,\$(SRC))
 
 ifndef NGINX_INSTALL_DIR
-NGINX_INSTALL_DIR=/home/centos7/nginx
+NGINX_INSTALL_DIR=/usr/local/nginx
 endif
 
 CXX=g++ 
@@ -105,7 +105,7 @@ cat << END                                                     > $PROJECT/Makefi
 SRC=\$(wildcard *.py)
 
 ifndef NGINX_INSTALL_DIR
-NGINX_INSTALL_DIR=/home/centos7/nginx
+NGINX_INSTALL_DIR=/usr/local/nginx
 endif
 
 all:
@@ -138,7 +138,7 @@ cat << END                                                     > $PROJECT/Makefi
 SRC=\$(wildcard *.lua)
 
 ifndef NGINX_INSTALL_DIR
-NGINX_INSTALL_DIR=/home/centos7/nginx
+NGINX_INSTALL_DIR=/usr/local/nginx
 endif
 
 
@@ -174,7 +174,7 @@ SRC=\$(shell echo \`find . -type f | egrep *.java\$\$\`)
 OBJ=\$(patsubst %.java,%.class,\$(SRC))
 
 ifndef NGINX_INSTALL_DIR
-NGINX_INSTALL_DIR=/home/centos7/nginx
+NGINX_INSTALL_DIR=/usr/local/nginx
 endif
 
 JFLAGS = -classpath .:\${NGINX_INSTALL_DIR}/java/hi-nginx-java.jar
@@ -229,7 +229,7 @@ pre_makefile_tpl(){
 
 cat << END                                                     > Makefile
 
-export NGINX_INSTALL_DIR=/home/centos7/nginx
+export NGINX_INSTALL_DIR=/usr/local/nginx
 PROJECT=\$(shell find . -maxdepth 1 -type d  |grep '^\./[^.]')
 
 all:\$(PROJECT)

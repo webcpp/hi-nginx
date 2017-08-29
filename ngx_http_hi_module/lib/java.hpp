@@ -48,20 +48,20 @@ namespace hi {
     class java {
     public:
 
-        java(const std::string& classpath,const std::string& jvmoptions, int v)
+        java(const std::string& classpath, const std::string& jvmoptions, int v)
         : jvm(0)
         , args()
         , options()
+        , ok(false)
         , env(0)
         , version(v)
-        , ok(false)
         , request(0), response(0), hashmap(0), arraylist(0), iterator(0), set(0)
         , request_ctor(0), response_ctor(0), hashmap_put(0), hashmap_get(0), hashmap_keyset(0), arraylist_get(0), arraylist_size(0), arraylist_iterator(0), hasnext(0), next(0), set_iterator(0)
         , status(0), content(0)
         , client(0), user_agent(0), method(0), uri(0), param(0)
         , req_headers(0), form(0), cookies(0), req_session(0)
         , res_headers(0), res_session(0) {
-            this->ok = this->create_vm(classpath,jvmoptions);
+            this->ok = this->create_vm(classpath, jvmoptions);
         }
 
         virtual~java() {
@@ -98,6 +98,7 @@ namespace hi {
             this->req_session = 0;
             this->res_headers = 0;
             this->res_session = 0;
+
         }
 
         bool is_ok()const {
@@ -111,16 +112,16 @@ namespace hi {
         JavaVM *jvm;
         JavaVMInitArgs args;
         JavaVMOption options[2];
+        bool ok;
     public:
         JNIEnv *env;
         int version;
-        bool ok;
         jclass request, response, hashmap, arraylist, iterator, set;
         jmethodID request_ctor, response_ctor, hashmap_put, hashmap_get, hashmap_keyset, arraylist_get, arraylist_size, arraylist_iterator, hasnext, next, set_iterator;
         jfieldID status, content, client, user_agent, method, uri, param, req_headers, form, cookies, req_session, res_headers, res_session;
     private:
 
-        bool create_vm(const std::string& classpath,const std::string& jvmoptions) {
+        bool create_vm(const std::string& classpath, const std::string& jvmoptions) {
             switch (this->version) {
                 case 1:this->args.version = JNI_VERSION_1_1;
                     break;
@@ -137,8 +138,8 @@ namespace hi {
             }
             this->args.nOptions = 2;
             this->options[0].optionString = const_cast<char*> (classpath.c_str());
-            this->options[1].optionString = const_cast<char*>(jvmoptions.c_str());
-            
+            this->options[1].optionString = const_cast<char*> (jvmoptions.c_str());
+
             this->args.options = this->options;
             this->args.ignoreUnrecognized = JNI_TRUE;
             int rv = JNI_CreateJavaVM(&this->jvm, (void**) & this->env, &this->args);
@@ -148,6 +149,7 @@ namespace hi {
         void free_vm() {
             this->jvm->DestroyJavaVM();
         }
+
 
     };
 }
