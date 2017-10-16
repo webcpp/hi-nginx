@@ -379,10 +379,6 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         conf->need_cookies = 1;
     }
     if (conf->module_index == NGX_CONF_UNSET && conf->module_path.len > 0) {
-        //        std::string tmp((char*) conf->module_path.data, conf->module_path.len);
-        //        if (tmp.front() != '/') {
-        //            tmp.insert(0, NGX_PREFIX);
-        //        }
 
         ngx_int_t index = NGX_CONF_UNSET;
         bool found = false;
