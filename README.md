@@ -57,7 +57,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
   -  headers-more-nginx-module-0.32
   -  iconv-nginx-module-0.14
   -  memc-nginx-module-0.18
-  -  ngx_coolkit-0.2rc3
+  -  ngx_coolkit-0.2
   -  ngx_devel_kit-0.3.0
   -  rds-csv-nginx-module-0.07
   -  rds-json-nginx-module-0.14
@@ -66,10 +66,10 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
   -  srcache-nginx-module-0.31
   -  xss-nginx-module-0.05
   -  nginx-http-concat-1.2.2
-  -  nginx-push-stream-module-0.5.2
-  -  nginx-rtmp-module-1.1.7.10
-  -  nchan-1.1.6
-  -  echo-nginx-module-0.60
+  -  nginx-push-stream-module-0.5.4
+  -  nginx-rtmp-module-1.2.0
+  -  nchan-1.1.7
+  -  echo-nginx-module-0.61
   -  nginx-upload-module-2.255
 
 
