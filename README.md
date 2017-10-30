@@ -13,7 +13,7 @@ A distribution of Nginx with c++,python,lua and java web development.
 - python-devel
 - boost-devel
 - luajit-devel
-- java 8+
+- jdk 1.1,1.2,1.4,1.6,1.8,9
 
 ## centos
 ```
@@ -26,22 +26,19 @@ sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhired
 
 ```
 
-## about java install
+## about jdk 9 install
 ```
 curl -s "https://get.sdkman.io" | bash
 source "$HOME/.sdkman/bin/sdkman-init.sh"
 sdk selfupdate force
-sdk install java 8u141-oracle
+sdk install java 9.0.1-oracle
 
 ```
-You must set $JAVA_HOME!!!
-
-Create the file /etc/profile.d/java.sh
 
 Create the file /etc/ld.so.conf.d/java.conf with the following entries，replace $JAVA_HOME as true path:
 ```
-$JAVA_HOME/jre/lib/amd64
-$JAVA_HOME/jre/lib/amd64/server
+$JAVA_HOME/lib/
+$JAVA_HOME/lib/server
 ```
 then
 ```
