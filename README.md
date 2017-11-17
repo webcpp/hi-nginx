@@ -205,7 +205,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
     
 ```
             location ~ \.lua$  {
-                hi_lua_script python;
+                hi_lua_script lua;
             }
 ```
 - directives : content: http,srv,if in srv
@@ -252,11 +252,11 @@ hi_java_servlet_cache_size 10;
 
 ```
 - directives : content: http,srv,if in srv
-    - hi_java_version,default:8
+    - hi_java_version,default:9
 
     example:
 ```
-hi_java_version 8;
+hi_java_version 9;
 
 ```
 
