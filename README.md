@@ -213,7 +213,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 
     example:
 ```
-hi_java_classpath "-Djava.class.path=.:/home/centos7/nginx/java:/home/centos7/nginx/java/hi-nginx-java.jar";
+hi_java_classpath "-Djava.class.path=.:/usr/local/nginx/java:/usr/local/nginx/java/hi-nginx-java.jar";
 
 ```
 
@@ -313,8 +313,8 @@ extern "C" void destroy(hi::servlet* p) {
 ## cpp compile
 
 ```
-g++ -std=c++11 -I/home/centos7/nginx/include  -shared -fPIC hello.cpp -o hello.so
-install hello.so /home/centos7/nginx/hi
+g++ -std=c++11 -I/usr/local/nginx/include  -shared -fPIC hello.cpp -o hello.so
+install hello.so /usr/local/nginx/hi
 
 ```
 
