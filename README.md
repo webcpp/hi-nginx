@@ -6,6 +6,92 @@ A distribution of Nginx with c++,python,lua and java web development.
 
 [hi-nginx-doc](https://github.com/webcpp/hi-nginx-doc).
 
+
+# python and lua api
+## hi_req
+- uri
+- method
+- client
+- param
+- user_agent
+- has_header
+- get_header
+- has_form
+- get_form
+- has_session
+- get_session
+- has_cookie
+- get_cookie
+## hi_res
+- status
+- content
+- header
+- session
+
+# hello,world
+
+## cpp servlet class
+
+```
+#include "servlet.hpp"
+namespace hi{
+class hello : public servlet {
+    public:
+
+        void handler(request& req, response& res) {
+            res.headers.find("Content-Type")->second = "text/plain;charset=UTF-8";
+            res.content = "hello,world";
+            res.status = 200;
+        }
+
+    };
+}
+
+extern "C" hi::servlet* create() {
+    return new hi::hello();
+}
+
+extern "C" void destroy(hi::servlet* p) {
+    delete p;
+}
+
+```
+
+## cpp compile
+
+```
+g++ -std=c++11 -I/usr/local/nginx/include  -shared -fPIC hello.cpp -o hello.so
+install hello.so /usr/local/nginx/hi
+
+```
+
+## java servlet class
+
+```
+package hi;
+
+public class jhello implements hi.servlet {
+
+    public jhello() {
+
+    }
+
+    public void handler(hi.request req, hi.response res) {
+        res.status = 200;
+        res.content = "hello,world";
+
+    }
+}
+
+```
+
+## java compile
+
+```
+${JAVA_HOME}/bin/javac -classpath .:${NGINX_INSTALL_DIR}/java/hi-nginx-java.jar hi/jhello.java
+
+```
+
 # Dependency
 - linux
 - gcc,g++(c++11)
@@ -26,7 +112,7 @@ sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhired
 
 ```
 
-## about jdk 9 install
+## About jdk 9 install
 ```
 curl -s "https://get.sdkman.io" | bash
 source "$HOME/.sdkman/bin/sdkman-init.sh"
@@ -259,92 +345,6 @@ hi_java_servlet_cache_size 10;
 hi_java_version 9;
 
 ```
-
-# python and lua api
-## hi_req
-- uri
-- method
-- client
-- param
-- user_agent
-- has_header
-- get_header
-- has_form
-- get_form
-- has_session
-- get_session
-- has_cookie
-- get_cookie
-## hi_res
-- status
-- content
-- header
-- session
-
-# hello,world
-
-## cpp servlet class
-
-```
-#include "servlet.hpp"
-namespace hi{
-class hello : public servlet {
-    public:
-
-        void handler(request& req, response& res) {
-            res.headers.find("Content-Type")->second = "text/plain;charset=UTF-8";
-            res.content = "hello,world";
-            res.status = 200;
-        }
-
-    };
-}
-
-extern "C" hi::servlet* create() {
-    return new hi::hello();
-}
-
-extern "C" void destroy(hi::servlet* p) {
-    delete p;
-}
-
-```
-
-## cpp compile
-
-```
-g++ -std=c++11 -I/usr/local/nginx/include  -shared -fPIC hello.cpp -o hello.so
-install hello.so /usr/local/nginx/hi
-
-```
-
-## java servlet class
-
-```
-package hi;
-
-public class jhello implements hi.servlet {
-
-    public jhello() {
-
-    }
-
-    public void handler(hi.request req, hi.response res) {
-        res.status = 200;
-        res.content = "hello,world";
-
-    }
-}
-
-```
-
-## java compile
-
-```
-${JAVA_HOME}/bin/javac -classpath .:${NGINX_INSTALL_DIR}/java/hi-nginx-java.jar hi/jhello.java
-
-```
-
 
 ## nginx.conf
 

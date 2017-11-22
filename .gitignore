@@ -28,7 +28,7 @@
 *.out
 *.app
 /objs/
-nbproject
+/nbproject/
 /nginx.service
 /Makefile
 /README
