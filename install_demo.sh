@@ -1,6 +1,6 @@
 #!/bin/bash
 if ! test -f Makefile;then
-./configure                                                           \
+./configure                                                         \
                 --with-http_ssl_module                              \
                 --with-http_v2_module                               \
                 --prefix=/usr/local/nginx                           \
