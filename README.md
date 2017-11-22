@@ -6,6 +6,9 @@ A distribution of Nginx with c++,python,lua and java web development.
 
 [hi-nginx-doc](https://github.com/webcpp/hi-nginx-doc).
 
+# Features
+- All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
+
 
 # python and lua api
 ## hi_req
@@ -155,11 +158,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
   -  echo-nginx-module-0.61
   -  nginx-upload-module-2.255
 
-
-# Features
-- All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
-
-# Directives
+# ngx_http_hi_module directives
 - directives : content: loc,if in loc
     - hi,default: ""
 
