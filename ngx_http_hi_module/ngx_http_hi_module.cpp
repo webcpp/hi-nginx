@@ -29,7 +29,7 @@ extern "C" {
 struct cache_ele_t {
     int status = 200;
     time_t t;
-    std::string header, content;
+    std::string content_type, content;
 };
 
 static std::vector<std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
@@ -489,7 +489,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                 CACHE[conf->cache_index]->erase(*cache_k);
             } else {
                 ngx_response.content = cache_v.content;
-                ngx_response.headers.find("Content-Type")->second = cache_v.header;
+                ngx_response.headers.find("Content-Type")->second = cache_v.content_type;
                 ngx_response.status = cache_v.status;
                 goto done;
             }
@@ -552,7 +552,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     if (conf->need_cache == 1 && conf->cache_expires > 0) {
         cache_ele_t cache_v;
         cache_v.content = ngx_response.content;
-        cache_v.header = ngx_response.headers.find("Content-Type")->second;
+        cache_v.content_type = ngx_response.headers.find("Content-Type")->second;
         cache_v.status = ngx_response.status;
         cache_v.t = time(NULL);
         CACHE[conf->cache_index]->put(*cache_k, cache_v);
