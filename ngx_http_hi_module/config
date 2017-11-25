@@ -11,4 +11,9 @@ else
 fi
 ngx_addon_name=ngx_http_hi_module
 HTTP_MODULES="$HTTP_MODULES ngx_http_hi_module"
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_hi_module.cpp"
+NGX_ADDON_SRCS="
+                $NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_hi_module.cpp               \
+                $NGX_ADDON_SRCS $ngx_addon_dir/lib/MPFDParser-1.1.1/Exception.cpp   \
+                $NGX_ADDON_SRCS $ngx_addon_dir/lib/MPFDParser-1.1.1/Field.cpp       \
+                $NGX_ADDON_SRCS $ngx_addon_dir/lib/MPFDParser-1.1.1/Parser.cpp      \
+               "

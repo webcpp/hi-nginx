@@ -1,4 +1,4 @@
-case `echo ${ngx_src#*.}` in
+case `echo ${ngx_src##*.}` in
     cpp|cc)
         ngx_cc="$CXX $CXXFLAGS $ngx_compile_opt \$(CFLAGS) $ngx_use_pch \$(ALL_INCS)"
         ;;

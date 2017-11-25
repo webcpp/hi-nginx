@@ -5,6 +5,15 @@ extern "C" {
 #include <ngx_md5.h>
 }
 
+#include <openssl/ssl.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
+#include <openssl/bio.h>
+#include <openssl/md5.h>
+#include <openssl/x509v3.h>
+
 #include <vector>
 #include <memory>
 #include "include/request.hpp"
@@ -20,11 +29,13 @@ extern "C" {
 #include "lib/boost_py.hpp"
 #include "lib/lua.hpp"
 #include "lib/java.hpp"
+#include "lib/MPFDParser-1.1.1/Parser.h"
 
 
 #define SESSION_ID_NAME "SESSIONID"
 #define form_urlencoded_type "application/x-www-form-urlencoded"
 #define form_urlencoded_type_len (sizeof(form_urlencoded_type) - 1)
+#define TEMP_DIRECTORY "temp"
 
 struct cache_ele_t {
     int status = 200;
@@ -96,6 +107,9 @@ static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, 
 static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
 static bool java_init_handler(ngx_http_hi_loc_conf_t * conf);
 
+static std::string md5(const std::string& str);
+static std::string random_string(const std::string& s);
+static bool is_dir(const std::string& s);
 
 ngx_command_t ngx_http_hi_commands[] = {
     {
@@ -422,11 +436,6 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 
 static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
     if (r->headers_in.content_length_n > 0) {
-        if (r->headers_in.content_type->value.len < form_urlencoded_type_len
-                || ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) form_urlencoded_type,
-                form_urlencoded_type_len) != 0) {
-            return NGX_DECLINED;
-        }
         r->request_body_in_single_buf = 1;
         r->request_body_file_log_level = 0;
         ngx_int_t rc = ngx_http_read_client_request_body(r, ngx_http_hi_body_handler);
@@ -509,7 +518,42 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     }
     if (r->headers_in.content_length_n > 0) {
         ngx_str_t body = get_input_body(r);
-        hi::parser_param(std::string((char*) body.data, body.len), ngx_request.form);
+        if (r->headers_in.content_type->value.len < form_urlencoded_type_len
+                || ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) form_urlencoded_type,
+                form_urlencoded_type_len) != 0) {
+            try {
+                if ((is_dir(TEMP_DIRECTORY) || mkdir(TEMP_DIRECTORY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)) {
+                    ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+                    std::shared_ptr<MPFD::Parser> POSTParser(new MPFD::Parser());
+                    POSTParser->SetTempDirForFileUpload(TEMP_DIRECTORY);
+                    POSTParser->SetUploadedFilesStorage(MPFD::Parser::StoreUploadedFilesInFilesystem);
+                    POSTParser->SetMaxCollectedDataLength(clcf->client_max_body_size);
+                    POSTParser->SetContentType((char*) r->headers_in.content_type->value.data);
+                    POSTParser->AcceptSomeData((char*) body.data, body.len);
+                    auto fields = POSTParser->GetFieldsMap();
+                    for (auto &item : fields) {
+                        if (item.second->GetType() == MPFD::Field::TextType) {
+                            ngx_request.form.insert(std::make_pair(item.first, item.second->GetTextTypeContent()));
+                        } else {
+                            std::string upload_file_name = item.second->GetFileName(), ext;
+                            std::string::size_type p = upload_file_name.find_last_of(".");
+                            if (p != std::string::npos) {
+                                ext = upload_file_name.substr(p);
+                            }
+                            std::string temp_file = TEMP_DIRECTORY + ("/" + random_string(ngx_request.client + item.second->GetFileName()).append(ext));
+                            rename(item.second->GetTempFileName().c_str(), temp_file.c_str());
+                            ngx_request.form.insert(std::make_pair(item.first, temp_file));
+                        }
+                    }
+                }
+            } catch (MPFD::Exception& err) {
+                ngx_response.content = err.GetError();
+                ngx_response.status = 500;
+                goto done;
+            }
+        } else {
+            hi::parser_param(std::string((char*) body.data, body.len), ngx_request.form);
+        }
     }
     if (conf->need_cookies == 1 && r->headers_in.cookies.elts != NULL && r->headers_in.cookies.nelts != 0) {
         ngx_table_elt_t ** cookies = (ngx_table_elt_t **) r->headers_in.cookies.elts;
@@ -956,4 +1000,33 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
         }
     }
     return JAVA_IS_READY;
+}
+
+static std::string md5(const std::string& str) {
+    unsigned char digest[16] = {0};
+    MD5_CTX ctx;
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, str.c_str(), str.size());
+    MD5_Final(digest, &ctx);
+
+    unsigned char tmp[32] = {0}, *dst = &tmp[0], *src = &digest[0];
+    unsigned char hex[] = "0123456789abcdef";
+    int len = 16;
+    while (len--) {
+        *dst++ = hex[*src >> 4];
+        *dst++ = hex[*src++ & 0xf];
+    }
+
+    return std::string((char*) tmp, 32);
+}
+
+static std::string random_string(const std::string& s) {
+    time_t now = time(NULL);
+    char* now_str = ctime(&now);
+    return md5(s + now_str);
+}
+
+static bool is_dir(const std::string& s) {
+    struct stat st;
+    return stat(s.c_str(), &st) >= 0 && S_ISDIR(st.st_mode);
 }
