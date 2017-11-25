@@ -436,6 +436,10 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 
 static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
     if (r->headers_in.content_length_n > 0) {
+        ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+        if (clcf->client_body_buffer_size < (size_t)clcf->client_max_body_size) {
+            clcf->client_body_buffer_size = clcf->client_max_body_size;
+        }
         r->request_body_in_single_buf = 1;
         r->request_body_file_log_level = 0;
         ngx_int_t rc = ngx_http_read_client_request_body(r, ngx_http_hi_body_handler);
