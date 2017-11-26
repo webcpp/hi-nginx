@@ -6,11 +6,11 @@
 
 
 #ifndef _PARSER_H
-#define	_PARSER_H
+#define _PARSER_H
 
 #include <iostream>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include "Exception.h"
 #include "Field.h"
 #include <string.h>
@@ -36,13 +36,13 @@ namespace MPFD {
         void SetTempDirForFileUpload(std::string dir);
         void SetUploadedFilesStorage(int where);
 
-        const std::map<std::string, Field *>& GetFieldsMap()const;
+        const std::unordered_map<std::string, Field *>& GetFieldsMap()const;
         Field * GetField(std::string Name);
 
     private:
         int WhereToStoreUploadedFiles;
 
-        std::map<std::string, Field *> Fields;
+        std::unordered_map<std::string, Field *> Fields;
 
         std::string TempDirForFileUpload;
         int CurrentStatus;
@@ -68,5 +68,5 @@ namespace MPFD {
     };
 }
 
-#endif	/* _PARSER_H */
+#endif /* _PARSER_H */
 

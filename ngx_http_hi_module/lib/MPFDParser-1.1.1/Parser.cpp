@@ -6,7 +6,7 @@
 
 #include "Parser.h"
 
-const std::map<std::string, MPFD::Field *>& MPFD::Parser::GetFieldsMap()const {
+const std::unordered_map<std::string, MPFD::Field *>& MPFD::Parser::GetFieldsMap()const {
     return Fields;
 }
 
@@ -30,7 +30,7 @@ MPFD::Parser::Parser() {
 }
 
 MPFD::Parser::~Parser() {
-    std::map<std::string, Field *>::iterator it;
+    std::unordered_map<std::string, Field *>::iterator it;
     for (it = Fields.begin(); it != Fields.end(); it++) {
         delete it->second;
     }
