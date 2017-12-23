@@ -1,5 +1,5 @@
 # Introduction
-A distribution of Nginx with c++,python,lua and java web development. 
+A distribution of Nginx with c++,python,lua java and php web development. 
 
 
 [hi-nginx-demo](https://github.com/webcpp/hi_demo).
@@ -60,7 +60,7 @@ extern "C" void destroy(hi::servlet* p) {
 
 ```
 
-## cpp compile
+### cpp compile
 
 ```
 g++ -std=c++11 -I/usr/local/nginx/include  -shared -fPIC hello.cpp -o hello.so
@@ -88,12 +88,38 @@ public class jhello implements hi.servlet {
 
 ```
 
-## java compile
+### java compile
 
 ```
 ${JAVA_HOME}/bin/javac -classpath .:${NGINX_INSTALL_DIR}/java/hi-nginx-java.jar hi/jhello.java
 
 ```
+
+
+## php servlet class
+
+see `php/hi/request.php`,`php/hi/response.php` and `php/hi/servlet.php`
+
+```php
+
+<?php
+
+require_once 'hi/servlet.php';
+
+class hello implements \hi\servlet {
+
+    public function handler(\hi\request &$req, \hi\response &$res) {
+        $res->content = 'hello,world';
+        $res->status = 200;
+    }
+
+}
+
+```
+
+### php demo
+
+see `contrbi/php`
 
 # Dependency
 - linux
@@ -103,6 +129,7 @@ ${JAVA_HOME}/bin/javac -classpath .:${NGINX_INSTALL_DIR}/java/hi-nginx-java.jar 
 - boost-devel
 - luajit-devel
 - jdk 1.1,1.2,1.4,1.6,1.8,9
+- PHP 7.0 or later(--enable-embed=shared)
 
 ## centos
 ```
@@ -133,6 +160,22 @@ then
 ```
 sudo ldconfig
 ```
+
+## About php7+ install
+Please change `configure` :
+
+```txt
+ac_fn_c_check_decl "$LINENO" "isfinite" "ac_cv_have_decl_isfinite" "#include <math.h>
+"
+if test "x$ac_cv_have_decl_isfinite" = xyes; then :
+  ac_have_decl=0
+else
+  ac_have_decl=0
+fi
+
+```
+
+
 
 # Installation
 see `install_demo.sh` or `--add-module=ngx_http_hi_module`
@@ -343,6 +386,16 @@ hi_java_servlet_cache_size 10;
 ```
 hi_java_version 9;
 
+```
+- directives : content: loc,if in loc
+    - hi_php_srcipt,default: ""
+
+    example:
+    
+```
+            location ~ \.php$  {
+                hi_lua_script lua;
+            }
 ```
 
 ## nginx.conf
