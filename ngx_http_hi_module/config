@@ -1,6 +1,7 @@
 CXX=g++
 CXXFLAGS="$CXXFLAGS -O3 -std=c++11 `pkg-config --cflags hiredis python luajit`"
 CXXFLAGS="$CXXFLAGS -I ${JAVA_HOME}/include/ -I ${JAVA_HOME}/include/linux"
+CXXFLAGS="$CXXFLAGS `php-config --includes`"
 CORE_LIBS="$CORE_LIBS -lstdc++"
 NGX_LD_OPT="$NGX_LD_OPT -lboost_python `pkg-config --libs hiredis python luajit`"
 JAVA_VERSION=`java -version 2>&1 | grep "java version" | awk '{print $3}' | tr -d \" | awk '{split($0, array, ".")} END{print array[1]}'`
@@ -9,11 +10,10 @@ if test $JAVA_VERSION = 1 ;then
 else
     NGX_LD_OPT="$NGX_LD_OPT -L ${JAVA_HOME}/lib/server/ -ljvm"
 fi
+NGX_LD_OPT="$NGX_LD_OPT -lphp7"
 ngx_addon_name=ngx_http_hi_module
 HTTP_MODULES="$HTTP_MODULES ngx_http_hi_module"
-NGX_ADDON_SRCS="
-                $NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_hi_module.cpp               \
-                $NGX_ADDON_SRCS $ngx_addon_dir/lib/MPFDParser-1.1.1/Exception.cpp   \
-                $NGX_ADDON_SRCS $ngx_addon_dir/lib/MPFDParser-1.1.1/Field.cpp       \
-                $NGX_ADDON_SRCS $ngx_addon_dir/lib/MPFDParser-1.1.1/Parser.cpp      \
-               "
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir -type f -name '*.cpp'`"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir -type f -name '*.cc'`"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir -type f -name '*.cxx'`"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir -type f -name '*.c'`"

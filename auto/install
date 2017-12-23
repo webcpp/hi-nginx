@@ -166,6 +166,8 @@ install:	build $NGX_INSTALL_PERL_MODULES
 	test -d '\$(DESTDIR)$NGX_PREFIX/lua' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/lua'
 	test -d '\$(DESTDIR)$NGX_PREFIX/java' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/java'
 	test -d '\$(DESTDIR)$NGX_PREFIX/temp' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/temp'
+	test -d '\$(DESTDIR)$NGX_PREFIX/php' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/php'
+	cp -R contrib/php '\$(DESTDIR)$NGX_PREFIX/'
 	cp contrib/hi-nginx-java.jar '\$(DESTDIR)$NGX_PREFIX/java'
 	cp nginx.service /etc/systemd/system
 END
