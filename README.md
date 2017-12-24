@@ -306,7 +306,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
             }
 ```
 - directives : content: loc,if in loc
-    - hi_python_srcipt,default: ""
+    - hi_python_script,default: ""
 
     example:
     
@@ -327,7 +327,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
             }
 ```
 - directives : content: loc,if in loc
-    - hi_lua_srcipt,default: ""
+    - hi_lua_script,default: ""
 
     example:
     
@@ -388,13 +388,13 @@ hi_java_version 9;
 
 ```
 - directives : content: loc,if in loc
-    - hi_php_srcipt,default: ""
+    - hi_php_script,default: ""
 
     example:
     
 ```
             location ~ \.php$  {
-                hi_lua_script lua;
+                hi_php_script php;
             }
 ```
 
