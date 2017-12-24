@@ -1080,12 +1080,6 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
     if (access(script.c_str(), F_OK) == 0) {
         zend_first_try
                 {
-            if (!PHP) {
-                int argc = 1;
-                char* argv[2] = {"", NULL};
-                PHP.reset();
-                PHP = std::move(std::make_shared<php::VM>(argc, argv));
-            }
             PHP->include(script.c_str());
             const char *request = "\\hi\\request", *response = "\\hi\\response", *handler = "handler";
             if (php::getClassEntry(request) != NULL && php::getClassEntry(response) != NULL) {
