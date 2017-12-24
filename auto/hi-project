@@ -2,7 +2,7 @@ if test -n "$1";then
     if test "$1" = "--help" || test "$1" = "-h" ;then
         echo \$1:project name.
         echo -e "\tdefault:demo"
-        echo \$2:type:cpp,python,lua or java
+        echo \$2:type:cpp,python,lua ,php or java
         echo -e "\tdefault:cpp"
         echo \$3:hi\(nginx\) install directory.
         echo -e "\tdefault:/usr/local/nginx"
@@ -225,6 +225,53 @@ END
 
 }
 
+php_makefile_tpl(){
+
+cat << END                                                     > $PROJECT/Makefile
+
+SRC=\$(wildcard *.php)
+
+ifndef NGINX_INSTALL_DIR
+NGINX_INSTALL_DIR=/usr/local/nginx
+endif
+
+
+all:
+	@echo 'ok'
+
+clean:
+	@echo 'ok'
+
+install:
+	test -d \$(NGINX_INSTALL_DIR)/php || mkdir -p \$(NGINX_INSTALL_DIR)/php
+	install \$(SRC) \$(NGINX_INSTALL_DIR)/php
+
+END
+
+echo "create hi project $PROJECT demo source file."
+
+cat << END                                                     > $PROJECT/$PROJECT.php
+
+<?php
+
+require_once 'hi/servlet.php';
+
+class hello implements \hi\servlet {
+
+    public function handler(\hi\request &\$req, \hi\response &\$res) {
+        \$res->content = 'hello,world';
+        \$res->status = 200;
+    }
+
+}
+
+
+
+END
+
+}
+
+
 pre_makefile_tpl(){
 
 cat << END                                                     > Makefile
@@ -253,7 +300,8 @@ case $TYPE in
     python) python_makefile_tpl;;
     lua) lua_makefile_tpl;;
     java) java_makefile_tpl;;
-    *) echo 'Please set TYPE in (cpp,python,lua or java)';;
+    php) php_makefile_tpl;;
+    *) echo 'Please set TYPE in (cpp,python,lua,php or java)';;
 esac
 
 if ! test -f Makefile ;
