@@ -637,7 +637,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         default:break;
     }
 
-    if (conf->need_cache == 1 && conf->cache_expires > 0) {
+    if (ngx_response.status == 200 && conf->need_cache == 1 && conf->cache_expires > 0) {
         cache_ele_t cache_v;
         cache_v.content = ngx_response.content;
         cache_v.content_type = ngx_response.headers.find("Content-Type")->second;
