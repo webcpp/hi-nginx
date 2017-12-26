@@ -4,6 +4,14 @@ require_once 'hi/servlet.php';
 
 class form implements \hi\servlet {
 
+    public function __construct() {
+        
+    }
+
+    public function __destruct() {
+        
+    }
+
     public function handler(\hi\request &$req, \hi\response &$res) {
         $res->content = "form :<br />";
         foreach ($req->form as $key => $value) {

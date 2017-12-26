@@ -10,6 +10,14 @@ class demo implements \hi\servlet {
 
     private $data = array();
 
+    public function __construct() {
+        
+    }
+
+    public function __destruct() {
+        
+    }
+
     public function handler(\hi\request &$req, \hi\response &$res) {
         $this->data['name'] = 'pangpang';
         $this->data['title'] = 'php template engine';
