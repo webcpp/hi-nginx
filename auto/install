@@ -158,8 +158,7 @@ install:	build $NGX_INSTALL_PERL_MODULES
 		|| cp -R $NGX_HTML '\$(DESTDIR)$NGX_PREFIX'
 
 
-	test -d '\$(DESTDIR)$NGX_PREFIX/include' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/include'
-	cp ngx_http_hi_module/include/*.hpp '\$(DESTDIR)$NGX_PREFIX/include'
+	cp -R ngx_http_hi_module/include '\$(DESTDIR)$NGX_PREFIX'
 	test -d '\$(DESTDIR)$NGX_PREFIX/hi' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/hi'
 	cp auto/hi-project '\$(DESTDIR)$NGX_PREFIX/hi'
 	test -d '\$(DESTDIR)$NGX_PREFIX/python' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/python'
