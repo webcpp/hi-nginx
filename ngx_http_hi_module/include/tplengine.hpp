@@ -14,10 +14,10 @@ namespace hi {
     class tplengine {
     public:
 
-        tpl_engine() :
+        tplengine() :
         loader(), tpl(loader) {
         }
-        virtual ~tpl_engine() = default;
+        virtual ~tplengine() = default;
 
         void render(hi::response& res) {
             std::stringbuf buf;
