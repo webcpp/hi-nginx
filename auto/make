@@ -424,7 +424,7 @@ if test -n "$NGX_ADDON_SRCS"; then
                   -e "s#^\(.*\.\)cc\\$#$ngx_objs_dir\1$ngx_objext#g" \
                   -e "s#^\(.*\.\)cxx\\$#$ngx_objs_dir\1$ngx_objext#g" \
                   -e "s#^\(.*\.\)c\\$#$ngx_objs_dir\1$ngx_objext#g" \
-                  -e "s#^\(.*\.\)S\\$#$ngx_objs_dir\1$ngx_objext#g"` 
+                  -e "s#^\(.*\.\)S\\$#$ngx_objs_dir\1$ngx_objext#g"`
 
         ngx_src=`echo $ngx_src | sed -e "s/\//$ngx_regex_dirsep/g"`
 

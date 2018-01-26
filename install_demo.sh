@@ -21,7 +21,7 @@ if ! test -f Makefile;then
                 --add-module=3rd/srcache-nginx-module-0.31          \
                 --add-module=3rd/xss-nginx-module-0.05              \
                 --add-module=3rd/nginx-push-stream-module-0.5.4     \
-                --add-module=3rd/nchan-1.1.7                        \
+                --add-module=3rd/nchan-1.1.14                       \
                 --add-module=3rd/nginx-rtmp-module-1.2.0            \
                 --add-module=3rd/nginx-upload-module-2.255          
 else
