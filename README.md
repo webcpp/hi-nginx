@@ -162,6 +162,7 @@ sudo ldconfig
 ```
 
 ## About php7+ install
+
 Please change `configure` :
 
 ```txt
@@ -174,7 +175,7 @@ else
 fi
 
 ```
-
+and with `--enable-embed`.
 
 
 # Installation
