@@ -190,25 +190,25 @@ and with `--enable-embed`.
 see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 
 # 3rd party module
-  -  array-var-nginx-module-0.05
-  -  form-input-nginx-module-0.12
-  -  headers-more-nginx-module-0.32
-  -  iconv-nginx-module-0.14
-  -  memc-nginx-module-0.18
-  -  ngx_coolkit-0.2
-  -  ngx_devel_kit-0.3.0
-  -  rds-csv-nginx-module-0.07
-  -  rds-json-nginx-module-0.14
-  -  redis2-nginx-module-0.14
-  -  set-misc-nginx-module-0.31
-  -  srcache-nginx-module-0.31
-  -  xss-nginx-module-0.05
-  -  nginx-http-concat-1.2.2
-  -  nginx-push-stream-module-0.5.4
-  -  nginx-rtmp-module-1.2.0
-  -  nchan-1.1.7
-  -  echo-nginx-module-0.61
-  -  nginx-upload-module-2.255
+  -  array-var-nginx-module
+  -  form-input-nginx-module
+  -  headers-more-nginx-module
+  -  iconv-nginx-module
+  -  memc-nginx-module
+  -  ngx_coolkit
+  -  ngx_devel_kit
+  -  rds-csv-nginx-module
+  -  rds-json-nginx-module
+  -  redis2-nginx-module
+  -  set-misc-nginx-module
+  -  srcache-nginx-module
+  -  xss-nginx-module
+  -  nginx-http-concat
+  -  nginx-push-stream-module
+  -  nginx-rtmp-module
+  -  nchan
+  -  echo-nginx-module
+  -  nginx-upload-module
 
 # ngx_http_hi_module directives
 - directives : content: loc,if in loc
