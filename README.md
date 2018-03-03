@@ -395,11 +395,11 @@ hi_java_servlet_cache_size 10;
 
 ```
 - directives : content: http,srv,if in srv
-    - hi_java_version,default:9
+    - hi_java_version,default:8
 
     example:
 ```
-hi_java_version 9;
+hi_java_version 8;
 
 ```
 - directives : content: loc,if in loc
