@@ -133,10 +133,16 @@ namespace hi {
                     break;
                 case 8:this->args.version = JNI_VERSION_1_8;
                     break;
+#ifdef JNI_VERSION_9
                 case 9:this->args.version = JNI_VERSION_9;
                     break;
                 default:this->args.version = JNI_VERSION_9;
                     break;
+#else
+                default:this->args.version = JNI_VERSION_1_8;
+                    break;
+#endif
+
             }
             this->args.nOptions = 2;
             this->options[0].optionString = const_cast<char*> (classpath.c_str());

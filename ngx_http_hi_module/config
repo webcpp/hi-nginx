@@ -4,7 +4,7 @@ CXXFLAGS="$CXXFLAGS -I ${JAVA_HOME}/include/ -I ${JAVA_HOME}/include/linux"
 CXXFLAGS="$CXXFLAGS `php-config --includes`"
 CORE_LIBS="$CORE_LIBS -lstdc++"
 NGX_LD_OPT="$NGX_LD_OPT -lboost_python `pkg-config --libs hiredis python luajit`"
-JAVA_VERSION=`java -version 2>&1 | grep "java version" | awk '{print $3}' | tr -d \" | awk '{split($0, array, ".")} END{print array[1]}'`
+JAVA_VERSION=`java -version 2>&1 | grep -E  "(java|openjdk) version" | awk '{print $3}' | tr -d \" | awk '{split($0, array, ".")} END{print array[1]}'`
 if test $JAVA_VERSION = 1 ;then
     NGX_LD_OPT="$NGX_LD_OPT -L ${JAVA_HOME}/jre/lib/amd64/server/ -ljvm"
 else

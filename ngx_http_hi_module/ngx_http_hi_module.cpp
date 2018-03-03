@@ -410,7 +410,11 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_str_value(conf->java_servlet, prev->java_servlet, "");
     ngx_conf_merge_uint_value(conf->java_servlet_cache_size, prev->java_servlet_cache_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->java_servlet_cache_expires, prev->java_servlet_cache_expires, (ngx_int_t) 300);
+#ifdef JNI_VERSION_9
+    ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t) 9);
+#else
     ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t) 8);
+#endif
     ngx_conf_merge_value(conf->redis_port, prev->redis_port, (ngx_int_t) 0);
     ngx_conf_merge_uint_value(conf->cache_size, prev->cache_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->cache_expires, prev->cache_expires, (ngx_int_t) 300);

@@ -136,7 +136,7 @@ see `contrbi/php`
 - python-devel
 - boost-devel
 - luajit-devel
-- jdk 1.1,1.2,1.4,1.6,1.8,9
+- jdk 1.8,9
 - PHP 7.0 or later(--enable-embed=shared)
 
 ## centos
@@ -159,12 +159,18 @@ sdk install java 9.0.1-oracle
 
 ```
 
-Create the file /etc/ld.so.conf.d/java.conf with the following entries，replace $JAVA_HOME as true path:
+Create the file /etc/ld.so.conf.d/java.conf with the following entries，replace $JAVA_HOME as real path:
 ```
 $JAVA_HOME/lib/
 $JAVA_HOME/lib/server
 ```
-then
+
+If you install jdk 1.8, then replace the above code with the following code:
+```
+$JAVA_HOME/jre/lib/amd64/server
+```
+
+Then
 ```
 sudo ldconfig
 ```
