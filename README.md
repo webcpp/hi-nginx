@@ -13,6 +13,7 @@ A distribution of Nginx with c++,python,lua java and php web development.
 # Branch
 
 - master
+- master-luajit
 - only-cpp
 - only-python
 - only-php
@@ -135,18 +136,18 @@ see `contrbi/php`
 - hiredis-devel
 - python-devel
 - boost-devel
-- luajit-devel
+- lua-devel(lua5.1,5.2,5.3)
 - jdk 1.8,9
 - PHP 7.0 or later(--enable-embed=shared)
 
 ## centos
 ```
-sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel boost-devel luajit-devel
+sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel boost-devel lua-devel
 
 ```
 ## ubuntu
 ```
-sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhiredis-dev python-dev libboost-all-dev libluajit-5.1-dev 
+sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhiredis-dev python-dev libboost-all-dev  liblua5.3-dev 
 
 ```
 
