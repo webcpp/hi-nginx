@@ -641,6 +641,16 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         default:break;
     }
 
+    if (ngx_response.headers.count("Content-Type") > 1) {
+        auto range = ngx_response.headers.equal_range("Content-Type");
+        for (auto & it = range.first; it != range.second; ++it) {
+            if (it->second == "text/html;charset=UTF-8") {
+                ngx_response.headers.erase(it);
+                break;
+            }
+        }
+    }
+
     if (ngx_response.status == 200 && conf->need_cache == 1 && conf->cache_expires > 0) {
         cache_ele_t cache_v;
         cache_v.content = ngx_response.content;
