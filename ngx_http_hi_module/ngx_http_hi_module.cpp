@@ -804,7 +804,12 @@ static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::reques
         PYTHON->set_req(&py_req);
         PYTHON->set_res(&py_res);
         if (conf->python_script.len > 0) {
-            PYTHON->call_script(std::string((char*) conf->python_script.data, conf->python_script.len).append(req.uri));
+            std::string script = std::move(std::string((char*) conf->python_script.data, conf->python_script.len));
+            auto c = script.find_last_of('.');
+            if (c == std::string::npos || script.substr(c + 1) != "py") {
+                script.append(req.uri);
+            }
+            PYTHON->call_script(script);
         } else if (conf->python_content.len > 0) {
             PYTHON->call_content((char*) conf->python_content.data);
         }
@@ -823,7 +828,12 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
         LUA->set_req(&py_req);
         LUA->set_res(&py_res);
         if (conf->lua_script.len > 0) {
-            LUA->call_script(std::string((char*) conf->lua_script.data, conf->lua_script.len).append(req.uri));
+            std::string script = std::move(std::string((char*) conf->lua_script.data, conf->lua_script.len));
+            auto c = script.find_last_of('.');
+            if (c == std::string::npos || script.substr(c + 1) != "lua") {
+                script.append(req.uri);
+            }
+            LUA->call_script(script);
         } else if (conf->lua_content.len > 0) {
             LUA->call_content((char*) conf->lua_content.data);
         }
