@@ -331,7 +331,9 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
                 hi_python_script python;
             }
 ```
+
     or
+
 ```
             location / {
                 hi_python_script python/index.py;
@@ -359,7 +361,9 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
                 hi_lua_script lua;
             }
 ```
+
     or
+
 ```
             location / {
                 hi_lua_script lua/index.lua;
@@ -426,7 +430,9 @@ hi_java_version 8;
                 hi_php_script php;
             }
 ```
+
     or
+
 ```
             location / {
                 hi_php_script php/index.php;
