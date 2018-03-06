@@ -1145,6 +1145,7 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
                             for (size_t j = 0; j < arr.count(); j++) {
                                 res.headers.insert(std::move(std::make_pair(i.key().toString(), arr[j].toString())));
                             }
+                            arr.clean();
                         } else {
                             res.headers.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
                         }
@@ -1153,11 +1154,19 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
                         res.session.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
                     }
 
-
-
                     res.content = std::move(php_res.get("content").toString());
 
                     res.status = std::move(php_res.get("status")).toInt();
+
+
+                    php_req_headers.clean();
+                    php_req_form.clean();
+                    php_req_cookies.clean();
+                    php_req_session.clean();
+
+                    res_headers.clean();
+                    res_session.clean();
+
                     return;
                 }
             }}zend_catch{
