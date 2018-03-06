@@ -332,7 +332,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
             }
 ```
 
-    or
+or
 
 ```
             location / {
@@ -362,7 +362,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
             }
 ```
 
-    or
+or
 
 ```
             location / {
@@ -431,7 +431,7 @@ hi_java_version 8;
             }
 ```
 
-    or
+or
 
 ```
             location / {
