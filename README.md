@@ -44,7 +44,7 @@ A distribution of Nginx with c++,python,lua java and php web development.
 
 ## cpp servlet class
 
-```
+```cpp
 #include "servlet.hpp"
 namespace hi{
 class hello : public servlet {
@@ -79,7 +79,7 @@ install hello.so /usr/local/nginx/hi
 
 ## java servlet class
 
-```
+```java
 package hi;
 
 public class jhello implements hi.servlet {
