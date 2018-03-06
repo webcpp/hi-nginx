@@ -331,6 +331,13 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
                 hi_python_script python;
             }
 ```
+    or
+```
+            location / {
+                hi_python_script python/index.py;
+            }
+```
+
 
 - directives : content: loc,if in loc
     - hi_lua_content,default: ""
@@ -350,6 +357,12 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
 ```
             location ~ \.lua$  {
                 hi_lua_script lua;
+            }
+```
+    or
+```
+            location / {
+                hi_lua_script lua/index.lua;
             }
 ```
 - directives : content: http,srv,if in srv
@@ -413,7 +426,12 @@ hi_java_version 8;
                 hi_php_script php;
             }
 ```
-
+    or
+```
+            location / {
+                hi_php_script php/index.php;
+            }
+```
 ## nginx.conf
 
 [hi_demo_conf](https://github.com/webcpp/hi_demo/blob/master/demo.conf)
