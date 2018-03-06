@@ -1090,7 +1090,11 @@ static bool is_dir(const std::string& s) {
 }
 
 static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-    std::string script = std::move(std::string((char*) conf->php_script.data, conf->php_script.len).append(req.uri));
+    std::string script = std::move(std::string((char*) conf->php_script.data, conf->php_script.len));
+    auto c = script.find_last_of('.');
+    if (c == std::string::npos || script.substr(c + 1) != "php") {
+        script.append(req.uri);
+    }
     if (access(script.c_str(), F_OK) == 0) {
         zend_first_try
                 {
@@ -1125,9 +1129,9 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 
 
 
-                auto p = req.uri.find_last_of('/'), q = req.uri.find_last_of('.');
+                auto p = script.find_last_of('/'), q = script.find_last_of('.');
 
-                std::string class_name = std::move(req.uri.substr(p + 1, q - 1 - p));
+                std::string class_name = std::move(script.substr(p + 1, q - 1 - p));
 
 
                 php::Object servlet = php::newObject(class_name.c_str());
