@@ -190,7 +190,7 @@ else
 fi
 
 ```
-and with `--enable-embed`.
+and with `--enable-embed=shared`.
 
 
 # Installation
