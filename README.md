@@ -132,7 +132,7 @@ see `contrbi/php`
 
 # Dependency
 - linux
-- gcc,g++(c++11)
+- gcc and g++(c++11) or clang and clang++
 - hiredis-devel
 - python-devel
 - boost-devel

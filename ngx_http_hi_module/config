@@ -1,4 +1,9 @@
-CXX=g++
+if test $CC = gcc ; then
+    CXX=g++
+fi
+if test $CC = clang ; then
+    CXX=clang++
+fi
 CXXFLAGS="$CXXFLAGS -O3 -std=c++11 `pkg-config --cflags hiredis python lua`"
 CXXFLAGS="$CXXFLAGS -I ${JAVA_HOME}/include/ -I ${JAVA_HOME}/include/linux"
 CXXFLAGS="$CXXFLAGS `php-config --includes`"

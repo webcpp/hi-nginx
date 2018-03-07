@@ -147,7 +147,7 @@ bool MPFD::Parser::WaitForHeadersEndAndParseThem() {
 
             TruncateDataCollectorFromTheBeginning(i + 4);
 
-            delete headers;
+            delete[] headers;
 
             return true;
         }
