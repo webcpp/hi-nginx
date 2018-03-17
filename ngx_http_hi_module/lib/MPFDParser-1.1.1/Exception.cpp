@@ -6,18 +6,16 @@
 
 #include "Exception.h"
 
-MPFD::Exception::Exception(std::string error) {
+MPFD::Exception::Exception(const std::string& error) {
     Error = error;
 }
 
 MPFD::Exception::Exception(const MPFD::Exception& orig) {
-    Error = orig.Error;
+    if (&orig != this) {
+        Error = orig.Error;
+    }
 }
 
-MPFD::Exception::~Exception() {
-
-}
-
-std::string MPFD::Exception::GetError() {
+const std::string& MPFD::Exception::GetError() const {
     return Error;
 }

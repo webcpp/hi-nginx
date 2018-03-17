@@ -26,18 +26,18 @@ namespace MPFD {
         Parser();
         ~Parser();
 
-        void SetContentType(const std::string type);
+        void SetContentType(const std::string& type);
 
         void AcceptSomeData(const char *data, const long length);
 
 
 
         void SetMaxCollectedDataLength(long max);
-        void SetTempDirForFileUpload(std::string dir);
+        void SetTempDirForFileUpload(const std::string& dir);
         void SetUploadedFilesStorage(int where);
 
         const std::unordered_map<std::string, Field *>& GetFieldsMap()const;
-        Field * GetField(std::string Name);
+        Field * GetField(const std::string& Name);
 
     private:
         int WhereToStoreUploadedFiles;
@@ -56,11 +56,11 @@ namespace MPFD {
         std::string ProcessingFieldName;
         bool _HeadersOfTheFieldAreProcessed;
         long ContentLength;
-        char *DataCollector;
-        long DataCollectorLength, MaxDataCollectorLength;
+        std::string DataCollector;
+        size_t MaxDataCollectorLength;
         bool FindStartingBoundaryAndTruncData();
         void _ProcessData();
-        void _ParseHeaders(std::string headers);
+        void _ParseHeaders(const std::string& headers);
         bool WaitForHeadersEndAndParseThem();
         void TruncateDataCollectorFromTheBeginning(long n);
         long BoundaryPositionInDataCollector();

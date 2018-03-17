@@ -16,11 +16,11 @@ namespace MPFD {
 
     class Exception {
     public:
-        Exception(std::string error);
+        Exception(const std::string& error);
         Exception(const Exception& orig);
-        virtual ~Exception();
+        virtual ~Exception()=default;
         
-        std::string GetError();
+        const std::string& GetError()const;
      
     private:
         std::string Error;

@@ -10,7 +10,7 @@ const std::unordered_map<std::string, MPFD::Field *>& MPFD::Parser::GetFieldsMap
     return Fields;
 }
 
-MPFD::Field * MPFD::Parser::GetField(std::string Name) {
+MPFD::Field * MPFD::Parser::GetField(const std::string& Name) {
     if (Fields.count(Name)) {
         return Fields[Name];
     } else {
@@ -19,8 +19,6 @@ MPFD::Field * MPFD::Parser::GetField(std::string Name) {
 }
 
 MPFD::Parser::Parser() {
-    DataCollector = NULL;
-    DataCollectorLength = 0;
     _HeadersOfTheFieldAreProcessed = false;
     CurrentStatus = Status_LookingForStartingBoundary;
 
@@ -34,13 +32,9 @@ MPFD::Parser::~Parser() {
     for (it = Fields.begin(); it != Fields.end(); it++) {
         delete it->second;
     }
-
-    if (DataCollector) {
-        delete DataCollector;
-    }
 }
 
-void MPFD::Parser::SetContentType(const std::string type) {
+void MPFD::Parser::SetContentType(const std::string& type) {
     if (type.find("multipart/form-data;") != 0) {
         throw MPFD::Exception(std::string("Content type is not \"multipart/form-data\"\nIt is \"") + type + std::string("\""));
     }
@@ -58,17 +52,9 @@ void MPFD::Parser::SetContentType(const std::string type) {
 void MPFD::Parser::AcceptSomeData(const char *data, const long length) {
     if (Boundary.length() > 0) {
         // Append data to existing accumulator
-        if (DataCollector == NULL) {
-            DataCollector = new char[length];
-            memcpy(DataCollector, data, length);
-            DataCollectorLength = length;
-        } else {
-            DataCollector = (char*) realloc(DataCollector, DataCollectorLength + length);
-            memcpy(DataCollector + DataCollectorLength, data, length);
-            DataCollectorLength += length;
-        }
+        DataCollector.assign(data, length);
 
-        if (DataCollectorLength > MaxDataCollectorLength) {
+        if (DataCollector.size() > MaxDataCollectorLength) {
             throw Exception("Maximum data collector length reached.");
         }
 
@@ -119,11 +105,11 @@ bool MPFD::Parser::ProcessContentOfTheField() {
         DataLengthToSendToField = BoundaryPosition - 2;
     } else {
         // We need to save +2 chars for \r\n chars before boundary
-        DataLengthToSendToField = DataCollectorLength - (Boundary.length() + 2);
+        DataLengthToSendToField = DataCollector.size() - (Boundary.length() + 2);
     }
 
     if (DataLengthToSendToField > 0) {
-        Fields[ProcessingFieldName]->AcceptSomeData(DataCollector, DataLengthToSendToField);
+        Fields[ProcessingFieldName]->AcceptSomeData(DataCollector.c_str(), DataLengthToSendToField);
         TruncateDataCollectorFromTheBeginning(DataLengthToSendToField);
     }
 
@@ -136,19 +122,13 @@ bool MPFD::Parser::ProcessContentOfTheField() {
 }
 
 bool MPFD::Parser::WaitForHeadersEndAndParseThem() {
-    for (int i = 0; i < DataCollectorLength - 3; i++) {
+    size_t dl=DataCollector.size();
+    for (size_t i = 0; i < dl - 3; i++) {
         if ((DataCollector[i] == 13) && (DataCollector[i + 1] == 10) && (DataCollector[i + 2] == 13) && (DataCollector[i + 3] == 10)) {
             long headers_length = i;
-            char *headers = new char[headers_length + 1];
-            memset(headers, 0, headers_length + 1);
-            memcpy(headers, DataCollector, headers_length);
-
-            _ParseHeaders(std::string(headers));
+            _ParseHeaders(DataCollector.substr(0, headers_length));
 
             TruncateDataCollectorFromTheBeginning(i + 4);
-
-            delete[] headers;
-
             return true;
         }
     }
@@ -159,11 +139,11 @@ void MPFD::Parser::SetUploadedFilesStorage(int where) {
     WhereToStoreUploadedFiles = where;
 }
 
-void MPFD::Parser::SetTempDirForFileUpload(std::string dir) {
+void MPFD::Parser::SetTempDirForFileUpload(const std::string& dir) {
     TempDirForFileUpload = dir;
 }
 
-void MPFD::Parser::_ParseHeaders(std::string headers) {
+void MPFD::Parser::_ParseHeaders(const std::string& headers) {
     // Check if it is form data
     if (headers.find("Content-Disposition: form-data;") == std::string::npos) {
         throw Exception(std::string("Accepted headers of field does not contain \"Content-Disposition: form-data;\"\nThe headers are: \"") + headers + std::string("\""));
@@ -226,25 +206,16 @@ void MPFD::Parser::SetMaxCollectedDataLength(long max) {
 }
 
 void MPFD::Parser::TruncateDataCollectorFromTheBeginning(long n) {
-    long TruncatedDataCollectorLength = DataCollectorLength - n;
-
-    char *tmp = DataCollector;
-
-    DataCollector = new char[TruncatedDataCollectorLength];
-    memcpy(DataCollector, tmp + n, TruncatedDataCollectorLength);
-
-    DataCollectorLength = TruncatedDataCollectorLength;
-
-    delete tmp;
-
+    long TruncatedDataCollectorLength = DataCollector.size() - n;
+    DataCollector = DataCollector.substr(n, TruncatedDataCollectorLength);
 }
 
 long MPFD::Parser::BoundaryPositionInDataCollector() {
     const char *b = Boundary.c_str();
-    int bl = Boundary.length();
-    if (DataCollectorLength >= bl) {
+    int bl = Boundary.length(), dl = DataCollector.size();
+    if (dl >= bl) {
         bool found = false;
-        for (int i = 0; (i <= DataCollectorLength - bl) && (!found); i++) {
+        for (int i = 0; (i <= dl - bl) && (!found); i++) {
             found = true;
             for (int j = 0; (j < bl) && (found); j++) {
                 if (DataCollector[i + j] != b[j]) {
