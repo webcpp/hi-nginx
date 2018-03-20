@@ -17,6 +17,7 @@ A distribution of Nginx with c++,python,lua java and php web development.
 - only-cpp
 - only-python
 - only-php
+- only-java
 - no-java
 
 # python and lua api
@@ -321,6 +322,7 @@ see `install_demo.sh` or `--add-module=ngx_http_hi_module`
                 hi_python_content "hi_res.status(200)\nhi_res.content('hello,world')" ;
             }
 ```
+
 - directives : content: loc,if in loc
     - hi_python_script,default: ""
 
@@ -351,6 +353,7 @@ or
                 hi_lua_content "hi_res:status(200)\nhi_res:content('hello,world')" ;
             }
 ```
+
 - directives : content: loc,if in loc
     - hi_lua_script,default: ""
 
@@ -369,6 +372,7 @@ or
                 hi_lua_script lua/index.lua;
             }
 ```
+
 - directives : content: http,srv,if in srv
     - hi_java_classpath,default:"-Djava.class.path=."
 
@@ -396,6 +400,7 @@ hi_java_servlet hi/jhello;
 
 
 ```
+
 - directives : content : http,srv,loc,if in loc ,if in srv
     - hi_java_servlet_cache_expires,default:300s
 
@@ -404,6 +409,7 @@ hi_java_servlet hi/jhello;
 hi_java_servlet_cache_expires 300s;
 
 ```
+
 - directives : content : http,srv,loc,if in loc ,if in srv
     - hi_java_servlet_cache_size,default:10
 
@@ -412,6 +418,7 @@ hi_java_servlet_cache_expires 300s;
 hi_java_servlet_cache_size 10;
 
 ```
+
 - directives : content: http,srv,if in srv
     - hi_java_version,default:8
 
@@ -420,6 +427,7 @@ hi_java_servlet_cache_size 10;
 hi_java_version 8;
 
 ```
+
 - directives : content: loc,if in loc
     - hi_php_script,default: ""
 
