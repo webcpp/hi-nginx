@@ -9,6 +9,84 @@ A distribution of Nginx with c++,python,lua java and php web development.
 # Features
 - All features of nginx-1.13.10(latest release) are inherited, i.e., it is 100% compatible with nginx.
 
+# Dependency
+- linux
+- gcc and g++(c++11) or clang and clang++
+- hiredis-devel
+- boost-devel,if `--enable-http-hi-python=YES`
+- python-devel,if `--enable-http-hi-python=YES`
+- lua-devel(lua5.1,5.2,5.3),if `--enable-http-hi-lua=YES` 
+- jdk 1.1,1.2,1.4,1.6,1.8,9,if `--enable-http-hi-java=YES`
+- PHP 7.0 or later(--enable-embed=shared),if `--enable-http-hi-php=YES`
+fi
+
+## centos
+```
+sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel boost-devel lua-devel
+
+```
+
+## ubuntu
+```
+sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhiredis-dev python-dev libboost-all-dev  liblua5.3-dev 
+
+```
+
+## About jdk 9 install
+```
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk selfupdate force
+sdk install java 9.0.1-oracle
+
+```
+
+Create the file /etc/ld.so.conf.d/java.conf with the following entries，replace $JAVA_HOME as real path:
+```
+$JAVA_HOME/lib/
+$JAVA_HOME/lib/server
+```
+
+If you install jdk 1.8, then replace the above code with the following code:
+```
+$JAVA_HOME/jre/lib/amd64/server
+```
+
+Then
+```
+sudo ldconfig
+```
+
+## About php7+ install
+
+Please change `configure` :
+
+```txt
+ac_fn_c_check_decl "$LINENO" "isfinite" "ac_cv_have_decl_isfinite" "#include <math.h>
+"
+if test "x$ac_cv_have_decl_isfinite" = xyes; then :
+  ac_have_decl=0
+else
+  ac_have_decl=0
+fi
+
+```
+and with `--enable-embed=shared`.
+
+
+# Installation
+`./configure --help` or see `install_demo.sh` or 
+
+```shell
+                --enable-http-hi-cpp=YES                            \
+                --enable-http-hi-python=YES                         \
+                --enable-http-hi-lua=YES                            \
+                --enable-http-hi-java=YES                           \
+                --enable-http-hi-php=YES                            \
+                --add-module=ngx_http_hi_module                     \
+
+```
+
 
 # python and lua api
 ## hi_req
@@ -121,90 +199,7 @@ class hello implements \hi\servlet {
 
 see `contrbi/php`
 
-# Dependency
-- linux
-- gcc and g++(c++11) or clang and clang++
-- hiredis-devel
-if `--enable-http-hi-python=YES`; then
-- boost-devel
-- python-devel
-fi
-if `--enable-http-hi-lua=YES` ; then
-- lua-devel(lua5.1,5.2,5.3)
-fi
-if `--enable-http-hi-java=YES`; then
-- jdk 1.8,9
-fi
-if `--enable-http-hi-php=YES`; then
-- PHP 7.0 or later(--enable-embed=shared)
-fi
 
-## centos
-```
-sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel boost-devel lua-devel
-
-```
-
-## ubuntu
-```
-sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhiredis-dev python-dev libboost-all-dev  liblua5.3-dev 
-
-```
-
-## About jdk 9 install
-```
-curl -s "https://get.sdkman.io" | bash
-source "$HOME/.sdkman/bin/sdkman-init.sh"
-sdk selfupdate force
-sdk install java 9.0.1-oracle
-
-```
-
-Create the file /etc/ld.so.conf.d/java.conf with the following entries，replace $JAVA_HOME as real path:
-```
-$JAVA_HOME/lib/
-$JAVA_HOME/lib/server
-```
-
-If you install jdk 1.8, then replace the above code with the following code:
-```
-$JAVA_HOME/jre/lib/amd64/server
-```
-
-Then
-```
-sudo ldconfig
-```
-
-## About php7+ install
-
-Please change `configure` :
-
-```txt
-ac_fn_c_check_decl "$LINENO" "isfinite" "ac_cv_have_decl_isfinite" "#include <math.h>
-"
-if test "x$ac_cv_have_decl_isfinite" = xyes; then :
-  ac_have_decl=0
-else
-  ac_have_decl=0
-fi
-
-```
-and with `--enable-embed=shared`.
-
-
-# Installation
-`./configure --help` or see `install_demo.sh` or 
-
-```shell
-                --enable-http-hi-cpp=YES                            \
-                --enable-http-hi-python=YES                         \
-                --enable-http-hi-lua=YES                            \
-                --enable-http-hi-java=YES                           \
-                --enable-http-hi-php=YES                            \
-                --add-module=ngx_http_hi_module                     \
-
-```
 
 # 3rd party module
   -  array-var-nginx-module
