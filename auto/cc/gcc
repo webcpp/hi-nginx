@@ -168,8 +168,6 @@ esac
 # stop on warning
 CFLAGS="$CFLAGS -Werror"
 
-CXXFLAGS="$CXXFLAGS -Wall"
-
 # debug
 CFLAGS="$CFLAGS -g"
 

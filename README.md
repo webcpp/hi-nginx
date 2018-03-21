@@ -7,18 +7,8 @@ A distribution of Nginx with c++,python,lua java and php web development.
 [hi-nginx-doc](https://github.com/webcpp/hi-nginx-doc).
 
 # Features
-- All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
+- All features of nginx-1.13.10(latest release) are inherited, i.e., it is 100% compatible with nginx.
 
-
-# Branch
-
-- master
-- master-luajit
-- only-cpp
-- only-python
-- only-php
-- only-java
-- no-java
 
 # python and lua api
 ## hi_req
@@ -135,11 +125,19 @@ see `contrbi/php`
 - linux
 - gcc and g++(c++11) or clang and clang++
 - hiredis-devel
-- python-devel
+if `--enable-http-hi-python=YES`; then
 - boost-devel
+- python-devel
+fi
+if `--enable-http-hi-lua=YES` ; then
 - lua-devel(lua5.1,5.2,5.3)
+fi
+if `--enable-http-hi-java=YES`; then
 - jdk 1.8,9
+fi
+if `--enable-http-hi-php=YES`; then
 - PHP 7.0 or later(--enable-embed=shared)
+fi
 
 ## centos
 ```
@@ -196,7 +194,17 @@ and with `--enable-embed=shared`.
 
 
 # Installation
-see `install_demo.sh` or `--add-module=ngx_http_hi_module`
+`./configure --help` or see `install_demo.sh` or 
+
+```shell
+                --enable-http-hi-cpp=YES                            \
+                --enable-http-hi-python=YES                         \
+                --enable-http-hi-lua=YES                            \
+                --enable-http-hi-java=YES                           \
+                --enable-http-hi-php=YES                            \
+                --add-module=ngx_http_hi_module                     \
+
+```
 
 # 3rd party module
   -  array-var-nginx-module

@@ -5,6 +5,11 @@ if ! test -f Makefile;then
                 --with-http_ssl_module                              \
                 --with-http_v2_module                               \
                 --prefix=/usr/local/nginx                           \
+                --enable-http-hi-cpp=YES                            \
+                --enable-http-hi-python=YES                         \
+                --enable-http-hi-lua=YES                            \
+                --enable-http-hi-java=YES                           \
+                --enable-http-hi-php=YES                            \
                 --add-module=ngx_http_hi_module                     \
                 --add-module=3rd/ngx_devel_kit-0.3.1rc1             \
                 --add-module=3rd/nginx-http-concat-1.2.2            \

@@ -86,6 +86,7 @@ HTTP_PROXY=YES
 HTTP_FASTCGI=YES
 HTTP_UWSGI=YES
 HTTP_SCGI=YES
+HTTP_GRPC=YES
 HTTP_PERL=NO
 HTTP_MEMCACHED=YES
 HTTP_LIMIT_CONN=YES
@@ -103,6 +104,13 @@ HTTP_UPSTREAM_IP_HASH=YES
 HTTP_UPSTREAM_LEAST_CONN=YES
 HTTP_UPSTREAM_KEEPALIVE=YES
 HTTP_UPSTREAM_ZONE=YES
+
+
+HTTP_HI_CPP=YES
+HTTP_HI_PYTHON=YES
+HTTP_HI_LUA=YES
+HTTP_HI_PHP=YES
+HTTP_HI_JAVA=YES
 
 # STUB
 HTTP_STUB_STATUS=NO
@@ -262,6 +270,7 @@ $0: warning: the \"--with-ipv6\" option is deprecated"
         --without-http_fastcgi_module)   HTTP_FASTCGI=NO            ;;
         --without-http_uwsgi_module)     HTTP_UWSGI=NO              ;;
         --without-http_scgi_module)      HTTP_SCGI=NO               ;;
+        --without-http_grpc_module)      HTTP_GRPC=NO               ;;
         --without-http_memcached_module) HTTP_MEMCACHED=NO          ;;
         --without-http_limit_conn_module) HTTP_LIMIT_CONN=NO        ;;
         --without-http_limit_req_module) HTTP_LIMIT_REQ=NO         ;;
@@ -388,6 +397,12 @@ $0: warning: the \"--with-sha1-asm\" option is deprecated"
         --test-build-epoll)              NGX_TEST_BUILD_EPOLL=YES   ;;
         --test-build-solaris-sendfilev)  NGX_TEST_BUILD_SOLARIS_SENDFILEV=YES ;;
 
+        --enable-http-hi-cpp=*)            HTTP_HI_CPP="$value"       ;;
+        --enable-http-hi-python=*)         HTTP_HI_PYTHON="$value"    ;;
+        --enable-http-hi-lua=*)            HTTP_HI_LUA="$value"       ;;
+        --enable-http-hi-php=*)            HTTP_HI_PHP="$value"       ;;
+        --enable-http-hi-java=*)           HTTP_HI_JAVA="$value"      ;;
+
         *)
             echo "$0: error: invalid option \"$option\""
             exit 1
@@ -471,6 +486,7 @@ cat << END
   --without-http_fastcgi_module      disable ngx_http_fastcgi_module
   --without-http_uwsgi_module        disable ngx_http_uwsgi_module
   --without-http_scgi_module         disable ngx_http_scgi_module
+  --without-http_grpc_module         disable ngx_http_grpc_module
   --without-http_memcached_module    disable ngx_http_memcached_module
   --without-http_limit_conn_module   disable ngx_http_limit_conn_module
   --without-http_limit_req_module    disable ngx_http_limit_req_module
@@ -570,6 +586,12 @@ cat << END
   --with-openssl-opt=OPTIONS         set additional build options for OpenSSL
 
   --with-debug                       enable debug logging
+
+  --enable-http-hi-cpp=YES           enable hi cpp language support,YES or NO,default: YES
+  --enable-http-hi-python=YES        enable hi python language support,YES or NO,default: YES
+  --enable-http-hi-lua=YES           enable hi lua language support,YES or NO,default: YES
+  --enable-http-hi-php=YES           enable hi php language support,YES or NO,default: YES
+  --enable-http-hi-java-YES          enable hi java language support,YES or NO,default: YES
 
 END
 

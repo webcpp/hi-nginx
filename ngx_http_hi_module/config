@@ -1,24 +1,52 @@
-if test $CC = gcc ; then
-    CXX=g++
+if test $HTTP_HI_CPP = YES ; then
+    ngx_addon_name=ngx_http_hi_module
+    HTTP_MODULES="$HTTP_MODULES ngx_http_hi_module"
+    
+
+    if test $CC = gcc ; then
+        CXX=g++
+    fi
+    if test $CC = clang ; then
+        CXX=clang++
+    fi
+
+    CXXFLAGS="$CXXFLAGS -DHTTP_HI_CPP"
+    CXXFLAGS="$CXXFLAGS -Wall"
+    CXXFLAGS="$CXXFLAGS -O3 -std=c++11 `pkg-config --cflags hiredis`"
+    CORE_LIBS="$CORE_LIBS -lstdc++"
+    NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs hiredis`"
+    if test $HTTP_HI_PYTHON = YES ; then
+        CXXFLAGS="$CXXFLAGS -DHTTP_HI_PYTHON"
+        CXXFLAGS="$CXXFLAGS `pkg-config --cflags python`"
+        NGX_LD_OPT="$NGX_LD_OPT -lboost_python `pkg-config --libs python`"
+    fi
+
+    if test $HTTP_HI_LUA = YES ; then
+        CXXFLAGS="$CXXFLAGS -DHTTP_HI_LUA"
+        CXXFLAGS="$CXXFLAGS -O3 -std=c++11 `pkg-config --cflags lua`"
+        NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs lua`"
+    fi
+
+    if test $HTTP_HI_JAVA = YES ; then
+        CXXFLAGS="$CXXFLAGS -DHTTP_HI_JAVA"
+        CXXFLAGS="$CXXFLAGS -I ${JAVA_HOME}/include/ -I ${JAVA_HOME}/include/linux"
+        JAVA_VERSION=`java -version 2>&1 | grep -E  "(java|openjdk) version" | awk '{print $3}' | tr -d \" | awk '{split($0, array, ".")} END{print array[1]}'`
+        if test $JAVA_VERSION = 1 ;then
+            NGX_LD_OPT="$NGX_LD_OPT -L ${JAVA_HOME}/jre/lib/amd64/server/ -ljvm"
+        else
+            NGX_LD_OPT="$NGX_LD_OPT -L ${JAVA_HOME}/lib/server/ -ljvm"
+        fi
+    fi
+
+    if test $HTTP_HI_PHP = YES ; then
+        CXXFLAGS="$CXXFLAGS -DHTTP_HI_PHP"
+        CXXFLAGS="$CXXFLAGS `php-config --includes`"
+        NGX_LD_OPT="$NGX_LD_OPT -lphp7"
+        NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/php-x -type f -name '*.cc'`"
+    fi
+
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/MPFDParser -type f -name '*.cpp'`"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_hi_module.cpp"
 fi
-if test $CC = clang ; then
-    CXX=clang++
-fi
-CXXFLAGS="$CXXFLAGS -O3 -std=c++11 `pkg-config --cflags hiredis python lua`"
-CXXFLAGS="$CXXFLAGS -I ${JAVA_HOME}/include/ -I ${JAVA_HOME}/include/linux"
-CXXFLAGS="$CXXFLAGS `php-config --includes`"
-CORE_LIBS="$CORE_LIBS -lstdc++"
-NGX_LD_OPT="$NGX_LD_OPT -lboost_python `pkg-config --libs hiredis python lua`"
-JAVA_VERSION=`java -version 2>&1 | grep -E  "(java|openjdk) version" | awk '{print $3}' | tr -d \" | awk '{split($0, array, ".")} END{print array[1]}'`
-if test $JAVA_VERSION = 1 ;then
-    NGX_LD_OPT="$NGX_LD_OPT -L ${JAVA_HOME}/jre/lib/amd64/server/ -ljvm"
-else
-    NGX_LD_OPT="$NGX_LD_OPT -L ${JAVA_HOME}/lib/server/ -ljvm"
-fi
-NGX_LD_OPT="$NGX_LD_OPT -lphp7"
-ngx_addon_name=ngx_http_hi_module
-HTTP_MODULES="$HTTP_MODULES ngx_http_hi_module"
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir -type f -name '*.cpp'`"
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir -type f -name '*.cc'`"
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir -type f -name '*.cxx'`"
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir -type f -name '*.c'`"
+
+

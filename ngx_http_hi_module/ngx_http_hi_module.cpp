@@ -14,6 +14,8 @@ extern "C" {
 #include <openssl/md5.h>
 #include <openssl/x509v3.h>
 
+#ifdef HTTP_HI_CPP
+
 #include <vector>
 #include <memory>
 #include "include/request.hpp"
@@ -26,23 +28,26 @@ extern "C" {
 #include "lib/lrucache.hpp"
 #include "lib/param.hpp"
 #include "lib/redis.hpp"
+#include "lib/MPFDParser/Parser.h"
 
-
-
+#ifdef HTTP_HI_PYTHON
 #include "lib/py_request.hpp"
 #include "lib/py_response.hpp"
 #include "lib/boost_py.hpp"
+#endif
 
+#ifdef HTTP_HI_LUA
+#include "lib/lua.hpp"
+#endif
+
+#ifdef HTTP_HI_JAVA
+#include "lib/java.hpp"
+#endif
+
+#ifdef HTTP_HI_PHP
 #include "lib/php-x/phpx.h"
 #include "lib/php-x/phpx_embed.h"
-#include "lib/fmt/format.h"
-
-#include "lib/lua.hpp"
-
-#include "lib/java.hpp"
-
-
-#include "lib/MPFDParser-1.1.1/Parser.h"
+#endif
 
 
 
@@ -60,37 +65,77 @@ struct cache_ele_t {
 static std::vector<std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, cache_ele_t>>> CACHE;
 static std::shared_ptr<hi::redis> REDIS;
+
+#ifdef HTTP_HI_PYTHON
 static std::shared_ptr<hi::boost_py> PYTHON;
+#endif
+
+#ifdef HTTP_HI_LUA
 static std::shared_ptr<hi::lua> LUA;
+#endif
+
+#ifdef HTTP_HI_JAVA
 static std::shared_ptr<hi::java> JAVA;
 static std::shared_ptr<hi::cache::lru_cache<std::string, hi::java_servlet_t>> JAVA_SERVLET_CACHE;
 static bool JAVA_IS_READY = false;
+#endif
+
+#ifdef HTTP_HI_PHP
 static std::shared_ptr<php::VM> PHP;
+#endif
 
 enum application_t {
-    __cpp__, __python__, __lua__, __java__, __php__, __unkown__
+    __cpp__,
+#ifdef HTTP_HI_PYTHON
+    __python__,
+#endif
+#ifdef HTTP_HI_LUA
+    __lua__,
+#endif
+#ifdef HTTP_HI_JAVA    
+    __java__,
+#endif
+#ifdef HTTP_HI_PHP
+    __php__,
+#endif
+    __unkown__
 };
 
 typedef struct {
     ngx_str_t module_path
     , redis_host
+#ifdef HTTP_HI_PYTHON
     , python_script
     , python_content
+#endif
+#ifdef HTTP_HI_LUA
     , lua_script
     , lua_content
+#endif
+#ifdef HTTP_HI_JAVA
     , java_classpath
     , java_options
     , java_servlet
-    , php_script;
+#endif
+#ifdef HTTP_HI_PHP
+    , php_script
+#endif
+    ;
     ngx_int_t redis_port
     , module_index
     , cache_expires
     , session_expires
     , cache_index
+#ifdef HTTP_HI_JAVA
     , java_servlet_cache_expires
-    , java_version;
+    , java_version
+#endif
+    ;
     size_t cache_size
-    , java_servlet_cache_size;
+#ifdef HTTP_HI_JAVA
+    , java_servlet_cache_size
+#endif
+    ;
     ngx_flag_t need_headers
     , need_cache
     , need_cookies
@@ -115,15 +160,25 @@ static void set_output_headers(ngx_http_request_t* r, std::unordered_multimap<st
 static ngx_str_t get_input_body(ngx_http_request_t *r);
 
 static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
-static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
-static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
-static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
 
+#ifdef HTTP_HI_PYTHON
+static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
+#endif
+
+#ifdef HTTP_HI_LUA
+static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
+#endif
+
+#ifdef HTTP_HI_JAVA
+static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
 static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
 static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
 static bool java_init_handler(ngx_http_hi_loc_conf_t * conf);
+#endif
 
+#ifdef HTTP_HI_PHP
 static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
+#endif
 
 static std::string md5(const std::string& str);
 static std::string random_string(const std::string& s);
@@ -210,6 +265,7 @@ ngx_command_t ngx_http_hi_commands[] = {
         offsetof(ngx_http_hi_loc_conf_t, session_expires),
         NULL
     },
+#ifdef HTTP_HI_PYTHON
     {
         ngx_string("hi_python_script"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
@@ -226,6 +282,8 @@ ngx_command_t ngx_http_hi_commands[] = {
         offsetof(ngx_http_hi_loc_conf_t, python_content),
         NULL
     },
+#endif
+#ifdef HTTP_HI_LUA
     {
         ngx_string("hi_lua_script"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
@@ -242,6 +300,8 @@ ngx_command_t ngx_http_hi_commands[] = {
         offsetof(ngx_http_hi_loc_conf_t, lua_content),
         NULL
     },
+#endif
+#ifdef HTTP_HI_JAVA
     {
         ngx_string("hi_java_classpath"),
         NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_CONF_TAKE1,
@@ -290,6 +350,8 @@ ngx_command_t ngx_http_hi_commands[] = {
         offsetof(ngx_http_hi_loc_conf_t, java_version),
         NULL
     },
+#endif
+#ifdef HTTP_HI_PHP
     {
         ngx_string("hi_php_script"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
@@ -298,6 +360,7 @@ ngx_command_t ngx_http_hi_commands[] = {
         offsetof(ngx_http_hi_loc_conf_t, php_script),
         NULL
     },
+#endif
     ngx_null_command
 };
 
@@ -337,12 +400,20 @@ static ngx_int_t clean_up(ngx_conf_t *cf) {
     PLUGIN.clear();
     CACHE.clear();
     REDIS.reset();
+#ifdef HTTP_HI_PYTHON
     PYTHON.reset();
+#endif
+#ifdef HTTP_HI_LUA
     LUA.reset();
+#endif
+#ifdef HTTP_HI_JAVA
     JAVA.reset();
     JAVA_SERVLET_CACHE.reset();
     JAVA_IS_READY = false;
+#endif
+#ifdef HTTP_HI_PHP
     PHP.reset();
+#endif
     return NGX_OK;
 }
 
@@ -362,16 +433,23 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->module_index = NGX_CONF_UNSET;
         conf->redis_host.len = 0;
         conf->redis_host.data = NULL;
+#ifdef HTTP_HI_PYTHON
         conf->python_script.len = 0;
         conf->python_script.data = NULL;
         conf->python_content.len = 0;
         conf->python_content.data = NULL;
+#endif
+#ifdef HTTP_HI_LUA
         conf->lua_script.len = 0;
         conf->lua_script.data = NULL;
         conf->lua_content.len = 0;
         conf->lua_content.data = NULL;
+#endif
+#ifdef HTTP_HI_PHP
         conf->php_script.len = 0;
         conf->php_script.data = NULL;
+#endif
+#ifdef HTTP_HI_JAVA
         conf->java_classpath.len = 0;
         conf->java_classpath.data = NULL;
         conf->java_servlet.len = 0;
@@ -379,6 +457,7 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->java_servlet_cache_size = NGX_CONF_UNSET_UINT;
         conf->java_servlet_cache_expires = NGX_CONF_UNSET;
         conf->java_version = NGX_CONF_UNSET;
+#endif
         conf->redis_port = NGX_CONF_UNSET;
         conf->cache_size = NGX_CONF_UNSET_UINT;
         conf->cache_expires = NGX_CONF_UNSET;
@@ -400,11 +479,18 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 
     ngx_conf_merge_str_value(conf->module_path, prev->module_path, "");
     ngx_conf_merge_str_value(conf->redis_host, prev->redis_host, "");
+#ifdef HTTP_HI_PYTHON
     ngx_conf_merge_str_value(conf->python_script, prev->python_script, "");
     ngx_conf_merge_str_value(conf->python_content, prev->python_content, "");
+#endif
+#ifdef HTTP_HI_LUA
     ngx_conf_merge_str_value(conf->lua_script, prev->lua_script, "");
     ngx_conf_merge_str_value(conf->lua_content, prev->lua_content, "");
+#endif
+#ifdef HTTP_HI_PHP
     ngx_conf_merge_str_value(conf->php_script, prev->php_script, "");
+#endif
+#ifdef HTTP_HI_JAVA
     ngx_conf_merge_str_value(conf->java_classpath, prev->java_classpath, "-Djava.class.path=.");
     ngx_conf_merge_str_value(conf->java_options, prev->java_options, "-server -d64 -Xmx1G -Xms1G -Xmn256m");
     ngx_conf_merge_str_value(conf->java_servlet, prev->java_servlet, "");
@@ -414,6 +500,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t) 9);
 #else
     ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t) 8);
+#endif
 #endif
     ngx_conf_merge_value(conf->redis_port, prev->redis_port, (ngx_int_t) 0);
     ngx_conf_merge_uint_value(conf->cache_size, prev->cache_size, (size_t) 10);
@@ -445,13 +532,17 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         }
         conf->app_type = application_t::__cpp__;
     }
-
+#ifdef HTTP_HI_PYTHON
     if (conf->python_content.len > 0 || conf->python_script.len > 0) {
         conf->app_type = application_t::__python__;
     }
+#endif
+#ifdef HTTP_HI_LUA
     if (conf->lua_content.len > 0 || conf->lua_script.len > 0) {
         conf->app_type = application_t::__lua__;
     }
+#endif
+#ifdef HTTP_HI_PHP
     if (conf->php_script.len > 0) {
         conf->app_type = application_t::__php__;
         if (!PHP) {
@@ -460,12 +551,15 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
             PHP = std::move(std::make_shared<php::VM>(argc, argv));
         }
     }
+#endif
+#ifdef HTTP_HI_JAVA
     if (conf->java_servlet.len > 0) {
         conf->app_type = application_t::__java__;
         if (!JAVA_SERVLET_CACHE) {
             JAVA_SERVLET_CACHE = std::make_shared<hi::cache::lru_cache < std::string, hi::java_servlet_t >> (conf->java_servlet_cache_size);
         }
     }
+#endif
 
     if (conf->need_cache == 1 && conf->cache_index == NGX_CONF_UNSET) {
         CACHE.push_back(std::make_shared<hi::cache::lru_cache < std::string, cache_ele_t >> (conf->cache_size));
@@ -630,14 +724,22 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     switch (conf->app_type) {
         case application_t::__cpp__:ngx_http_hi_cpp_handler(conf, ngx_request, ngx_response);
             break;
+#ifdef HTTP_HI_PYTHON
         case application_t::__python__:ngx_http_hi_python_handler(conf, ngx_request, ngx_response);
             break;
+#endif
+#ifdef HTTP_HI_LUA
         case application_t::__lua__:ngx_http_hi_lua_handler(conf, ngx_request, ngx_response);
             break;
+#endif
+#ifdef HTTP_HI_JAVA
         case application_t::__java__:ngx_http_hi_java_handler(conf, ngx_request, ngx_response);
             break;
+#endif
+#ifdef HTTP_HI_PHP
         case application_t::__php__:ngx_http_hi_php_handler(conf, ngx_request, ngx_response);
             break;
+#endif
         default:break;
     }
 
@@ -791,6 +893,7 @@ static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
     }
 
 }
+#ifdef HTTP_HI_PYTHON
 
 static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
     hi::py_request py_req;
@@ -815,6 +918,8 @@ static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::reques
         }
     }
 }
+#endif
+#ifdef HTTP_HI_LUA
 
 static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
     hi::py_request py_req;
@@ -839,6 +944,8 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
         }
     }
 }
+#endif
+#ifdef HTTP_HI_JAVA
 
 static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
     if (java_init_handler(conf)) {
@@ -1069,6 +1176,7 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
     }
     return JAVA_IS_READY;
 }
+#endif
 
 static std::string md5(const std::string& str) {
     unsigned char digest[16] = {0};
@@ -1098,6 +1206,8 @@ static bool is_dir(const std::string& s) {
     struct stat st;
     return stat(s.c_str(), &st) >= 0 && S_ISDIR(st.st_mode);
 }
+
+#ifdef HTTP_HI_PHP
 
 static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
     std::string script = std::move(std::string((char*) conf->php_script.data, conf->php_script.len));
@@ -1184,7 +1294,11 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
                     return;
                 }
             }}zend_catch{
-            res.content = std::move(fmt::format("<p style='text-align:center;margin:100px;'>{}</p>", "PHP Throw Exception"));
+            res.content = std::move("<p style='text-align:center;margin:100px;'>PHP Throw Exception</p>");
             res.status = 500;}zend_end_try();
     }
 }
+#endif
+
+
+#endif
