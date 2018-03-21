@@ -18,7 +18,6 @@ A distribution of Nginx with c++,python,lua java and php web development.
 - lua-devel(lua5.1,5.2,5.3),if `--enable-http-hi-lua=YES` 
 - jdk 1.1,1.2,1.4,1.6,1.8,9,if `--enable-http-hi-java=YES`
 - PHP 7.0 or later(--enable-embed=shared),if `--enable-http-hi-php=YES`
-fi
 
 ## centos
 ```
