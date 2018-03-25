@@ -12,6 +12,7 @@ A distribution of Nginx with c++,python,lua java and php web development.
 
 # Features
 - All features of nginx-1.13.10(latest release) are inherited, i.e., it is 100% compatible with nginx.
+- Web development using python, c++, lua, php7 and java
 
 # Dependency
 - linux
