@@ -6,6 +6,8 @@ A distribution of Nginx with c++,python,lua java and php web development.
 
 [hi-nginx-doc](https://github.com/webcpp/hi-nginx-doc).
 
+[hi-nginx-python-docs](http://www.cnblogs.com/hi-nginx/)
+
 # Features
 - All features of nginx-1.13.10(latest release) are inherited, i.e., it is 100% compatible with nginx.
 
