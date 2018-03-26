@@ -112,7 +112,7 @@ HTTP_HI_LUA=YES
 HTTP_HI_PHP=YES
 HTTP_HI_JAVA=YES
 
-HTTP_HI_PYTHON_VERSION=3
+HTTP_HI_PYTHON_VERSION=2
 HTTP_HI_LUA_VERSION=lua
 
 # STUB
@@ -597,7 +597,7 @@ cat << END
   --enable-http-hi-lua=YES           enable hi lua language support,YES or NO,default: YES
   --enable-http-hi-php=YES           enable hi php language support,YES or NO,default: YES
   --enable-http-hi-java-YES          enable hi java language support,YES or NO,default: YES
-  --with-http-hi-python-version      with python version,2 or 3 ,default:3
+  --with-http-hi-python-version      with python version,2 or 3 ,default:2
   --with-http-hi-lua-versioin        with lua version,lua or luajit ,default:lua
 
 END

@@ -10,7 +10,7 @@ if ! test -f Makefile;then
                 --enable-http-hi-lua=YES                            \
                 --enable-http-hi-java=YES                           \
                 --enable-http-hi-php=YES                            \
-                --with-http-hi-python-version=3                     \
+                --with-http-hi-python-version=2                     \
                 --with-http-hi-lua-version=lua                      \
                 --add-module=ngx_http_hi_module                     \
                 --add-module=3rd/ngx_devel_kit-0.3.1rc1             \
