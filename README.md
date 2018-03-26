@@ -18,9 +18,12 @@ A distribution of Nginx with c++,python,lua java and php web development.
 - linux
 - gcc and g++(c++11) or clang and clang++
 - hiredis-devel
-- boost-devel,if `--enable-http-hi-python=YES`
-- python-devel,if `--enable-http-hi-python=YES`
-- lua-devel(lua5.1,5.2,5.3),if `--enable-http-hi-lua=YES` 
+- boost-devel,if `--enable-http-hi-python=YES` and `--with-http-hi-python-version=2`
+    - boost-python3-devel,if `--enable-http-hi-python=YES`  and `--with-http-hi-python-version=3`
+- python-devel,if `--enable-http-hi-python=YES`  and and `--with-http-hi-python-version=2`
+    - python3-devel,if `--enable-http-hi-python=YES`  and and `--with-http-hi-python-version=3`
+- lua-devel(lua5.1,5.2,5.3),if `--enable-http-hi-lua=YES`  and `--with-http-hi-lua-version=lua`
+    - luajit-devel,if `--enable-http-hi-lua=YES` adn `--with-http-hi-lua-version=luajit`
 - jdk 1.1,1.2,1.4,1.6,1.8,9,if `--enable-http-hi-java=YES`
 - PHP 7.0 or later(--enable-embed=shared),if `--enable-http-hi-php=YES`
 
@@ -87,6 +90,8 @@ and with `--enable-embed=shared`.
                 --enable-http-hi-lua=YES                            \
                 --enable-http-hi-java=YES                           \
                 --enable-http-hi-php=YES                            \
+                --with-http-hi-python-version=3                     \
+                --with-http-hi-lua-version=lua                      \
                 --add-module=ngx_http_hi_module                     \
 
 ```
