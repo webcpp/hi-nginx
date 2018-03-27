@@ -33,7 +33,7 @@ extern "C" {
 #ifdef HTTP_HI_PYTHON
 #include "lib/py_request.hpp"
 #include "lib/py_response.hpp"
-#include "lib/boost_py.hpp"
+#include "lib/pybind11_py.hpp"
 #endif
 
 #ifdef HTTP_HI_LUA
@@ -67,7 +67,7 @@ static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, cache_ele_t
 static std::shared_ptr<hi::redis> REDIS;
 
 #ifdef HTTP_HI_PYTHON
-static std::shared_ptr<hi::boost_py> PYTHON;
+static std::shared_ptr<hi::pybind11_py> PYTHON;
 #endif
 
 #ifdef HTTP_HI_LUA
@@ -901,7 +901,7 @@ static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::reques
     py_req.init(&req);
     py_res.init(&res);
     if (!PYTHON) {
-        PYTHON = std::make_shared<hi::boost_py>();
+        PYTHON = std::make_shared<hi::pybind11_py>();
     }
     if (PYTHON) {
         PYTHON->set_req(&py_req);

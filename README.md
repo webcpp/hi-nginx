@@ -8,7 +8,7 @@ A distribution of Nginx with c++,python,lua java and php web development.
 
 [hi-nginx-python-docs](http://www.cnblogs.com/hi-nginx/)
 
-[hi.py web framework](https://github.com/webcpp/hi.py)
+[hi.py web framework for hi-nginx ](https://github.com/webcpp/hi.py)
 
 # Features
 - All features of nginx-1.13.10(latest release) are inherited, i.e., it is 100% compatible with nginx.
@@ -18,10 +18,6 @@ A distribution of Nginx with c++,python,lua java and php web development.
 - linux
 - gcc and g++(c++11) or clang and clang++
 - hiredis-devel
-- boost-devel,if `--enable-http-hi-python=YES` and `--with-http-hi-python-version=2`
-    - boost-python3-devel,if `--enable-http-hi-python=YES`  and `--with-http-hi-python-version=3`
-- python-devel,if `--enable-http-hi-python=YES`  and and `--with-http-hi-python-version=2`
-    - python3-devel,if `--enable-http-hi-python=YES`  and and `--with-http-hi-python-version=3`
 - lua-devel(lua5.1,5.2,5.3),if `--enable-http-hi-lua=YES`  and `--with-http-hi-lua-version=lua`
     - luajit-devel,if `--enable-http-hi-lua=YES` adn `--with-http-hi-lua-version=luajit`
 - jdk 1.1,1.2,1.4,1.6,1.8,9,if `--enable-http-hi-java=YES`
@@ -29,13 +25,13 @@ A distribution of Nginx with c++,python,lua java and php web development.
 
 ## centos
 ```
-sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel boost-devel lua-devel
+sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel python3-devel lua-devel
 
 ```
 
 ## ubuntu
 ```
-sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhiredis-dev python-dev libboost-all-dev  liblua5.3-dev 
+sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhiredis-dev python-dev python3-dev liblua5.3-dev 
 
 ```
 

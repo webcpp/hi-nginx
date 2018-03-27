@@ -19,11 +19,11 @@ if test $HTTP_HI_CPP = YES ; then
         CXXFLAGS="$CXXFLAGS -DHTTP_HI_PYTHON"
         if test $HTTP_HI_PYTHON_VERSION = 2 ; then
             CXXFLAGS="$CXXFLAGS `pkg-config --cflags python`"
-            NGX_LD_OPT="$NGX_LD_OPT -lboost_python `pkg-config --libs python`"
+            NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs python`"
         fi
         if test $HTTP_HI_PYTHON_VERSION = 3 ; then
             CXXFLAGS="$CXXFLAGS `pkg-config --cflags python3`"
-            NGX_LD_OPT="$NGX_LD_OPT -lboost_python3 `pkg-config --libs python3`"
+            NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs python3`"
         fi
     fi
 
