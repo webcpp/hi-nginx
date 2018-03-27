@@ -18,6 +18,8 @@ A distribution of Nginx with c++,python,lua java and php web development.
 - linux
 - gcc and g++(c++11) or clang and clang++
 - hiredis-devel
+- python-devel,if `--enable-http-hi-python=YES` and `with-http-hi-python-version=2`
+    - python3-devel if `--enable-http-hi-python=YES` and `with-http-hi-python-version=3`
 - lua-devel(lua5.1,5.2,5.3),if `--enable-http-hi-lua=YES`  and `--with-http-hi-lua-version=lua`
     - luajit-devel,if `--enable-http-hi-lua=YES` adn `--with-http-hi-lua-version=luajit`
 - jdk 1.1,1.2,1.4,1.6,1.8,9,if `--enable-http-hi-java=YES`
