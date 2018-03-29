@@ -64,19 +64,7 @@ sudo ldconfig
 
 ## About php7+ install
 
-Please change `configure` :
-
-```txt
-ac_fn_c_check_decl "$LINENO" "isfinite" "ac_cv_have_decl_isfinite" "#include <math.h>
-"
-if test "x$ac_cv_have_decl_isfinite" = xyes; then :
-  ac_have_decl=0
-else
-  ac_have_decl=0
-fi
-
-```
-and with `--enable-embed=shared`.
+`configure --enable-embed=shared`.
 
 
 # Installation
