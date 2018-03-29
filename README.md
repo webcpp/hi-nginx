@@ -64,7 +64,33 @@ sudo ldconfig
 
 ## About php7+ install
 
+Please change `configure` file :
+
+
+
+```
+ac_fn_c_check_decl "$LINENO" "isfinite" "ac_cv_have_decl_isfinite" "#include <math.h>
+"
+if test "x$ac_cv_have_decl_isfinite" = xyes; then :
+  ac_have_decl=0
+else
+  ac_have_decl=0
+fi
+
+```
+
+then 
+
 `configure --enable-embed=shared`.
+
+example:
+
+```
+
+./configure --enable-embed=shared --prefix=/usr/local --enable-mbstring  --enable-mysqlnd --with-mysqli=mysqlnd --with-pdo-mysql=mysqlnd --enable-opcache --with-openssl --with-zlib --enable-simplexml --enable-xmlreader --enable-xmlwriter --enable-bcmath -with-curl --with-gd
+
+```
+
 
 change php.ini:
 
