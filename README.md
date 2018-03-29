@@ -66,6 +66,14 @@ sudo ldconfig
 
 `configure --enable-embed=shared`.
 
+change php.ini:
+
+```
+
+include_path = ".:/usr/local/nginx/php"
+
+```
+
 
 # Installation
 `./configure --help` or see `install_demo.sh` or 
