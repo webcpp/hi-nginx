@@ -5,5 +5,5 @@ require_once 'response.php';
 
 interface servlet {
 
-    public function handler(\hi\request &$req, \hi\response &$res);
+    public function handler(\hi\request $req, \hi\response $res);
 }

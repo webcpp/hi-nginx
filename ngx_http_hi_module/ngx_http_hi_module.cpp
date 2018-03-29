@@ -545,11 +545,11 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 #ifdef HTTP_HI_PHP
     if (conf->php_script.len > 0) {
         conf->app_type = application_t::__php__;
-        if (!PHP) {
-            int argc = 1;
-            char* argv[2] = {"", NULL};
-            PHP = std::move(std::make_shared<php::VM>(argc, argv));
-        }
+        //        if (!PHP) {
+        //            int argc = 1;
+        //            char* argv[2] = {"ngx_http_hi_php", NULL};
+        //            PHP = std::move(std::make_shared<php::VM>(argc, argv));
+        //        }
     }
 #endif
 #ifdef HTTP_HI_JAVA
@@ -1210,6 +1210,11 @@ static bool is_dir(const std::string& s) {
 #ifdef HTTP_HI_PHP
 
 static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    if (!PHP) {
+        int argc = 1;
+        char* argv[2] = {"ngx_http_hi_php", NULL};
+        PHP = std::move(std::make_shared<php::VM>(argc, argv));
+    }
     std::string script = std::move(std::string((char*) conf->php_script.data, conf->php_script.len));
     auto c = script.find_last_of('.');
     if (c == std::string::npos || script.substr(c + 1) != "php") {

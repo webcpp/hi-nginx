@@ -3,7 +3,7 @@
 error_reporting(E_ERROR | E_WARNING | E_PARSE);
 require_once  'hi/servlet.php';
 
-class detail implements \hi\servlet {
+class detail implements servlet {
 
     public function __construct() {
         
@@ -13,7 +13,7 @@ class detail implements \hi\servlet {
         
     }
 
-    public function handler(\hi\request &$req, \hi\response &$res) {
+    public function handler(\hi\request $req, \hi\response $res) {
         $res->content = 'blog detail';
         $res->status = 200;
     }

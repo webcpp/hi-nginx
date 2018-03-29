@@ -2,7 +2,7 @@
 
 require_once 'hi/servlet.php';
 
-class session implements \hi\servlet {
+class session implements servlet {
 
     public function __construct() {
         
@@ -12,7 +12,7 @@ class session implements \hi\servlet {
         
     }
 
-    public function handler(\hi\request &$req, \hi\response &$res) {
+    public function handler(\hi\request $req, \hi\response $res) {
         $key = 'test';
         $val = 0;
         if (array_key_exists($key, $req->session)) {

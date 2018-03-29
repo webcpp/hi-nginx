@@ -2,7 +2,7 @@
 
 require_once 'hi/servlet.php';
 
-class form implements \hi\servlet {
+class form implements servlet {
 
     public function __construct() {
         
@@ -12,7 +12,7 @@ class form implements \hi\servlet {
         
     }
 
-    public function handler(\hi\request &$req, \hi\response &$res) {
+    public function handler(\hi\request $req, \hi\response $res) {
         $res->content = "form :<br />";
         foreach ($req->form as $key => $value) {
             $res->content .= $key . "=" . $value . "<br />";

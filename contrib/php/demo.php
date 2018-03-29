@@ -6,7 +6,7 @@ error_reporting(E_ERROR | E_WARNING | E_PARSE);
 
 require_once 'hi/servlet.php';
 
-class demo implements \hi\servlet {
+class demo implements servlet {
 
     private $data = array();
 
@@ -18,7 +18,7 @@ class demo implements \hi\servlet {
         
     }
 
-    public function handler(\hi\request &$req, \hi\response &$res) {
+    public function handler(\hi\request $req, \hi\response $res) {
         $this->data['name'] = 'pangpang';
         $this->data['title'] = 'php template engine';
         $res->content = $this->render('templates/demo.tpl.php');
