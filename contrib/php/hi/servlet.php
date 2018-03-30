@@ -1,5 +1,7 @@
 <?php
 
+namespace hi;
+
 require_once 'request.php';
 require_once 'response.php';
 
