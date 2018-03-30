@@ -256,9 +256,9 @@ cat << END                                                     > $PROJECT/$PROJE
 
 require_once 'hi/servlet.php';
 
-class $PROJECT implements \hi\servlet {
+class $PROJECT implements servlet {
 
-    public function handler(\hi\request &\$req, \hi\response &\$res) {
+    public function handler(\hi\request \$req, \hi\response \$res) {
         \$res->content = 'hello,world';
         \$res->status = 200;
     }
