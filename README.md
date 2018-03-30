@@ -212,12 +212,22 @@ see `php/hi/request.php`,`php/hi/response.php` and `php/hi/servlet.php`
 <?php
 
 require_once 'hi/servlet.php';
+require_once 'hi/route.php';
 
-class hello implements servlet {
+class index implements \hi\servlet {
 
     public function handler(\hi\request $req, \hi\response $res) {
-        $res->content = 'hello,world';
-        $res->status = 200;
+        $app = \hi\route::get_instance();
+        $app->add('{^/$}', array('GET'), function ($rq, $rs, &$param) {
+            $rs->content = 'hello,world';
+            $rs->status = 200;
+        });
+        
+        $app->add('{^/who/(?P<name>\w+)/?$}', array('GET'), function ($rq, $rs, &$param) {
+            $rs->content = 'hello,'.$param['name'];
+            $rs->status = 200;
+        });
+        $app->run($req, $res);
     }
 
 }
