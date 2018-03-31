@@ -1,0 +1,353 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>配置例子 · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.3">
+        
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="0003.html" />
+    
+    
+    <link rel="prev" href="0001.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="000.html">
+            
+                <a href="000.html">
+            
+                    
+                    安装
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="001.html">
+            
+                <a href="001.html">
+            
+                    
+                    使用
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" data-path="0001.html">
+            
+                <a href="0001.html">
+            
+                    
+                    配置命令
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.3.2" data-path="0002.html">
+            
+                <a href="0002.html">
+            
+                    
+                    配置例子
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" data-path="0003.html">
+            
+                <a href="0003.html">
+            
+                    
+                    起步
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >配置例子</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="&#x914D;&#x7F6E;&#x4F8B;&#x5B50;">&#x914D;&#x7F6E;&#x4F8B;&#x5B50;</h1>
+<pre><code class="lang-nginx"><span class="hljs-section">server</span> {
+    <span class="hljs-attribute">listen</span> <span class="hljs-number">80</span>;
+    <span class="hljs-attribute">server_name</span> localhost;
+    <span class="hljs-attribute">userid</span> <span class="hljs-literal">on</span>;
+    <span class="hljs-attribute">userid_name</span> SESSIONID;
+    <span class="hljs-attribute">userid_domain</span> localhost;
+    <span class="hljs-attribute">userid_path</span> /;
+
+    <span class="hljs-attribute">client_max_body_size</span> <span class="hljs-number">100k</span>;
+
+    <span class="hljs-attribute">hi_need_cache</span> <span class="hljs-literal">on</span>;
+    <span class="hljs-attribute">hi_cache_size</span> <span class="hljs-number">10</span>;
+    <span class="hljs-attribute">hi_cache_expires</span> <span class="hljs-number">300s</span>;
+    <span class="hljs-attribute">hi_need_headers</span> <span class="hljs-literal">off</span>;
+    <span class="hljs-attribute">hi_need_cookies</span> <span class="hljs-literal">off</span>;
+    <span class="hljs-attribute">hi_need_session</span> <span class="hljs-literal">off</span>;
+    <span class="hljs-attribute">hi_session_expires</span> <span class="hljs-number">300s</span>;
+    <span class="hljs-attribute">hi_redis_host</span> <span class="hljs-number">127.0.0.1</span>;
+    <span class="hljs-attribute">hi_redis_port</span> <span class="hljs-number">6379</span>;
+    <span class="hljs-attribute">hi_java_classpath</span> <span class="hljs-string">&quot;-Djava.class.path=.:/usr/local/nginx/java:/usr/local/nginx/java/hi-nginx-java.jar&quot;</span>;
+    <span class="hljs-attribute">hi_java_options</span> <span class="hljs-string">&quot;-server -d64 -Xms512m -Xmx512m -Xmn170m&quot;</span>;
+    <span class="hljs-attribute">hi_java_servlet_cache_expires</span> <span class="hljs-number">300s</span>;
+    <span class="hljs-attribute">hi_java_servlet_cache_size</span> <span class="hljs-number">10</span>;
+    <span class="hljs-attribute">hi_java_version</span> <span class="hljs-number">8</span>;
+
+    <span class="hljs-attribute">location</span> <span class="hljs-regexp">~ \.py$</span> {
+        <span class="hljs-attribute">rewrite</span><span class="hljs-regexp"> ^/(.*)\.py$</span> /<span class="hljs-variable">$1</span> <span class="hljs-literal">break</span>;
+        <span class="hljs-attribute">hi_python_script</span> python/index.py;
+    }
+    <span class="hljs-attribute">location</span> <span class="hljs-regexp">~ \.lua$</span> {
+        <span class="hljs-attribute">rewrite</span><span class="hljs-regexp"> ^/(.*)\.lua$</span> /<span class="hljs-variable">$1</span> <span class="hljs-literal">break</span>;
+        <span class="hljs-attribute">hi_lua_script</span> lua/index.lua;
+    }
+    <span class="hljs-attribute">location</span> <span class="hljs-regexp">~ \.php$</span> {
+        <span class="hljs-attribute">rewrite</span><span class="hljs-regexp"> ^/(.*)\.php$</span> /<span class="hljs-variable">$1</span> <span class="hljs-literal">break</span>;
+        <span class="hljs-attribute">hi_php_script</span> php/index.php;
+    }
+    <span class="hljs-attribute">location</span> <span class="hljs-regexp">~ \.jsp$</span> {
+        <span class="hljs-attribute">rewrite</span><span class="hljs-regexp"> ^/(.*)\.jsp$</span> /<span class="hljs-variable">$1</span> <span class="hljs-literal">break</span>;
+        <span class="hljs-attribute">hi_java_servlet_cache_expires</span> <span class="hljs-number">60s</span>;
+        <span class="hljs-attribute">hi_java_servlet</span> hi/index;
+    }
+    <span class="hljs-attribute">location</span> <span class="hljs-regexp">~ \.do$</span> {
+        <span class="hljs-attribute">rewrite</span><span class="hljs-regexp"> ^/(.*)\.do$</span> /<span class="hljs-variable">$1</span> <span class="hljs-literal">break</span>;
+        <span class="hljs-attribute">hi</span> hi/index.so;
+    }
+}
+</code></pre>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="0001.html" class="navigation navigation-prev " aria-label="Previous page: 配置命令">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="0003.html" class="navigation navigation-next " aria-label="Next page: 起步">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"配置例子","level":"1.3.2","depth":2,"next":{"title":"起步","level":"1.3.3","depth":2,"path":"00/0003.md","ref":"00/0003.md","articles":[]},"previous":{"title":"配置命令","level":"1.3.1","depth":2,"path":"00/0001.md","ref":"00/0001.md","articles":[]},"dir":"ltr"},"config":{"gitbook":"*","theme":"default","variables":{},"plugins":["livereload"],"pluginsConfig":{"livereload":{},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"}},"file":{"path":"00/0002.md","mtime":"2018-03-31T15:16:56.877Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-03-31T15:50:35.954Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-livereload/plugin.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+
