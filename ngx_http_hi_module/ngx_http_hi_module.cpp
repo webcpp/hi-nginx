@@ -770,6 +770,10 @@ done:
     response.data = (u_char*) ngx_response.content.c_str();
     response.len = ngx_response.content.size();
 
+    if (response.len == 0) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to response size.");
+        return NGX_HTTP_NOT_FOUND;
+    }
 
     ngx_buf_t *buf;
     buf = (ngx_buf_t*) ngx_pcalloc(r->pool, sizeof (ngx_buf_t));
