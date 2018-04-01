@@ -4,7 +4,7 @@ A distribution of Nginx with c++,python,lua java and php web development.
 
 [hi-nginx-demo](https://github.com/webcpp/hi_demo).
 
-[hi-nginx-doc](https://github.com/webcpp/hi-nginx-doc).
+[hi-nginx-gitbook](https://doc.hi-nginx.com/).
 
 [hi-nginx-python-docs](http://www.cnblogs.com/hi-nginx/)
 
@@ -241,25 +241,10 @@ see `contrbi/php`
 
 
 # 3rd party module
-  -  array-var-nginx-module
-  -  form-input-nginx-module
-  -  headers-more-nginx-module
-  -  iconv-nginx-module
-  -  memc-nginx-module
-  -  ngx_coolkit
-  -  ngx_devel_kit
-  -  rds-csv-nginx-module
-  -  rds-json-nginx-module
-  -  redis2-nginx-module
-  -  set-misc-nginx-module
-  -  srcache-nginx-module
-  -  xss-nginx-module
+
   -  nginx-http-concat
-  -  nginx-push-stream-module
   -  nginx-rtmp-module
   -  nchan
-  -  echo-nginx-module
-  -  nginx-upload-module
 
 # ngx_http_hi_module directives
 - directives : content: loc,if in loc
