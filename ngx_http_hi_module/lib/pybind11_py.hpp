@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 #include <string>
+#include <exception>
 
 #include "py_response.hpp"
 #include "py_request.hpp"
@@ -68,7 +69,7 @@ namespace hi {
                 } catch (const std::exception& e) {
                     this->clear_error();
                     this->res->status(500);
-                    this->res->content(this->error_message + "<br/><p>" + e.what() + "</p>");
+                    this->res->content(this->error_message + "<br/><p style='text-align:center;margin:100px;'>" + e.what() + "</p>");
                 }
             }
         }
