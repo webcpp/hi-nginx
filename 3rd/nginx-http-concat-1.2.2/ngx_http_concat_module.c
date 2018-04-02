@@ -29,6 +29,7 @@ static char *ngx_http_concat_merge_loc_conf(ngx_conf_t *cf, void *parent,
 
 static ngx_str_t  ngx_http_concat_default_types[] = {
     ngx_string("application/x-javascript"),
+    ngx_string("application/javascript"),
     ngx_string("text/css"),
     ngx_null_string
 };
