@@ -19,15 +19,15 @@ A distribution of Nginx with c++,python,lua java and php web development.
 - gcc and g++(c++11) or clang and clang++
 - hiredis-devel
 - python-devel,if `--enable-http-hi-python=YES` and `with-http-hi-python-version=2`
-    - python3-devel if `--enable-http-hi-python=YES` and `with-http-hi-python-version=3`
+- python3.x-devel if `--enable-http-hi-python=YES` and `with-http-hi-python-version=3`
 - lua-devel(lua5.1,5.2,5.3),if `--enable-http-hi-lua=YES`  and `--with-http-hi-lua-version=lua`
-    - luajit-devel,if `--enable-http-hi-lua=YES` adn `--with-http-hi-lua-version=luajit`
+- luajit-devel,if `--enable-http-hi-lua=YES` and `--with-http-hi-lua-version=luajit`
 - jdk 1.1,1.2,1.4,1.6,1.8,9,if `--enable-http-hi-java=YES`
 - PHP 7.0 or later(--enable-embed=shared),if `--enable-http-hi-php=YES`
 
 ## centos
 ```
-sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel python3-devel lua-devel
+sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel python3.x-devel lua-devel
 
 ```
 
@@ -242,7 +242,6 @@ see `contrbi/php`
 
 # 3rd party module
 
-  -  nginx-http-concat
   -  nginx-rtmp-module
   -  nchan
 
