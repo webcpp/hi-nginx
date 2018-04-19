@@ -1,4 +1,9 @@
 
+Changes with nginx 1.14.0                                        17 Apr 2018
+
+    *) 1.14.x stable branch.
+
+
 Changes with nginx 1.13.12                                       10 Apr 2018
 
     *) Bugfix: connections with gRPC backends might be closed unexpectedly
