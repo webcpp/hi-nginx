@@ -104,6 +104,8 @@ $NGX_OBJS/nginx.8:	$NGX_MAN $NGX_AUTO_CONFIG_H
 		-e "s|%%ERROR_LOG_PATH%%|${NGX_ERROR_LOG_PATH:-stderr}|" \\
 		< $NGX_MAN > \$@
 
+DIRS=ngx_http_hi_module/include cpp php python java lua temp doc
+
 install:	build $NGX_INSTALL_PERL_MODULES
 	test -d '\$(DESTDIR)$NGX_PREFIX' || mkdir -p '\$(DESTDIR)$NGX_PREFIX'
 
@@ -158,19 +160,9 @@ install:	build $NGX_INSTALL_PERL_MODULES
 		|| cp -R $NGX_HTML '\$(DESTDIR)$NGX_PREFIX'
 
 
-	cp -R ngx_http_hi_module/include '\$(DESTDIR)$NGX_PREFIX'
-	test -d '\$(DESTDIR)$NGX_PREFIX/hi' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/hi'
-	cp auto/hi-project '\$(DESTDIR)$NGX_PREFIX/hi'
-	test -d '\$(DESTDIR)$NGX_PREFIX/python' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/python'
-	test -d '\$(DESTDIR)$NGX_PREFIX/lua' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/lua'
-	test -d '\$(DESTDIR)$NGX_PREFIX/java' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/java'
-	test -d '\$(DESTDIR)$NGX_PREFIX/temp' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/temp'
-	test -d '\$(DESTDIR)$NGX_PREFIX/php' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/php'
-	cp -R contrib/php '\$(DESTDIR)$NGX_PREFIX/'
-	cp contrib/hi-nginx-java.jar '\$(DESTDIR)$NGX_PREFIX/java'
+	for i in \$(DIRS);do cp -R \$\$i '\$(DESTDIR)$NGX_PREFIX/' ;done
 	cp nginx.service /etc/systemd/system
-	test -d '\$(DESTDIR)$NGX_PREFIX/doc' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/doc'
-	cp -R doc '\$(DESTDIR)$NGX_PREFIX/'
+	cp auto/hi-project '\$(DESTDIR)`dirname "$NGX_SBIN_PATH"`'
 END
 
 
