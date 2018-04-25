@@ -39,7 +39,7 @@ cpp_makefile_tpl(){
 cat << END                                                     > $PROJECT/Makefile
 
 PROJECT=$PROJECT.so
-SRC=\$(wildcard *.cpp)
+SRC=$(shell echo `find . -type f | egrep *.cpp$$`)
 OBJ=\$(patsubst %.cpp,%.o,\$(SRC))
 
 ifndef NGINX_INSTALL_DIR
@@ -102,7 +102,7 @@ python_makefile_tpl(){
 
 cat << END                                                     > $PROJECT/Makefile
 
-SRC=\$(wildcard *.py)
+SRC=$(shell echo `find . -type f | egrep *.py$$`)
 
 ifndef NGINX_INSTALL_DIR
 NGINX_INSTALL_DIR=/usr/local/nginx
@@ -114,15 +114,16 @@ all:
 clean:
 	@echo 'ok'
 
-install:
-	test -d \$(NGINX_INSTALL_DIR)/python || mkdir -p \$(NGINX_INSTALL_DIR)/pyhton
-	install \$(SRC) \$(NGINX_INSTALL_DIR)/python
+install:\${SRC}
+	for i in \${SRC};do test -d \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` || mkdir -p \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` && install \$\$i \$(NGINX_INSTALL_DIR)/$TYPE/\$\$i ;done
+
 
 END
 
 echo "create hi project $PROJECT demo source file."
 
 cat << END                                                     > $PROJECT/$PROJECT.py
+# -*- coding: UTF-8 -*-
 
 hi_res.status(200)
 hi_res.content('hello,python')
@@ -135,7 +136,7 @@ lua_makefile_tpl(){
 
 cat << END                                                     > $PROJECT/Makefile
 
-SRC=\$(wildcard *.lua)
+SRC=$(shell echo `find . -type f | egrep *.lua$$`)
 
 ifndef NGINX_INSTALL_DIR
 NGINX_INSTALL_DIR=/usr/local/nginx
@@ -148,9 +149,9 @@ all:
 clean:
 	@echo 'ok'
 
-install:
-	test -d \$(NGINX_INSTALL_DIR)/lua || mkdir -p \$(NGINX_INSTALL_DIR)/lua
-	install \$(SRC) \$(NGINX_INSTALL_DIR)/lua
+install:\${SRC}
+	for i in \${SRC};do test -d \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` || mkdir -p \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` && install \$\$i \$(NGINX_INSTALL_DIR)/$TYPE/\$\$i ;done
+
 
 END
 
@@ -229,7 +230,7 @@ php_makefile_tpl(){
 
 cat << END                                                     > $PROJECT/Makefile
 
-SRC=\$(wildcard *.php)
+SRC=$(shell echo `find . -type f | egrep *.php$$`)
 
 ifndef NGINX_INSTALL_DIR
 NGINX_INSTALL_DIR=/usr/local/nginx
@@ -242,9 +243,9 @@ all:
 clean:
 	@echo 'ok'
 
-install:
-	test -d \$(NGINX_INSTALL_DIR)/php || mkdir -p \$(NGINX_INSTALL_DIR)/php
-	install \$(SRC) \$(NGINX_INSTALL_DIR)/php
+install:\${SRC}
+	for i in \${SRC};do test -d \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` || mkdir -p \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` && install \$\$i \$(NGINX_INSTALL_DIR)/$TYPE/\$\$i ;done
+
 
 END
 
