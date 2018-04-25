@@ -171,7 +171,7 @@ extern "C" void destroy(hi::servlet* p) {
 
 ```
 g++ -std=c++11 -I/usr/local/nginx/include  -shared -fPIC hello.cpp -o hello.so
-install hello.so /usr/local/nginx/hi
+install hello.so /usr/local/nginx/cpp
 
 ```
 
@@ -234,9 +234,6 @@ class index implements \hi\servlet {
 
 ```
 
-### php demo
-
-see `contrbi/php`
 
 
 
@@ -253,7 +250,7 @@ see `contrbi/php`
     
 ```
             location = /hello {
-                hi hi/hello.so ;
+                hi cpp/hello.so ;
             }
 ```
 - directives : content: http,srv,loc,if in loc ,if in srv
