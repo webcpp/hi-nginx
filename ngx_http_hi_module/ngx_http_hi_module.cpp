@@ -17,6 +17,7 @@ extern "C" {
 #ifdef HTTP_HI_CPP
 
 #include <vector>
+#include <unordered_map>
 #include <memory>
 #include "include/request.hpp"
 #include "include/response.hpp"
@@ -62,7 +63,7 @@ struct cache_ele_t {
     std::string content_type, content;
 };
 
-static std::vector<std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
+static std::unordered_map<std::string, std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, cache_ele_t>>> CACHE;
 static std::shared_ptr<hi::redis> REDIS;
 
@@ -122,7 +123,6 @@ typedef struct {
 #endif
     ;
     ngx_int_t redis_port
-    , module_index
     , cache_expires
     , session_expires
     , cache_index
@@ -430,7 +430,6 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
     if (conf) {
         conf->module_path.len = 0;
         conf->module_path.data = NULL;
-        conf->module_index = NGX_CONF_UNSET;
         conf->redis_host.len = 0;
         conf->redis_host.data = NULL;
 #ifdef HTTP_HI_PYTHON
@@ -513,22 +512,9 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     if (conf->need_session == 1 && conf->need_cookies == 0) {
         conf->need_cookies = 1;
     }
-    if (conf->module_index == NGX_CONF_UNSET && conf->module_path.len > 0) {
-
-        ngx_int_t index = NGX_CONF_UNSET;
-        bool found = false;
-        for (auto& item : PLUGIN) {
-            ++index;
-            if (item->get_module() == (char*) conf->module_path.data) {
-                found = true;
-                break;
-            }
-        }
-        if (found) {
-            conf->module_index = index;
-        } else {
-            PLUGIN.push_back(std::make_shared<hi::module_class < hi::servlet >> ((char*) conf->module_path.data));
-            conf->module_index = PLUGIN.size() - 1;
+    if (conf->module_path.len > 0) {
+        if (PLUGIN.find((char*) conf->module_path.data) == PLUGIN.end()) {
+            PLUGIN[(char*) conf->module_path.data] = std::move(std::make_shared<hi::module_class<hi::servlet>> ((char*) conf->module_path.data));
         }
         conf->app_type = application_t::__cpp__;
     }
@@ -545,11 +531,6 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 #ifdef HTTP_HI_PHP
     if (conf->php_script.len > 0) {
         conf->app_type = application_t::__php__;
-        //        if (!PHP) {
-        //            int argc = 1;
-        //            char* argv[2] = {"ngx_http_hi_php", NULL};
-        //            PHP = std::move(std::make_shared<php::VM>(argc, argv));
-        //        }
     }
 #endif
 #ifdef HTTP_HI_JAVA
@@ -891,7 +872,7 @@ static ngx_str_t get_input_body(ngx_http_request_t *r) {
 }
 
 static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-    std::shared_ptr<hi::servlet> view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
+    std::shared_ptr<hi::servlet> view_instance = std::move(PLUGIN[(char*) conf->module_path.data]->make_obj());
     if (view_instance) {
         view_instance->handler(req, res);
     }
