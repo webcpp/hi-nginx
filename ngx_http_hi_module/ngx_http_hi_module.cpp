@@ -514,7 +514,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     }
     if (conf->module_path.len > 0) {
         if (PLUGIN.find((char*) conf->module_path.data) == PLUGIN.end()) {
-            PLUGIN[(char*) conf->module_path.data] = std::move(std::make_shared<hi::module_class<hi::servlet>> ((char*) conf->module_path.data));
+            PLUGIN[(char*) conf->module_path.data] = std::move(std::make_shared<hi::module_class < hi::servlet >> ((char*) conf->module_path.data));
         }
         conf->app_type = application_t::__cpp__;
     }
@@ -537,13 +537,13 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     if (conf->java_servlet.len > 0) {
         conf->app_type = application_t::__java__;
         if (!JAVA_SERVLET_CACHE) {
-            JAVA_SERVLET_CACHE = std::make_shared<hi::cache::lru_cache < std::string, hi::java_servlet_t >> (conf->java_servlet_cache_size);
+            JAVA_SERVLET_CACHE = std::move(std::make_shared<hi::cache::lru_cache < std::string, hi::java_servlet_t >> (conf->java_servlet_cache_size));
         }
     }
 #endif
 
     if (conf->need_cache == 1 && conf->cache_index == NGX_CONF_UNSET) {
-        CACHE.push_back(std::make_shared<hi::cache::lru_cache < std::string, cache_ele_t >> (conf->cache_size));
+        CACHE.push_back(std::move(std::make_shared<hi::cache::lru_cache < std::string, cache_ele_t >> (conf->cache_size)));
         conf->cache_index = CACHE.size() - 1;
     }
 
