@@ -598,7 +598,7 @@ cat << END
   --enable-http-hi-php=YES           enable hi php language support,YES or NO,default: YES
   --enable-http-hi-java-YES          enable hi java language support,YES or NO,default: YES
   --with-http-hi-python-version      with python version,python2 or python3 ,default:python3
-  --with-http-hi-lua-versioin        with lua version,lua5.1,lua5.2,lua5.3 or luajit ,default:lua5.3
+  --with-http-hi-lua-versioin        with lua version,lua,lua5.1,lua5.2,lua5.3 or luajit ,default:lua5.3
 
 END
 
