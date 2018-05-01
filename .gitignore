@@ -1,3 +1,4 @@
+
 # Compiled Object files
 *.slo
 *.lo
@@ -32,3 +33,4 @@
 /nginx.service
 /Makefile
 /README
+/.vscode

@@ -17,26 +17,14 @@ if test $HTTP_HI_CPP = YES ; then
     NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs hiredis`"
     if test $HTTP_HI_PYTHON = YES ; then
         CXXFLAGS="$CXXFLAGS -DHTTP_HI_PYTHON"
-        if test $HTTP_HI_PYTHON_VERSION = 2 ; then
-            CXXFLAGS="$CXXFLAGS `pkg-config --cflags python`"
-            NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs python`"
-        fi
-        if test $HTTP_HI_PYTHON_VERSION = 3 ; then
-            CXXFLAGS="$CXXFLAGS `pkg-config --cflags python3`"
-            NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs python3`"
-        fi
+        CXXFLAGS="$CXXFLAGS `pkg-config --cflags $HTTP_HI_PYTHON_VERSION`"
+        NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs $HTTP_HI_PYTHON_VERSION`"
     fi
 
     if test $HTTP_HI_LUA = YES ; then
         CXXFLAGS="$CXXFLAGS -DHTTP_HI_LUA"
-        if test $HTTP_HI_LUA_VERSION = lua ;then
-            CXXFLAGS="$CXXFLAGS `pkg-config --cflags lua`"
-            NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs lua`"
-        fi
-        if test $HTTP_HI_LUA_VERSION = luajit ;then
-            CXXFLAGS="$CXXFLAGS `pkg-config --cflags luajit`"
-            NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs luajit`"
-        fi
+        CXXFLAGS="$CXXFLAGS `pkg-config --cflags $HTTP_HI_LUA_VERSION`"
+        NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs $HTTP_HI_LUA_VERSION`"
     fi
 
     if test $HTTP_HI_JAVA = YES ; then
