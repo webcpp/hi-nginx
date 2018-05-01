@@ -37,14 +37,7 @@ sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhired
 
 ```
 
-## About jdk 9 install
-```
-curl -s "https://get.sdkman.io" | bash
-source "$HOME/.sdkman/bin/sdkman-init.sh"
-sdk selfupdate force
-sdk install java 9.0.1-oracle
-
-```
+## About jdk
 
 Create the file /etc/ld.so.conf.d/java.conf with the following entries，replace $JAVA_HOME as real path:
 ```
@@ -65,8 +58,6 @@ sudo ldconfig
 ## About php7+ install
 
 Please change `configure` file :
-
-
 
 ```
 ac_fn_c_check_decl "$LINENO" "isfinite" "ac_cv_have_decl_isfinite" "#include <math.h>
