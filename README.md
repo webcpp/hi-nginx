@@ -82,6 +82,8 @@ example:
 
 ```
 
+add `/usr/local/lib` to `/etc/ld.so.conf.d/php.conf` and `ldconfig`
+
 
 change php.ini:
 
@@ -90,6 +92,8 @@ change php.ini:
 include_path = ".:/usr/local/nginx/php"
 
 ```
+
+
 
 
 # Installation
