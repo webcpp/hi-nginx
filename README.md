@@ -22,7 +22,7 @@ A distribution of Nginx with c++,python,lua java and php web development.
 - python3.x-devel if `--enable-http-hi-python=YES` and `with-http-hi-python-version=python3`
 - lua-devel(lua5.x),if `--enable-http-hi-lua=YES`  and `--with-http-hi-lua-version=lua5.x`
 - luajit-devel,if `--enable-http-hi-lua=YES` and `--with-http-hi-lua-version=luajit`
-- jdk 1.1,1.2,1.4,1.6,1.8,9,10,if `--enable-http-hi-java=YES`
+- jdk 1.8,9,10,if `--enable-http-hi-java=YES`
 - PHP 7.0 or later(--enable-embed=shared),if `--enable-http-hi-php=YES`
 
 ## centos
