@@ -226,12 +226,12 @@
                 --enable-http-hi-lua=YES                            \
                 --enable-http-hi-java=YES                           \
                 --enable-http-hi-php=YES                            \
-                --with-http-hi-python-version=3                     \
-                --with-http-hi-lua-version=lua                      \
+                --with-http-hi-python-version=python3               \
+                --with-http-hi-lua-version=lua5.3                   \
                 --add-module=ngx_http_hi_module
 </code></pre><p>&#x4E94;&#x79CD;&#x8BED;&#x8A00;&#x4E2D;&#x9664;c++&#x5916;&#xFF0C;&#x5747;&#x4E3A;&#x53EF;&#x9009;&#x7684;&#x3002;&#x6240;&#x6709;&#x8BED;&#x8A00;&#x652F;&#x6301;&#x5747;&#x7531;&#x6A21;&#x5757;ngx_http_hi_module&#x63D0;&#x4F9B;&#x3002;&#x56E0;&#x6B64;&#xFF0C;&#x5FC5;&#x987B;&#x901A;&#x8FC7;--add-module&#x6DFB;&#x52A0;&#x8BE5;&#x6A21;&#x5757;&#x3002;</p>
 <p>&#x4E0D;&#x9700;&#x8981;&#x54EA;&#x79CD;&#x8BED;&#x8A00;&#xFF0C;&#x5C31;&#x628A;&#x76F8;&#x5173;enable&#x9879;&#x8BBE;&#x7F6E;&#x4E3A;NO&#xFF0C;&#x56E0;&#x4E3A;&#x9ED8;&#x8BA4;&#x503C;&#x5747;&#x4E3A;YES&#x3002;</p>
-<p>&#x540C;&#x65F6;&#xFF0C;&#x5BF9;&#x4E8E;lua&#x548C;python&#x6765;&#x8BF4;&#xFF0C;&#x5B83;&#x4EEC;&#x8FD8;&#x53EF;&#x4EE5;&#x9009;&#x62E9;&#x652F;&#x6301;&#x7684;&#x7248;&#x672C;&#x3002;&#x5BF9;lua&#x800C;&#x8A00;&#xFF0C;&#x53EF;&#x9009;lua&#x6216;&#x8005;luajit&#x3002;&#x5BF9;python&#x800C;&#x8A00;&#xFF0C;&#x53EF;&#x9009;2&#x6216;&#x8005;3&#x3002;</p>
+<p>&#x540C;&#x65F6;&#xFF0C;&#x5BF9;&#x4E8E;lua&#x548C;python&#x6765;&#x8BF4;&#xFF0C;&#x5B83;&#x4EEC;&#x8FD8;&#x53EF;&#x4EE5;&#x9009;&#x62E9;&#x652F;&#x6301;&#x7684;&#x7248;&#x672C;&#x3002;&#x5BF9;lua&#x800C;&#x8A00;&#xFF0C;&#x53EF;&#x9009;lua&#xFF0C;lua5.x&#x6216;&#x8005;luajit&#x3002;&#x5BF9;python&#x800C;&#x8A00;&#xFF0C;&#x53EF;&#x9009;python2&#x6216;&#x8005;python3&#x3002;</p>
 <h2 id="&#x4F9D;&#x8D56;">&#x4F9D;&#x8D56;</h2>
 <ul>
 <li>linux&#xFF0C;hi-nginx&#x6682;&#x4E0D;&#x652F;&#x6301;windows&#x7CFB;&#x7EDF;</li>
@@ -258,8 +258,8 @@ fi
 <pre><code>
 include_path = &quot;.:/usr/local/nginx/php&quot;
 </code></pre><p>&#x5982;&#x679C;hi-nginx&#x5C06;&#x5B89;&#x88C5;&#x5728;&#x5176;&#x4ED6;&#x5730;&#x65B9;&#xFF0C;&#x9700;&#x8981;&#x76F8;&#x5E94;&#x5730;&#x4FEE;&#x6539;&#x4E0B;&#x4E0A;&#x9762;&#x7684;&#x503C;&#x3002;</p>
+<p>&#x5982;&#x679C;&#x6709;&#x5FC5;&#x8981;&#xFF0C;&#x8FD8;&#x9700;&#x628A;libphp7.so&#x6240;&#x5728;&#x7684;&#x8DEF;&#x5F84;&#x6DFB;&#x52A0;&#x5230;<code>/etc/ld.so.conf.d/php.conf</code>&#x4E2D;&#x3002;</p>
 <h2 id="&#x5173;&#x4E8E;java&#x652F;&#x6301;">&#x5173;&#x4E8E;java&#x652F;&#x6301;</h2>
-<p>java&#x6709;&#x5F88;&#x591A;&#x7248;&#x672C;&#xFF0C;&#x5F53;&#x524D;&#x6700;&#x9AD8;&#x7248;&#x672C;&#x662F;10&#x3002;hi-nginx&#x76EE;&#x524D;&#x652F;&#x6301;&#x6240;&#x6709;10&#x4EE5;&#x4E0B;&#x7684;&#x7248;&#x672C;&#xFF0C;&#x672A;&#x6765;&#x4F1A;&#x652F;&#x6301;10&#x3002;</p>
 <p>&#x6700;&#x7B80;&#x5355;&#x65B9;&#x6CD5;&#x662F;&#x76F4;&#x63A5;&#x5B89;&#x88C5;openjdk-devel&#xFF0C;&#x5982;&#x679C;&#x4E0D;&#x6015;&#x9EBB;&#x70E6;&#xFF0C;&#x7528;oracle&#x7684;&#x4E5F;&#x53EF;&#x4EE5;&#x7684;&#x3002;&#x5173;&#x952E;&#x662F;&#x8BBE;&#x7F6E;$JAVA_HOME&#x548C;java&#x641C;&#x7D22;&#x8DEF;&#x5F84;&#xFF0C;&#x5426;&#x5219;&#x7F16;&#x8BD1;hi-nginx&#x65F6;&#x65E0;&#x6CD5;&#x627E;&#x5230;&#x76F8;&#x5173;java&#x5E93;&#x548C;&#x5934;&#x6587;&#x4EF6;&#x3002;&#x53EF;&#x4EE5;&#x5728;/etc/ld.so.conf.d&#x4E0B;&#x65B0;&#x5EFA;&#x4E00;&#x4E2A;&#x6587;&#x4EF6;java.conf,</p>
 <ul>
 <li><p>&#x5BF9;9&#x4EE5;&#x4E0B;&#x7248;&#x672C;&#xFF0C;&#x5185;&#x5BB9;&#x5982;&#x4E0B;&#xFF1A;</p>
@@ -312,7 +312,7 @@ include_path = &quot;.:/usr/local/nginx/php&quot;
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"安装","level":"1.2","depth":1,"next":{"title":"使用","level":"1.3","depth":1,"path":"00/001.md","ref":"00/001.md","articles":[{"title":"配置命令","level":"1.3.1","depth":2,"path":"00/0001.md","ref":"00/0001.md","articles":[]},{"title":"配置例子","level":"1.3.2","depth":2,"path":"00/0002.md","ref":"00/0002.md","articles":[]},{"title":"起步","level":"1.3.3","depth":2,"path":"00/0003.md","ref":"00/0003.md","articles":[]}]},"previous":{"title":"简介","level":"1.1","depth":1,"path":"README.md","ref":"README.md","articles":[]},"dir":"ltr"},"config":{"gitbook":"*","theme":"default","variables":{},"plugins":["livereload"],"pluginsConfig":{"livereload":{},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"}},"file":{"path":"00/000.md","mtime":"2018-03-31T14:42:13.017Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-03-31T15:50:35.954Z"},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"安装","level":"1.2","depth":1,"next":{"title":"使用","level":"1.3","depth":1,"path":"00/001.md","ref":"00/001.md","articles":[{"title":"配置命令","level":"1.3.1","depth":2,"path":"00/0001.md","ref":"00/0001.md","articles":[]},{"title":"配置例子","level":"1.3.2","depth":2,"path":"00/0002.md","ref":"00/0002.md","articles":[]},{"title":"起步","level":"1.3.3","depth":2,"path":"00/0003.md","ref":"00/0003.md","articles":[]}]},"previous":{"title":"简介","level":"1.1","depth":1,"path":"README.md","ref":"README.md","articles":[]},"dir":"ltr"},"config":{"gitbook":"*","theme":"default","variables":{},"plugins":["livereload"],"pluginsConfig":{"livereload":{},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"}},"file":{"path":"00/000.md","mtime":"2018-05-02T14:59:08.456Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-05-02T14:53:43.606Z"},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
@@ -322,7 +322,7 @@ include_path = &quot;.:/usr/local/nginx/php&quot;
     <script src="../gitbook/theme.js"></script>
     
         
-        <script src="../gitbook/gitbook-plugin-livereload/plugin.js"></script>
+        <!--<script src="../gitbook/gitbook-plugin-livereload/plugin.js"></script>-->
         
     
         
