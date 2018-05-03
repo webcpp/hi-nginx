@@ -259,7 +259,7 @@
     <span class="hljs-attribute">location</span> <span class="hljs-regexp">~ \.jsp$</span> {
         <span class="hljs-attribute">rewrite</span><span class="hljs-regexp"> ^/(.*)\.jsp$</span> /<span class="hljs-variable">$1</span> <span class="hljs-literal">break</span>;
         <span class="hljs-attribute">hi_java_servlet_cache_expires</span> <span class="hljs-number">60s</span>;
-        <span class="hljs-attribute">hi_java_servlet</span> java/index;
+        <span class="hljs-attribute">hi_java_servlet</span> hi/index;
     }
     <span class="hljs-attribute">location</span> <span class="hljs-regexp">~ \.do$</span> {
         <span class="hljs-attribute">rewrite</span><span class="hljs-regexp"> ^/(.*)\.do$</span> /<span class="hljs-variable">$1</span> <span class="hljs-literal">break</span>;
