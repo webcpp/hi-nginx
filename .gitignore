@@ -35,3 +35,4 @@
 /README
 /.vscode
 /3rd/nginx-c-function-1.0/
+/ngx_http_hi_module/lib/shared_memory.hpp

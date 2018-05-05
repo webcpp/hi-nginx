@@ -11,9 +11,15 @@ namespace hi {
     class lua {
     public:
 
-        lua() : error_message("<p style='text-align:center;margin:100px;'>Server script error</p>")
+        lua(const std::string& package_path, const std::string& package_cpath) : error_message("<p style='text-align:center;margin:100px;'>Server script error</p>")
         , res(0)
         , state() {
+            if (!package_path.empty()) {
+                this->state("package.path='" + package_path + "'.. package.path");
+            }
+            if (!package_cpath.empty()) {
+                this->state("package.cpath='" + package_cpath + "'.. package.cpath");
+            }
             this->state["hi_request"].setClass(
                     kaguya::UserdataMetatable<py_request>()
                     .setConstructors < py_request()>()
@@ -67,6 +73,8 @@ namespace hi {
                 this->res->content(this->error_message);
             }
         }
+
+
 
 
 

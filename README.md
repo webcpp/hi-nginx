@@ -362,6 +362,31 @@ or
 ```
 
 
+- directives : content:  http,srv,if in srv
+    - hi_lua_package_path,default: ""
+
+    example:
+    
+```
+
+            hi_lua_package_path '/usr/local/nginx/lua/?.lua;';
+
+```
+
+- directives : content:  http,srv,if in srv
+    - hi_lua_package_cpath,default: ""
+
+    example:
+    
+```
+
+            hi_lua_package_cpath '/usr/local/nginx/lua/?.so;';
+
+```
+
+
+
+
 - directives : content: loc,if in loc
     - hi_lua_content,default: ""
 

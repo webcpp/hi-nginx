@@ -112,6 +112,8 @@ typedef struct {
 #ifdef HTTP_HI_LUA
     , lua_script
     , lua_content
+    , lua_package_path
+    , lua_package_cpath
 #endif
 #ifdef HTTP_HI_JAVA
     , java_classpath
@@ -300,6 +302,22 @@ ngx_command_t ngx_http_hi_commands[] = {
         offsetof(ngx_http_hi_loc_conf_t, lua_content),
         NULL
     },
+    {
+        ngx_string("hi_lua_package_path"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_str_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, lua_package_path),
+        NULL
+    },
+    {
+        ngx_string("hi_lua_package_cpath"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_str_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, lua_package_cpath),
+        NULL
+    },
 #endif
 #ifdef HTTP_HI_JAVA
     {
@@ -443,6 +461,10 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->lua_script.data = NULL;
         conf->lua_content.len = 0;
         conf->lua_content.data = NULL;
+        conf->lua_package_path.len = 0;
+        conf->lua_package_path.data = NULL;
+        conf->lua_package_cpath.len = 0;
+        conf->lua_package_cpath.data = NULL;
 #endif
 #ifdef HTTP_HI_PHP
         conf->php_script.len = 0;
@@ -485,6 +507,8 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 #ifdef HTTP_HI_LUA
     ngx_conf_merge_str_value(conf->lua_script, prev->lua_script, "");
     ngx_conf_merge_str_value(conf->lua_content, prev->lua_content, "");
+    ngx_conf_merge_str_value(conf->lua_package_path, prev->lua_package_path, "");
+    ngx_conf_merge_str_value(conf->lua_package_cpath, prev->lua_package_cpath, "");
 #endif
 #ifdef HTTP_HI_PHP
     ngx_conf_merge_str_value(conf->php_script, prev->php_script, "");
@@ -912,7 +936,8 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
     py_req.init(&req);
     py_res.init(&res);
     if (!LUA) {
-        LUA = std::make_shared<hi::lua>();
+        LUA = std::make_shared<hi::lua>(std::string((char*) conf->lua_package_path.data, conf->lua_package_path.len),
+                std::string((char*) conf->lua_package_cpath.data, conf->lua_package_cpath.len));
     }
     if (LUA) {
         LUA->set_req(&py_req);
