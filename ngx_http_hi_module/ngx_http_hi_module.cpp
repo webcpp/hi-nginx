@@ -1295,7 +1295,7 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 
                     res.content = std::move(php_res.get("content").toString());
 
-                    res.status = std::move(php_res.get("status")).toInt();
+                    res.status = php_res.get("status").toInt();
 
 
                     php_req_headers.clean();
