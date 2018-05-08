@@ -31,11 +31,13 @@ namespace hi {
                     .addFunction("has_header", &hi::py_request::has_header)
                     .addFunction("has_cookie", &hi::py_request::has_cookie)
                     .addFunction("has_form", &hi::py_request::has_form)
+                    .addFunction("has_cache", &hi::py_request::has_cache)
                     .addFunction("has_session", &hi::py_request::has_session)
                     .addFunction("get_header", &hi::py_request::get_header)
                     .addFunction("get_cookie", &hi::py_request::get_cookie)
                     .addFunction("get_form", &hi::py_request::get_form)
                     .addFunction("get_session", &hi::py_request::get_session)
+                    .addFunction("get_cache", &hi::py_request::get_cache)
                     );
             this->state["hi_response"].setClass(
                     kaguya::UserdataMetatable<py_response>()
@@ -43,6 +45,7 @@ namespace hi {
                     .addFunction("content", &hi::py_response::content)
                     .addFunction("header", &hi::py_response::header)
                     .addFunction("session", &hi::py_response::session)
+                    .addFunction("cache", &hi::py_response::cache)
                     );
         }
 

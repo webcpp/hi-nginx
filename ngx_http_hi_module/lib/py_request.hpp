@@ -73,6 +73,15 @@ namespace hi {
         std::string get_session(const std::string& key)const {
             return this->req->session.find(key)->second;
         }
+
+        bool has_cache(const std::string& key) const {
+            return this->req->cache.find(key) != this->req->cache.end();
+        }
+
+        std::string get_cache(const std::string& key)const {
+            return this->req->cache.find(key)->second;
+        }
+
     private:
         request* req;
     };

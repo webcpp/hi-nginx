@@ -36,6 +36,11 @@ namespace hi {
         void session(const std::string& key, const std::string& value) {
             this->res->session.insert(std::make_pair(key, value));
         }
+
+        void cache(const std::string& key, const std::string& value) {
+            this->res->cache.insert(std::make_pair(key, value));
+        }
+
     private:
         response* res;
     };

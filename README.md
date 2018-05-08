@@ -127,11 +127,14 @@ include_path = ".:/usr/local/nginx/php"
 - get_session
 - has_cookie
 - get_cookie
+- has_cache
+- get_cache
 ## hi_res
 - status
 - content
 - header
 - session
+- cache
 
 # hello,world
 
@@ -274,6 +277,35 @@ class index implements \hi\servlet {
 ```
         hi_cache_expires 300s;
 ```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_need_kvdb,default: off
+
+    example:
+
+```
+        hi_need_kvdb on|off;
+```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_kvdb_size,default: 10
+
+    example:
+
+```
+        hi_kvdb_size 10;
+```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_kvdb_expires,default: 300s
+
+    example:
+
+```
+        hi_kvdb_expires 300s;
+```
+
+
 
 - directives : content: http,srv,loc,if in loc ,if in srv
     - hi_need_headers,default: off

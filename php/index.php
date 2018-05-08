@@ -25,6 +25,17 @@ class index implements \hi\servlet {
             ob_end_clean();
         });
 
+        $app->add('{^/cache/?$}', array('GET'), function($rq, $rs, &$param) {
+            $key = 'cache_test';
+            $value = 0;
+            if (array_key_exists($key, $rq->cache)) {
+                $value = intval($rq->cache[$key]) + 1;
+            }
+            $rs->cache[$key] = $value;
+            $rs->content = "$key : " . $value;
+            $rs->status = 200;
+        });
+
         $app->add('{^/(?P<file>\w+)/?$}', array('GET'), function($rq, $rs, &$param) {
             $this->data['title'] = 'title';
             $this->data['body'] = 'body';

@@ -18,11 +18,12 @@ namespace hi {
         , headers()
         , form()
         , cookies()
-        , session() {
+        , session()
+        , cache() {
         }
         virtual~request() = default;
         std::string client, user_agent, method, uri, param;
-        std::unordered_map<std::string, std::string> headers, form, cookies, session;
+        std::unordered_map<std::string, std::string> headers, form, cookies, session,cache;
     };
 }
 

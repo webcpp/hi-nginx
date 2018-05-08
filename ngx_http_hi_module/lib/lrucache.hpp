@@ -33,6 +33,11 @@ namespace hi {
             bool exists(const key_t& key) {
                 return this->_cache_.contains(key);
             }
+            
+            template<typename F>
+            void for_each(F &f){
+                this->_cache_.cwalk(f);
+            }
 
             virtual~lru_cache() {
 

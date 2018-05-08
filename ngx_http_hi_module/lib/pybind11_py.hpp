@@ -26,15 +26,18 @@ namespace hi {
                 .def("has_cookie", &hi::py_request::has_cookie)
                 .def("has_form", &hi::py_request::has_form)
                 .def("has_session", &hi::py_request::has_session)
+                .def("has_cache", &hi::py_request::has_cache)
                 .def("get_header", &hi::py_request::get_header)
                 .def("get_cookie", &hi::py_request::get_cookie)
                 .def("get_form", &hi::py_request::get_form)
-                .def("get_session", &hi::py_request::get_session);
+                .def("get_session", &hi::py_request::get_session)
+                .def("get_cache", &hi::py_request::get_cache);
         pybind11::class_<hi::py_response>(m, "hi_response")
                 .def("status", &hi::py_response::status)
                 .def("content", &hi::py_response::content)
                 .def("header", &hi::py_response::header)
-                .def("session", &hi::py_response::session);
+                .def("session", &hi::py_response::session)
+                .def("cache", &hi::py_response::cache);
     }
 
     class pybind11_py {

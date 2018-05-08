@@ -17,6 +17,7 @@ extern "C" {
 #ifdef HTTP_HI_CPP
 
 #include <vector>
+#include <list>
 #include <unordered_map>
 #include <memory>
 #include "include/request.hpp"
@@ -63,8 +64,14 @@ struct cache_ele_t {
     std::string content_type, content;
 };
 
+struct kvdb_ele_t {
+    time_t t;
+    std::string key, value;
+};
+
 static std::unordered_map<std::string, std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, cache_ele_t>>> CACHE;
+static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, kvdb_ele_t>>> KVDB;
 static std::shared_ptr<hi::redis> REDIS;
 
 #ifdef HTTP_HI_PYTHON
@@ -128,12 +135,15 @@ typedef struct {
     , cache_expires
     , session_expires
     , cache_index
+    , kvdb_expires
+    , kvdb_index
 #ifdef HTTP_HI_JAVA
     , java_servlet_cache_expires
     , java_version
 #endif
     ;
     size_t cache_size
+    , kvdb_size
 #ifdef HTTP_HI_JAVA
     , java_servlet_cache_size
 #endif
@@ -141,7 +151,8 @@ typedef struct {
     ngx_flag_t need_headers
     , need_cache
     , need_cookies
-    , need_session;
+    , need_session
+    , need_kvdb;
     application_t app_type;
 } ngx_http_hi_loc_conf_t;
 
@@ -212,6 +223,22 @@ ngx_command_t ngx_http_hi_commands[] = {
         NULL
     },
     {
+        ngx_string("hi_kvdb_expires"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_sec_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, kvdb_expires),
+        NULL
+    },
+    {
+        ngx_string("hi_kvdb_size"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_num_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, kvdb_size),
+        NULL
+    },
+    {
         ngx_string("hi_need_headers"),
         NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
         ngx_conf_set_flag_slot,
@@ -225,6 +252,14 @@ ngx_command_t ngx_http_hi_commands[] = {
         ngx_conf_set_flag_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, need_cache),
+        NULL
+    },
+    {
+        ngx_string("hi_need_kvdb"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_flag_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, need_kvdb),
         NULL
     },
     {
@@ -417,6 +452,7 @@ ngx_module_t ngx_http_hi_module = {
 static ngx_int_t clean_up(ngx_conf_t *cf) {
     PLUGIN.clear();
     CACHE.clear();
+    KVDB.clear();
     REDIS.reset();
 #ifdef HTTP_HI_PYTHON
     PYTHON.reset();
@@ -448,8 +484,28 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
     if (conf) {
         conf->module_path.len = 0;
         conf->module_path.data = NULL;
+
         conf->redis_host.len = 0;
         conf->redis_host.data = NULL;
+        conf->redis_port = NGX_CONF_UNSET;
+
+        conf->cache_index = NGX_CONF_UNSET;
+        conf->cache_size = NGX_CONF_UNSET_UINT;
+        conf->cache_expires = NGX_CONF_UNSET;
+
+        conf->session_expires = NGX_CONF_UNSET;
+
+        conf->kvdb_index = NGX_CONF_UNSET;
+        conf->kvdb_size = NGX_CONF_UNSET_UINT;
+        conf->kvdb_expires = NGX_CONF_UNSET;
+
+        conf->need_headers = NGX_CONF_UNSET;
+        conf->need_cache = NGX_CONF_UNSET;
+        conf->need_cookies = NGX_CONF_UNSET;
+        conf->need_session = NGX_CONF_UNSET;
+        conf->need_kvdb = NGX_CONF_UNSET;
+
+        conf->app_type = application_t::__unkown__;
 #ifdef HTTP_HI_PYTHON
         conf->python_script.len = 0;
         conf->python_script.data = NULL;
@@ -479,16 +535,6 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->java_servlet_cache_expires = NGX_CONF_UNSET;
         conf->java_version = NGX_CONF_UNSET;
 #endif
-        conf->redis_port = NGX_CONF_UNSET;
-        conf->cache_size = NGX_CONF_UNSET_UINT;
-        conf->cache_expires = NGX_CONF_UNSET;
-        conf->session_expires = NGX_CONF_UNSET;
-        conf->cache_index = NGX_CONF_UNSET;
-        conf->need_headers = NGX_CONF_UNSET;
-        conf->need_cache = NGX_CONF_UNSET;
-        conf->need_cookies = NGX_CONF_UNSET;
-        conf->need_session = NGX_CONF_UNSET;
-        conf->app_type = application_t::__unkown__;
         return conf;
     }
     return NGX_CONF_ERROR;
@@ -500,6 +546,8 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 
     ngx_conf_merge_str_value(conf->module_path, prev->module_path, "");
     ngx_conf_merge_str_value(conf->redis_host, prev->redis_host, "");
+    ngx_conf_merge_value(conf->redis_port, prev->redis_port, (ngx_int_t) 0);
+
 #ifdef HTTP_HI_PYTHON
     ngx_conf_merge_str_value(conf->python_script, prev->python_script, "");
     ngx_conf_merge_str_value(conf->python_content, prev->python_content, "");
@@ -525,12 +573,15 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t) 8);
 #endif
 #endif
-    ngx_conf_merge_value(conf->redis_port, prev->redis_port, (ngx_int_t) 0);
+
     ngx_conf_merge_uint_value(conf->cache_size, prev->cache_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->cache_expires, prev->cache_expires, (ngx_int_t) 300);
+    ngx_conf_merge_uint_value(conf->kvdb_size, prev->kvdb_size, (size_t) 10);
+    ngx_conf_merge_sec_value(conf->kvdb_expires, prev->kvdb_expires, (ngx_int_t) 300);
     ngx_conf_merge_sec_value(conf->session_expires, prev->session_expires, (ngx_int_t) 300);
     ngx_conf_merge_value(conf->need_headers, prev->need_headers, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_cache, prev->need_cache, (ngx_flag_t) 1);
+    ngx_conf_merge_value(conf->need_kvdb, prev->need_kvdb, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_cookies, prev->need_cookies, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_session, prev->need_session, (ngx_flag_t) 0);
     if (conf->need_session == 1 && conf->need_cookies == 0) {
@@ -571,6 +622,10 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         conf->cache_index = CACHE.size() - 1;
     }
 
+    if (conf->need_kvdb == 1 && conf->kvdb_index == NGX_CONF_UNSET) {
+        KVDB.push_back(std::move(std::make_shared<hi::cache::lru_cache < std::string, kvdb_ele_t >> (conf->kvdb_size)));
+        conf->kvdb_index = KVDB.size() - 1;
+    }
 
     return NGX_CONF_OK;
 }
@@ -608,6 +663,14 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     hi::request ngx_request;
     hi::response ngx_response;
     std::string SESSION_ID_VALUE;
+    std::shared_ptr<hi::cache::lru_cache < std::string, cache_ele_t>> cache_ptr;
+    std::shared_ptr<hi::cache::lru_cache < std::string, kvdb_ele_t>> kvdb_ptr;
+    if (conf->need_cache == 1) {
+        cache_ptr = CACHE[conf->cache_index];
+    }
+    if (conf->need_kvdb == 1) {
+        kvdb_ptr = KVDB[conf->kvdb_index];
+    }
 
     ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
     if (r->args.len > 0) {
@@ -636,11 +699,11 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
         cache_k->assign((char*) p, 32);
 
-        if (CACHE[conf->cache_index]->exists(*cache_k)) {
-            const cache_ele_t& cache_v = CACHE[conf->cache_index]->get(*cache_k);
+        if (cache_ptr->exists(*cache_k)) {
+            const cache_ele_t& cache_v = cache_ptr->get(*cache_k);
             time_t now = time(NULL);
             if (difftime(now, cache_v.t) > conf->cache_expires) {
-                CACHE[conf->cache_index]->erase(*cache_k);
+                cache_ptr->erase(*cache_k);
             } else {
                 ngx_response.content = cache_v.content;
                 ngx_response.headers.find("Content-Type")->second = cache_v.content_type;
@@ -726,6 +789,24 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             }
         }
     }
+
+
+    if (conf->need_kvdb == 1 && kvdb_ptr->size() > 0) {
+        time_t now = time(NULL);
+        std::list<std::string> expire_key;
+        auto f = [&](const lru11::KeyValuePair<std::string, kvdb_ele_t>& item) {
+            if (difftime(now, item.value.t) > conf->kvdb_expires) {
+                expire_key.push_back(item.key);
+            } else {
+                ngx_request.cache[item.key] = item.value.value;
+            }
+        };
+        kvdb_ptr->for_each(f);
+        for (auto& item : expire_key) {
+            kvdb_ptr->erase(item);
+        }
+    }
+
     switch (conf->app_type) {
         case application_t::__cpp__:ngx_http_hi_cpp_handler(conf, ngx_request, ngx_response);
             break;
@@ -764,10 +845,22 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         cache_v.content_type = ngx_response.headers.find("Content-Type")->second;
         cache_v.status = ngx_response.status;
         cache_v.t = time(NULL);
-        CACHE[conf->cache_index]->put(*cache_k, cache_v);
+        cache_ptr->put(*cache_k, cache_v);
     }
     if (REDIS && REDIS->is_connected() && !SESSION_ID_VALUE.empty()) {
         REDIS->hmset(SESSION_ID_VALUE, ngx_response.session);
+    }
+
+    if (conf->need_kvdb == 1 && !ngx_response.cache.empty()) {
+        kvdb_ele_t kv_ele;
+        kv_ele.t = time(NULL);
+        for (auto & item : ngx_response.cache) {
+            kv_ele.value = std::move(item.second);
+            if (kvdb_ptr->exists(item.first)) {
+                kv_ele.t = kvdb_ptr->get(item.first).t;
+            }
+            kvdb_ptr->put(item.first, kv_ele);
+        }
     }
 
 done:
@@ -1081,6 +1174,20 @@ static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, 
         JAVA->env->DeleteLocalRef(req_session);
     }
 
+    if (conf->need_kvdb == 1) {
+        jobject req_cache = JAVA->env->GetObjectField(request_instance, JAVA->req_cache);
+        for (auto& item : req.cache) {
+            jstring k = JAVA->env->NewStringUTF(item.first.c_str())
+                    , v = JAVA->env->NewStringUTF(item.second.c_str());
+            JAVA->env->CallObjectMethod(req_cache, JAVA->hashmap_put, k, v);
+            JAVA->env->ReleaseStringUTFChars(k, 0);
+            JAVA->env->ReleaseStringUTFChars(v, 0);
+            JAVA->env->DeleteLocalRef(k);
+            JAVA->env->DeleteLocalRef(v);
+        }
+        JAVA->env->DeleteLocalRef(req_cache);
+    }
+
 }
 
 static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance) {
@@ -1128,6 +1235,27 @@ static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req,
         JAVA->env->DeleteLocalRef(iterator);
     }
 
+    if (conf->need_kvdb == 1) {
+        jobject res_cache = JAVA->env->GetObjectField(response_instance, JAVA->res_cache);
+        keyset = JAVA->env->CallObjectMethod(res_cache, JAVA->hashmap_keyset);
+        iterator = JAVA->env->CallObjectMethod(keyset, JAVA->set_iterator);
+        while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext)) {
+            jstring k = (jstring) JAVA->env->CallObjectMethod(iterator, JAVA->next);
+            jstring v = (jstring) JAVA->env->CallObjectMethod(res_cache, JAVA->hashmap_get, k);
+            const char * kstr = JAVA->env->GetStringUTFChars(k, NULL),
+                    * vstr = JAVA->env->GetStringUTFChars(v, NULL);
+            res.cache[kstr] = vstr;
+            JAVA->env->ReleaseStringUTFChars(k, kstr);
+            JAVA->env->DeleteLocalRef(k);
+            JAVA->env->ReleaseStringUTFChars(v, vstr);
+            JAVA->env->DeleteLocalRef(v);
+        }
+        JAVA->env->DeleteLocalRef(res_cache);
+        JAVA->env->DeleteLocalRef(keyset);
+        JAVA->env->DeleteLocalRef(iterator);
+    }
+
+
     res.status = JAVA->env->GetIntField(response_instance, JAVA->status);
     jstring content = (jstring) JAVA->env->GetObjectField(response_instance, JAVA->content);
     const char* contentstr = JAVA->env->GetStringUTFChars(content, NULL);
@@ -1153,6 +1281,7 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
                 JAVA->form = JAVA->env->GetFieldID(JAVA->request, "form", "Ljava/util/HashMap;");
                 JAVA->cookies = JAVA->env->GetFieldID(JAVA->request, "cookies", "Ljava/util/HashMap;");
                 JAVA->req_session = JAVA->env->GetFieldID(JAVA->request, "session", "Ljava/util/HashMap;");
+                JAVA->req_cache = JAVA->env->GetFieldID(JAVA->request, "cache", "Ljava/util/HashMap;");
 
 
                 JAVA->response = JAVA->env->FindClass("hi/response");
@@ -1162,6 +1291,7 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
                     JAVA->content = JAVA->env->GetFieldID(JAVA->response, "content", "Ljava/lang/String;");
                     JAVA->res_headers = JAVA->env->GetFieldID(JAVA->response, "headers", "Ljava/util/HashMap;");
                     JAVA->res_session = JAVA->env->GetFieldID(JAVA->response, "session", "Ljava/util/HashMap;");
+                    JAVA->res_cache = JAVA->env->GetFieldID(JAVA->response, "cache", "Ljava/util/HashMap;");
 
                     JAVA->hashmap = JAVA->env->FindClass("java/util/HashMap");
                     JAVA->hashmap_put = JAVA->env->GetMethodID(JAVA->hashmap, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
@@ -1243,23 +1373,36 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
                 php_req.set("param", php::Variant(req.param));
                 php_req.set("uri", php::Variant(req.uri));
 
-                php::Array php_req_headers, php_req_form, php_req_cookies, php_req_session;
-                for (auto & i : req.headers) {
-                    php_req_headers.set(i.first.c_str(), php::Variant(i.second));
+                php::Array php_req_headers, php_req_form, php_req_cookies, php_req_session, php_req_cache;
+                if (conf->need_headers == 1) {
+                    for (auto & i : req.headers) {
+                        php_req_headers.set(i.first.c_str(), php::Variant(i.second));
+                    }
+
                 }
                 for (auto & i : req.form) {
                     php_req_form.set(i.first.c_str(), php::Variant(i.second));
                 }
-                for (auto & i : req.cookies) {
-                    php_req_cookies.set(i.first.c_str(), php::Variant(i.second));
+                if (conf->need_cookies == 1) {
+                    for (auto & i : req.cookies) {
+                        php_req_cookies.set(i.first.c_str(), php::Variant(i.second));
+                    }
                 }
-                for (auto & i : req.session) {
-                    php_req_session.set(i.first.c_str(), php::Variant(i.second));
+                if (conf->need_session == 1) {
+                    for (auto & i : req.session) {
+                        php_req_session.set(i.first.c_str(), php::Variant(i.second));
+                    }
+                }
+                if (conf->need_kvdb == 1) {
+                    for (auto & i : req.cache) {
+                        php_req_cache.set(i.first.c_str(), php::Variant(i.second));
+                    }
                 }
                 php_req.set("headers", php_req_headers);
                 php_req.set("form", php_req_form);
                 php_req.set("cookies", php_req_cookies);
                 php_req.set("session", php_req_session);
+                php_req.set("cache", php_req_cache);
 
 
 
@@ -1274,7 +1417,7 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 
                 if (!servlet.isNull() && servlet.methodExists(handler)) {
                     servlet.exec(handler, php_req, php_res);
-                    php::Array res_headers = php_res.get("headers"), res_session = php_res.get("session");
+                    php::Array res_headers = php_res.get("headers"), res_session = php_res.get("session"), res_cache = php_res.get("cache");
 
 
                     for (auto i = res_headers.begin(); i != res_headers.end(); i++) {
@@ -1289,8 +1432,15 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
                             res.headers.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
                         }
                     }
-                    for (auto i = res_session.begin(); i != res_session.end(); i++) {
-                        res.session.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
+                    if (conf->need_session == 1) {
+                        for (auto i = res_session.begin(); i != res_session.end(); i++) {
+                            res.session.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
+                        }
+                    }
+                    if (conf->need_kvdb == 1) {
+                        for (auto i = res_cache.begin(); i != res_cache.end(); i++) {
+                            res.cache.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
+                        }
                     }
 
                     res.content = std::move(php_res.get("content").toString());
