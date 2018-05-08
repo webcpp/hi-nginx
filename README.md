@@ -241,14 +241,15 @@ class index implements \hi\servlet {
   -  nchan
 
 # ngx_http_hi_module directives
+
 - directives : content: loc,if in loc
     - hi,default: ""
 
     example:
     
-```
+```nginx
             location = /hello {
-                hi cpp/hello.so ;
+                hi hi/hello.so ;
             }
 ```
 - directives : content: http,srv,loc,if in loc ,if in srv
@@ -256,7 +257,7 @@ class index implements \hi\servlet {
 
     example:
 
-```
+```nginx
         hi_need_cache on|off;
 ```
 
@@ -265,7 +266,7 @@ class index implements \hi\servlet {
 
     example:
 
-```
+```nginx
         hi_cache_size 10;
 ```
 
@@ -274,7 +275,7 @@ class index implements \hi\servlet {
 
     example:
 
-```
+```nginx
         hi_cache_expires 300s;
 ```
 
@@ -283,7 +284,7 @@ class index implements \hi\servlet {
 
     example:
 
-```
+```nginx
         hi_need_kvdb on|off;
 ```
 
@@ -292,7 +293,7 @@ class index implements \hi\servlet {
 
     example:
 
-```
+```nginx
         hi_kvdb_size 10;
 ```
 
@@ -301,7 +302,7 @@ class index implements \hi\servlet {
 
     example:
 
-```
+```nginx
         hi_kvdb_expires 300s;
 ```
 
@@ -312,7 +313,7 @@ class index implements \hi\servlet {
 
         example:
 
-```
+```nginx
         hi_need_headers on|off;
 ```
 
@@ -321,7 +322,7 @@ class index implements \hi\servlet {
 
         example:
 
-```
+```nginx
         hi_need_cookies on|off;
 ```
 
@@ -330,7 +331,7 @@ class index implements \hi\servlet {
 
         example:
 
-```
+```nginx
         hi_need_session on|off;
 ```
 
@@ -339,7 +340,7 @@ class index implements \hi\servlet {
 
     example:
 
-```
+```nginx
         hi_session_expires 300s;
 ```
      
@@ -349,7 +350,7 @@ class index implements \hi\servlet {
 
     example:
 
-```
+```nginx
         hi_redis_host 127.0.0.1;
 ```
 
@@ -358,7 +359,7 @@ class index implements \hi\servlet {
 
     example:
 
-```
+```nginx
         hi_redis_port 6379;
 ```
 
@@ -368,7 +369,7 @@ class index implements \hi\servlet {
 
     example:
     
-```
+```nginx
             location = /pyecho {
                 hi_python_content "hi_res.status(200)\nhi_res.content('hello,world')" ;
             }
@@ -379,7 +380,7 @@ class index implements \hi\servlet {
 
     example:
     
-```
+```nginx
             location ~ \.py$  {
                 hi_python_script python;
             }
@@ -387,7 +388,7 @@ class index implements \hi\servlet {
 
 or
 
-```
+```nginx
             location / {
                 hi_python_script python/index.py;
             }
@@ -399,7 +400,7 @@ or
 
     example:
     
-```
+```nginx
 
             hi_lua_package_path '/usr/local/nginx/lua/?.lua;';
 
@@ -410,12 +411,11 @@ or
 
     example:
     
-```
+```nginx
 
             hi_lua_package_cpath '/usr/local/nginx/lua/?.so;';
 
 ```
-
 
 
 
@@ -424,7 +424,7 @@ or
 
     example:
     
-```
+```nginx
             location = /luaecho {
                 hi_lua_content "hi_res:status(200)\nhi_res:content('hello,world')" ;
             }
@@ -435,7 +435,7 @@ or
 
     example:
     
-```
+```nginx
             location ~ \.lua$  {
                 hi_lua_script lua;
             }
@@ -443,7 +443,7 @@ or
 
 or
 
-```
+```nginx
             location / {
                 hi_lua_script lua/index.lua;
             }
@@ -454,7 +454,7 @@ or
 
     example:
 
-```
+```nginx
 hi_java_classpath "-Djava.class.path=.:/usr/local/nginx/java:/usr/local/nginx/java/hi-nginx-java.jar";
 
 ```
@@ -464,7 +464,7 @@ hi_java_classpath "-Djava.class.path=.:/usr/local/nginx/java:/usr/local/nginx/ja
 
     example:
 
-```
+```nginx
 hi_java_options "-server -d64 -Xmx3G -Xms3G -Xmn768m -XX:+DisableExplicitGC -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+UseNUMA -XX:+CMSParallelRemarkEnabled -XX:MaxTenuringThreshold=15 -XX:MaxGCPauseMillis=30 -XX:GCPauseIntervalMillis=150 -XX:+UseAdaptiveGCBoundary -XX:-UseGCOverheadLimit -XX:+UseBiasedLocking -XX:SurvivorRatio=8 -XX:TargetSurvivorRatio=90 -XX:MaxTenuringThreshold=15 -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -XX:+UseFastAccessorMethods -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+AggressiveOpts -XX:ReservedCodeCacheSize=2048m -XX:+UseCodeCacheFlushing -XX:SoftRefLRUPolicyMSPerMB=10000 -XX:ParallelGCThreads=10";
 
 ```
@@ -474,7 +474,7 @@ hi_java_options "-server -d64 -Xmx3G -Xms3G -Xmn768m -XX:+DisableExplicitGC -XX:
 
     example:
 
-```
+```nginx
 hi_java_servlet hi/jhello;
 
 
@@ -485,7 +485,7 @@ hi_java_servlet hi/jhello;
 
     example:
 
-```
+```nginx
 hi_java_servlet_cache_expires 300s;
 
 ```
@@ -495,7 +495,7 @@ hi_java_servlet_cache_expires 300s;
 
     example:
 
-```
+```nginx
 hi_java_servlet_cache_size 10;
 
 ```
@@ -505,7 +505,7 @@ hi_java_servlet_cache_size 10;
 
     example:
 
-```
+```nginx
 hi_java_version 8;
 
 ```
@@ -515,7 +515,7 @@ hi_java_version 8;
 
     example:
     
-```
+```nginx
             location ~ \.php$  {
                 hi_php_script php;
             }
@@ -523,11 +523,12 @@ hi_java_version 8;
 
 or
 
-```
+```nginx
             location / {
                 hi_php_script php/index.php;
             }
 ```
+
 ## nginx.conf
 
 [hi_demo_conf](https://github.com/webcpp/hi_demo/blob/master/demo.conf)
