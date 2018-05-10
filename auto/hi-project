@@ -39,7 +39,7 @@ cpp_makefile_tpl(){
 cat << END                                                     > $PROJECT/Makefile
 
 PROJECT=$PROJECT.so
-SRC=$(shell echo `find . -type f | egrep *.cpp$$`)
+SRC=\$(shell find . -type f | egrep *.cpp\$\$)
 OBJ=\$(patsubst %.cpp,%.o,\$(SRC))
 
 ifndef NGINX_INSTALL_DIR
@@ -60,8 +60,8 @@ clean:
 	rm -f  \$(OBJ) \$(PROJECT)
 
 install:
-	test -d \$(NGINX_INSTALL_DIR)/cpp || mkdir -p \$(NGINX_INSTALL_DIR)/cpp
-	install \$(PROJECT) \$(NGINX_INSTALL_DIR)/cpp
+	test -d \$(NGINX_INSTALL_DIR)/$TYPE || mkdir -p \$(NGINX_INSTALL_DIR)/$TYPE
+	install \$(PROJECT) \$(NGINX_INSTALL_DIR)/$TYPE
 
 END
 
@@ -102,7 +102,7 @@ python_makefile_tpl(){
 
 cat << END                                                     > $PROJECT/Makefile
 
-SRC=$(shell echo `find . -type f | egrep *.py$$`)
+SRC=\$(shell find . -type f | egrep *.py\$\$)
 
 ifndef NGINX_INSTALL_DIR
 NGINX_INSTALL_DIR=/usr/local/nginx
@@ -136,7 +136,7 @@ lua_makefile_tpl(){
 
 cat << END                                                     > $PROJECT/Makefile
 
-SRC=$(shell echo `find . -type f | egrep *.lua$$`)
+SRC=\$(shell find . -type f | egrep *.lua\$\$)
 
 ifndef NGINX_INSTALL_DIR
 NGINX_INSTALL_DIR=/usr/local/nginx
@@ -171,14 +171,14 @@ java_makefile_tpl(){
 
 cat << END                                                     > $PROJECT/Makefile
 
-SRC=\$(shell echo \`find . -type f | egrep *.java\$\$\`)
+SRC=\$(shell find . -type f | egrep *.java\$\$\)
 OBJ=\$(patsubst %.java,%.class,\$(SRC))
 
 ifndef NGINX_INSTALL_DIR
 NGINX_INSTALL_DIR=/usr/local/nginx
 endif
 
-JFLAGS = -classpath .:\${NGINX_INSTALL_DIR}/java/hi-nginx-java.jar
+JFLAGS = -classpath .:\${NGINX_INSTALL_DIR}/$TYPE/hi-nginx-java.jar
 JC = \${JAVA_HOME}/bin/javac
 
 %.class:%.java
@@ -194,7 +194,7 @@ clean:
 	rm -f \${OBJ}
 
 install:\${OBJ}
-	for i in \${OBJ};do test -d \$(NGINX_INSTALL_DIR)/java/\`dirname \$\$i\` || mkdir -p \$(NGINX_INSTALL_DIR)/java/\`dirname \$\$i\` && install \$\$i \$(NGINX_INSTALL_DIR)/java/\$\$i ;done
+	for i in \${OBJ};do test -d \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` || mkdir -p \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` && install \$\$i \$(NGINX_INSTALL_DIR)/$TYPE/\$\$i ;done
 
 
 
@@ -230,7 +230,7 @@ php_makefile_tpl(){
 
 cat << END                                                     > $PROJECT/Makefile
 
-SRC=$(shell echo `find . -type f | egrep *.php$$`)
+SRC=\$(shell find . -type f | egrep *.php\$\$)
 
 ifndef NGINX_INSTALL_DIR
 NGINX_INSTALL_DIR=/usr/local/nginx
@@ -271,6 +271,15 @@ class $PROJECT implements \hi\servlet {
             \$rs->content = 'hello,'.\$param['name'];
             \$rs->status = 200;
         });
+
+        \$app->add('{^/phpinfo/?\$}', array('GET'), function(\$rq, \$rs, &\$param) {
+            ob_start();
+            phpinfo();
+            \$rs->content = ob_get_contents();
+            \$rs->status = 200;
+            ob_end_clean();
+        });
+
         \$app->run(\$req, \$res);
     }
 
