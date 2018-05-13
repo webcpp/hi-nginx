@@ -233,6 +233,7 @@ class index implements \hi\servlet {
 ```
 
 ## javascript hello world
+
 ```javascript
 
 if (typeof (Mustache) == 'undefined') {
