@@ -1,5 +1,5 @@
 # Introduction
-A distribution of Nginx with c++,python,lua java and php web development. 
+A distribution of Nginx with c++,python,lua, java, php and javascript web development. 
 
 
 [hi-nginx-demo](https://github.com/webcpp/hi_demo).
@@ -12,7 +12,7 @@ A distribution of Nginx with c++,python,lua java and php web development.
 
 # Features
 - All features of nginx-1.14.0(latest release) are inherited, i.e., it is 100% compatible with nginx.
-- Web development using python, c++, lua, php7 and java
+- Web development using python, c++, lua, php7, java and javascript
 
 # Dependency
 - linux
@@ -509,6 +509,60 @@ hi_java_servlet_cache_size 10;
 hi_java_version 8;
 
 ```
+
+
+- directives : content: loc,if in loc
+    - hi_javascript_lang,default:javascript
+
+    example:
+
+```nginx
+hi_javascript_lang javasscript;
+
+```
+
+
+- directives : content: loc,if in loc
+    - hi_javascript_extension,default:js
+
+    example:
+
+```nginx
+hi_javascript_extension js;
+
+```
+
+
+
+- directives : content: loc,if in loc
+    - hi_javascript_content,default:""
+
+    example:
+
+```nginx
+hi_javascript_content "hi_res.content='hello,world';hi_res.status=200;";
+
+```
+
+- directives : content: loc,if in loc
+    - hi_javascript_script,default:""
+
+    example:
+
+```nginx
+hi_javascript_script javascript/index.js;
+
+```
+
+or
+
+```nginx
+
+hi_javascript_script javascript;
+
+```
+
+
 
 - directives : content: loc,if in loc
     - hi_php_script,default: ""

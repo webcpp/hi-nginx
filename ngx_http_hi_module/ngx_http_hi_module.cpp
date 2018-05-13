@@ -4,7 +4,7 @@ extern "C" {
 #include <ngx_http.h>
 #include <ngx_md5.h>
 }
-
+#include <sys/stat.h>
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
@@ -14,12 +14,16 @@ extern "C" {
 #include <openssl/md5.h>
 #include <openssl/x509v3.h>
 
+
 #ifdef HTTP_HI_CPP
 
 #include <vector>
 #include <list>
 #include <unordered_map>
 #include <memory>
+#include <fstream>
+#include <streambuf>
+#include <exception>
 #include "include/request.hpp"
 #include "include/response.hpp"
 #include "include/servlet.hpp"
@@ -102,6 +106,7 @@ enum application_t {
 #endif
 #ifdef HTTP_HI_JAVA    
     __java__,
+    __javascript__,
 #endif
 #ifdef HTTP_HI_PHP
     __php__,
@@ -126,6 +131,10 @@ typedef struct {
     , java_classpath
     , java_options
     , java_servlet
+    , javascript_script
+    , javascript_content
+    , javascript_lang
+    , javascript_extension
 #endif
 #ifdef HTTP_HI_PHP
     , php_script
@@ -187,6 +196,7 @@ static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request&
 static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
 static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
 static bool java_init_handler(ngx_http_hi_loc_conf_t * conf);
+static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
 #endif
 
 #ifdef HTTP_HI_PHP
@@ -196,6 +206,7 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 static std::string md5(const std::string& str);
 static std::string random_string(const std::string& s);
 static bool is_dir(const std::string& s);
+static bool is_file(const std::string& s);
 
 ngx_command_t ngx_http_hi_commands[] = {
     {
@@ -403,6 +414,38 @@ ngx_command_t ngx_http_hi_commands[] = {
         offsetof(ngx_http_hi_loc_conf_t, java_version),
         NULL
     },
+    {
+        ngx_string("hi_javascript_script"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_http_hi_conf_init,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, javascript_script),
+        NULL
+    },
+    {
+        ngx_string("hi_javascript_content"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_http_hi_conf_init,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, javascript_content),
+        NULL
+    },
+    {
+        ngx_string("hi_javascript_lang"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_http_hi_conf_init,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, javascript_lang),
+        NULL
+    },
+    {
+        ngx_string("hi_javascript_extension"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_http_hi_conf_init,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, javascript_extension),
+        NULL
+    },
 #endif
 #ifdef HTTP_HI_PHP
     {
@@ -534,6 +577,14 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->java_servlet_cache_size = NGX_CONF_UNSET_UINT;
         conf->java_servlet_cache_expires = NGX_CONF_UNSET;
         conf->java_version = NGX_CONF_UNSET;
+        conf->javascript_content.data = NULL;
+        conf->javascript_content.len = 0;
+        conf->javascript_script.data = NULL;
+        conf->javascript_script.len = 0;
+        conf->javascript_lang.data = NULL;
+        conf->javascript_lang.len = 0;
+        conf->javascript_extension.data = NULL;
+        conf->javascript_extension.len = 0;
 #endif
         return conf;
     }
@@ -563,10 +614,15 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 #endif
 #ifdef HTTP_HI_JAVA
     ngx_conf_merge_str_value(conf->java_classpath, prev->java_classpath, "-Djava.class.path=.");
-    ngx_conf_merge_str_value(conf->java_options, prev->java_options, "-server -d64 -Xmx1G -Xms1G -Xmn256m");
+    ngx_conf_merge_str_value(conf->java_options, prev->java_options, "-server -d64 -Xmx1G -Xms1G -Xmn256m -Dnashorn.args=--global-per-engine");
     ngx_conf_merge_str_value(conf->java_servlet, prev->java_servlet, "");
     ngx_conf_merge_uint_value(conf->java_servlet_cache_size, prev->java_servlet_cache_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->java_servlet_cache_expires, prev->java_servlet_cache_expires, (ngx_int_t) 300);
+
+    ngx_conf_merge_str_value(conf->javascript_script, prev->javascript_script, "");
+    ngx_conf_merge_str_value(conf->javascript_content, prev->javascript_content, "");
+    ngx_conf_merge_str_value(conf->javascript_lang, prev->javascript_lang, "javascript");
+    ngx_conf_merge_str_value(conf->javascript_extension, prev->javascript_extension, "js");
 #ifdef JNI_VERSION_9
     ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t) 9);
 #else
@@ -581,7 +637,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_sec_value(conf->session_expires, prev->session_expires, (ngx_int_t) 300);
     ngx_conf_merge_value(conf->need_headers, prev->need_headers, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_cache, prev->need_cache, (ngx_flag_t) 1);
-    ngx_conf_merge_value(conf->need_kvdb, prev->need_kvdb, (ngx_flag_t) 0);
+    ngx_conf_merge_value(conf->need_kvdb, prev->need_kvdb, (ngx_flag_t) 1);
     ngx_conf_merge_value(conf->need_cookies, prev->need_cookies, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_session, prev->need_session, (ngx_flag_t) 0);
     if (conf->need_session == 1 && conf->need_cookies == 0) {
@@ -615,6 +671,11 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
             JAVA_SERVLET_CACHE = std::move(std::make_shared<hi::cache::lru_cache < std::string, hi::java_servlet_t >> (conf->java_servlet_cache_size));
         }
     }
+
+    if (conf->javascript_content.len > 0 || conf->javascript_script.len > 0) {
+        conf->app_type = application_t::__javascript__;
+    }
+
 #endif
 
     if (conf->need_cache == 1 && conf->cache_index == NGX_CONF_UNSET) {
@@ -683,6 +744,8 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         if (r->args.len > 0) {
             cache_k->append("?").append(ngx_request.param);
         }
+
+
         u_char *p;
         ngx_md5_t md5;
         u_char md5_buf[16];
@@ -698,6 +761,8 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         ngx_hex_dump(p, md5_buf, sizeof (md5_buf));
 
         cache_k->assign((char*) p, 32);
+
+
 
         if (cache_ptr->exists(*cache_k)) {
             const cache_ele_t& cache_v = cache_ptr->get(*cache_k);
@@ -820,6 +885,8 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 #endif
 #ifdef HTTP_HI_JAVA
         case application_t::__java__:ngx_http_hi_java_handler(conf, ngx_request, ngx_response);
+            break;
+        case application_t::__javascript__:ngx_http_hi_javascript_handler(conf, ngx_request, ngx_response);
             break;
 #endif
 #ifdef HTTP_HI_PHP
@@ -1014,7 +1081,9 @@ static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::reques
             if (c == std::string::npos || script.substr(c + 1) != "py") {
                 script.append(req.uri);
             }
-            PYTHON->call_script(script);
+            if (is_file(script)) {
+                PYTHON->call_script(script);
+            }
         } else if (conf->python_content.len > 0) {
             PYTHON->call_content((char*) conf->python_content.data);
         }
@@ -1041,7 +1110,9 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
             if (c == std::string::npos || script.substr(c + 1) != "lua") {
                 script.append(req.uri);
             }
-            LUA->call_script(script);
+            if (is_file(script)) {
+                LUA->call_script(script);
+            }
         } else if (conf->lua_content.len > 0) {
             LUA->call_content((char*) conf->lua_content.data);
         }
@@ -1049,6 +1120,101 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 }
 #endif
 #ifdef HTTP_HI_JAVA
+
+static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    if (java_init_handler(conf)) {
+
+
+
+        jobject request_instance, response_instance;
+
+
+        request_instance = JAVA->env->NewObject(JAVA->request, JAVA->request_ctor);
+        response_instance = JAVA->env->NewObject(JAVA->response, JAVA->response_ctor);
+
+        java_input_handler(conf, req, res, request_instance, response_instance);
+
+        jstring jhi_req = JAVA->env->NewStringUTF("hi_req");
+        jstring jhi_res = JAVA->env->NewStringUTF("hi_res");
+
+
+        JAVA->env->CallVoidMethod(JAVA->script_engine_instance, JAVA->script_engine_put, jhi_req, request_instance);
+        JAVA->env->CallVoidMethod(JAVA->script_engine_instance, JAVA->script_engine_put, jhi_res, response_instance);
+
+        if (conf->javascript_script.len > 0) {
+            std::string script_path = std::move(std::string((char*) conf->javascript_script.data, conf->javascript_script.len));
+            auto c = script_path.find_last_of('.');
+            if (c == std::string::npos || script_path.substr(c + 1) != (char*) conf->javascript_extension.data) {
+                script_path.append(req.uri);
+            }
+
+            if (is_file(script_path)) {
+                jstring script_content = 0;
+
+                if (conf->need_kvdb == 1) {
+                    std::shared_ptr<hi::cache::lru_cache < std::string, kvdb_ele_t>> kvdb_ptr = KVDB[conf->kvdb_index];
+                    std::string md5key = std::move(md5(script_path));
+                    if (kvdb_ptr->exists(md5key)) {
+                        time_t now = time(0);
+                        const kvdb_ele_t & old_script_content = kvdb_ptr->get(md5key);
+                        if (difftime(now, old_script_content.t) > conf->kvdb_expires) {
+                            kvdb_ptr->erase(md5key);
+                            goto update_javascript_content;
+                        }
+                        script_content = JAVA->env->NewStringUTF(kvdb_ptr->get(md5key).value.c_str());
+                    } else {
+update_javascript_content:
+                        std::ifstream file_input(script_path);
+                        std::string script_str((std::istreambuf_iterator<char>(file_input)), std::istreambuf_iterator<char>());
+                        script_content = JAVA->env->NewStringUTF(script_str.c_str());
+
+                        kvdb_ele_t ele;
+                        ele.t = time(0);
+                        ele.value = std::move(script_str);
+                        ele.key = std::move(md5key);
+                        kvdb_ptr->put(ele.key, ele);
+                    }
+                    JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_string, script_content);
+                    if (script_content) {
+                        JAVA->env->ReleaseStringUTFChars(script_content, 0);
+                        JAVA->env->DeleteLocalRef(script_content);
+                    }
+
+
+                } else {
+
+                    jstring javascript_path = JAVA->env->NewStringUTF(script_path.c_str());
+                    jobject filereader_instance = (jobject) JAVA->env->NewObject(JAVA->filereader, JAVA->filereader_ctor, javascript_path);
+
+                    JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_filereader, filereader_instance);
+
+                    JAVA->env->DeleteLocalRef(filereader_instance);
+                    JAVA->env->ReleaseStringUTFChars(javascript_path, 0);
+                    JAVA->env->DeleteLocalRef(javascript_path);
+                }
+            }
+
+        } else if (conf->javascript_content.len > 0) {
+
+            jstring script_content = JAVA->env->NewStringUTF((char*) conf->javascript_content.data);
+            JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_string, script_content);
+            JAVA->env->ReleaseStringUTFChars(script_content, 0);
+            JAVA->env->DeleteLocalRef(script_content);
+        }
+
+
+
+        java_output_handler(conf, req, res, request_instance, response_instance);
+
+        JAVA->env->DeleteLocalRef(request_instance);
+        JAVA->env->DeleteLocalRef(response_instance);
+
+        JAVA->env->ReleaseStringUTFChars(jhi_req, 0);
+        JAVA->env->DeleteLocalRef(jhi_req);
+        JAVA->env->ReleaseStringUTFChars(jhi_res, 0);
+        JAVA->env->DeleteLocalRef(jhi_res);
+    }
+}
 
 static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
     if (java_init_handler(conf)) {
@@ -1240,6 +1406,7 @@ static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req,
         keyset = JAVA->env->CallObjectMethod(res_cache, JAVA->hashmap_keyset);
         iterator = JAVA->env->CallObjectMethod(keyset, JAVA->set_iterator);
         while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext)) {
+
             jstring k = (jstring) JAVA->env->CallObjectMethod(iterator, JAVA->next);
             jstring v = (jstring) JAVA->env->CallObjectMethod(res_cache, JAVA->hashmap_get, k);
             const char * kstr = JAVA->env->GetStringUTFChars(k, NULL),
@@ -1286,6 +1453,7 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
 
                 JAVA->response = JAVA->env->FindClass("hi/response");
                 if (JAVA->response != NULL) {
+
                     JAVA->response_ctor = JAVA->env->GetMethodID(JAVA->response, "<init>", "()V");
                     JAVA->status = JAVA->env->GetFieldID(JAVA->response, "status", "I");
                     JAVA->content = JAVA->env->GetFieldID(JAVA->response, "content", "Ljava/lang/String;");
@@ -1309,7 +1477,29 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
 
                     JAVA->set = JAVA->env->FindClass("java/util/Set");
                     JAVA->set_iterator = JAVA->env->GetMethodID(JAVA->set, "iterator", "()Ljava/util/Iterator;");
-                    JAVA_IS_READY = true;
+
+
+                    JAVA->script_manager = JAVA->env->FindClass("javax/script/ScriptEngineManager");
+                    JAVA->script_engine = JAVA->env->FindClass("javax/script/ScriptEngine");
+
+
+                    JAVA->script_manager_ctor = JAVA->env->GetMethodID(JAVA->script_manager, "<init>", "()V");
+                    JAVA->script_manager_get_engine_by_name = JAVA->env->GetMethodID(JAVA->script_manager, "getEngineByName", "(Ljava/lang/String;)Ljavax/script/ScriptEngine;");
+                    JAVA->script_manager_instance = JAVA->env->NewObject(JAVA->script_manager, JAVA->script_manager_ctor);
+
+                    JAVA->script_engine_put = JAVA->env->GetMethodID(JAVA->script_engine, "put", "(Ljava/lang/String;Ljava/lang/Object;)V");
+                    JAVA->script_engine_eval_filereader = JAVA->env->GetMethodID(JAVA->script_engine, "eval", "(Ljava/io/Reader;)Ljava/lang/Object;");
+                    JAVA->script_engine_eval_string = JAVA->env->GetMethodID(JAVA->script_engine, "eval", "(Ljava/lang/String;)Ljava/lang/Object;");
+
+                    jstring engine_name = JAVA->env->NewStringUTF((char*) conf->javascript_lang.data);
+                    JAVA->script_engine_instance = (jobject) JAVA->env->CallObjectMethod(JAVA->script_manager_instance, JAVA->script_manager_get_engine_by_name, engine_name);
+                    JAVA->env->ReleaseStringUTFChars(engine_name, 0);
+                    JAVA->env->DeleteLocalRef(engine_name);
+                    if (JAVA->script_engine_instance != NULL) {
+                        JAVA->filereader = JAVA->env->FindClass("java/io/FileReader");
+                        JAVA->filereader_ctor = JAVA->env->GetMethodID(JAVA->filereader, "<init>", "(Ljava/lang/String;)V");
+                        JAVA_IS_READY = true;
+                    }
                 }
             }
         }
@@ -1339,12 +1529,19 @@ static std::string md5(const std::string& str) {
 static std::string random_string(const std::string& s) {
     time_t now = time(NULL);
     char* now_str = ctime(&now);
+
     return md5(s + now_str);
 }
 
 static bool is_dir(const std::string& s) {
     struct stat st;
+
     return stat(s.c_str(), &st) >= 0 && S_ISDIR(st.st_mode);
+}
+
+static bool is_file(const std::string& s) {
+    struct stat st;
+    return stat(s.c_str(), &st) >= 0 && S_ISREG(st.st_mode);
 }
 
 #ifdef HTTP_HI_PHP
@@ -1360,9 +1557,8 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
     if (c == std::string::npos || script.substr(c + 1) != "php") {
         script.append(req.uri);
     }
-    if (access(script.c_str(), F_OK) == 0) {
-        zend_first_try
-                {
+    if (is_file(script)) {
+        zend_first_try{
             PHP->include(script.c_str());
             const char *request = "\\hi\\request", *response = "\\hi\\response", *handler = "handler";
             php::Object php_req = php::newObject(request), php_res = php::newObject(response);
@@ -1458,9 +1654,11 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 
                     return;
                 }
-            }}zend_catch{
+            }}
+        zend_catch{
             res.content = std::move("<p style='text-align:center;margin:100px;'>PHP Throw Exception</p>");
-            res.status = 500;}zend_end_try();
+            res.status = 500;}
+        zend_end_try();
     }
 }
 #endif

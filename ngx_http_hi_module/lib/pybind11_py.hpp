@@ -1,7 +1,6 @@
 #ifndef PYBIND11_PY_HPP
 #define PYBIND11_PY_HPP
 
-#include <unistd.h>
 #include <string>
 #include <exception>
 
@@ -66,14 +65,12 @@ namespace hi {
         }
 
         void call_script(const std::string& py_script) {
-            if (access(py_script.c_str(), F_OK) == 0) {
-                try {
-                    pybind11::eval_file(py_script.c_str(), this->scope);
-                } catch (const std::exception& e) {
-                    this->clear_error();
-                    this->res->status(500);
-                    this->res->content(this->error_message + "<br/><p style='text-align:center;margin:100px;'>" + e.what() + "</p>");
-                }
+            try {
+                pybind11::eval_file(py_script.c_str(), this->scope);
+            } catch (const std::exception& e) {
+                this->clear_error();
+                this->res->status(500);
+                this->res->content(this->error_message + "<br/><p style='text-align:center;margin:100px;'>" + e.what() + "</p>");
             }
         }
 

@@ -1,10 +1,12 @@
 #ifndef LUA_HPP
 #define LUA_HPP
 
-#include <unistd.h>
+
+#include <string>
 #include "kaguya.hpp"
 #include "py_request.hpp"
 #include "py_response.hpp"
+
 
 namespace hi {
 
@@ -62,11 +64,9 @@ namespace hi {
         }
 
         void call_script(const std::string& lua_script) {
-            if (access(lua_script.c_str(), F_OK) == 0) {
-                if (!this->state.dofile(lua_script)) {
-                    this->res->status(500);
-                    this->res->content(this->error_message);
-                }
+            if (!this->state.dofile(lua_script)) {
+                this->res->status(500);
+                this->res->content(this->error_message);
             }
         }
 
