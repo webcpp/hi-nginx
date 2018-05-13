@@ -540,7 +540,7 @@ hi_java_version 8;
     example:
 
 ```nginx
-hi_javascript_lang javasscript;
+hi_javascript_lang javascript;
 
 ```
 

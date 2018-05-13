@@ -336,6 +336,25 @@ hi_res:status(<span class="hljs-number">200</span>)
 
 }
 </code></pre>
+<h2 id="javascript">javascript</h2>
+<pre><code class="lang-javascript"><span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> (Mustache) == <span class="hljs-string">&apos;undefined&apos;</span>) {
+    load(<span class="hljs-string">&apos;https://cdn.bootcss.com/mustache.js/2.3.0/mustache.min.js&apos;</span>)
+}
+
+
+<span class="hljs-keyword">var</span> list = java.util.Arrays.asList(<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>, <span class="hljs-number">6</span>, <span class="hljs-number">7</span>, <span class="hljs-number">8</span>, <span class="hljs-number">9</span>);
+<span class="hljs-keyword">var</span> template = <span class="hljs-string">&quot;{{#list}}* {{.}}\n{{/list}}&quot;</span>
+<span class="hljs-keyword">var</span> key = <span class="hljs-string">&apos;test&apos;</span>, output
+<span class="hljs-keyword">if</span> (hi_req.cache.containsKey(key)) {
+    output = hi_req.cache.get(key)
+} <span class="hljs-keyword">else</span> {
+    output = Mustache.render(template, {<span class="hljs-string">&apos;list&apos;</span>: <span class="hljs-built_in">JSON</span>.parse(list.toString())})
+    hi_res.cache.put(key, output)
+}
+hi_res.headers.get(<span class="hljs-string">&apos;Content-Type&apos;</span>).set(<span class="hljs-number">0</span>, <span class="hljs-string">&apos;text/plain;charset=UTF-8&apos;</span>)
+hi_res.content = output
+hi_res.status = <span class="hljs-number">200</span>;
+</code></pre>
 
                                 
                                 </section>
@@ -375,7 +394,7 @@ hi_res:status(<span class="hljs-number">200</span>)
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"起步","level":"1.3.3","depth":2,"previous":{"title":"配置例子","level":"1.3.2","depth":2,"path":"00/0002.md","ref":"00/0002.md","articles":[]},"dir":"ltr"},"config":{"gitbook":"*","theme":"default","variables":{},"plugins":[],"pluginsConfig":{"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"}},"file":{"path":"00/0003.md","mtime":"2018-05-08T23:12:24.700Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-05-09T07:28:54.859Z"},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"起步","level":"1.3.3","depth":2,"previous":{"title":"配置例子","level":"1.3.2","depth":2,"path":"00/0002.md","ref":"00/0002.md","articles":[]},"dir":"ltr"},"config":{"gitbook":"*","theme":"default","variables":{},"plugins":[],"pluginsConfig":{"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"}},"file":{"path":"00/0003.md","mtime":"2018-05-13T08:17:29.029Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-05-13T08:21:23.049Z"},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
