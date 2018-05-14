@@ -3,7 +3,7 @@ if test $HTTP_HI_CPP = YES ; then
     HTTP_MODULES="$HTTP_MODULES ngx_http_hi_module"
     
 
-    if test $CC = gcc ; then
+    if test $CC = gcc || test $CC = cc ; then
         CXX=g++
     fi
     if test $CC = clang ; then
