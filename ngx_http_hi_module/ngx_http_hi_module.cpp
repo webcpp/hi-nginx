@@ -4,15 +4,10 @@ extern "C" {
 #include <ngx_http.h>
 #include <ngx_md5.h>
 }
+
 #include <sys/stat.h>
-#include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
-#include <openssl/bio.h>
 #include <openssl/md5.h>
-#include <openssl/x509v3.h>
+
 
 
 #ifdef HTTP_HI_CPP
