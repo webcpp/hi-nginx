@@ -839,7 +839,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             REDIS->connect((char*) conf->redis_host.data, (int) conf->redis_port);
         }
         if (REDIS->is_connected()) {
-            SESSION_ID_VALUE = ngx_request.cookies[SESSION_ID_NAME ];
+            SESSION_ID_VALUE = ngx_request.cookies[SESSION_ID_NAME];
             if (!REDIS->exists(SESSION_ID_VALUE)) {
                 REDIS->hset(SESSION_ID_VALUE, SESSION_ID_NAME, SESSION_ID_VALUE);
                 REDIS->expire(SESSION_ID_VALUE, conf->session_expires);
