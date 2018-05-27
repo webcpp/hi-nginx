@@ -18,7 +18,9 @@
 
 #include "phpx.h"
 
-#include "zend_smart_str.h"
+extern "C" {
+#include <php/Zend/zend_smart_str.h>
+}
 
 using namespace std;
 
