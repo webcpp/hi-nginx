@@ -49,7 +49,7 @@ void MPFD::Parser::SetContentType(const std::string& type) {
     Boundary = std::string("--") + type.substr(bp + 9, type.length() - bp);
 }
 
-void MPFD::Parser::AcceptSomeData(const char *data, const long length) {
+void MPFD::Parser::AcceptSomeData(const char *data, long length) {
     if (Boundary.length() > 0) {
         // Append data to existing accumulator
         DataCollector.assign(data, length);

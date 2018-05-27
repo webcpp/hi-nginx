@@ -85,7 +85,7 @@ void MPFD::Field::AcceptSomeData(const char *data, long length) {
     }
 }
 
-void MPFD::Field::SetTempDir(std::string dir) {
+void MPFD::Field::SetTempDir(const std::string& dir) {
     TempDir = dir;
 }
 
@@ -105,7 +105,7 @@ unsigned long MPFD::Field::GetFileContentSize() {
     }
 }
 
-const std::string& MPFD::Field::GetFileContent() const{
+const std::string& MPFD::Field::GetFileContent() const {
     if (type == 0) {
         throw MPFD::Exception("Trying to get file content, but no type was set.");
     } else {
@@ -161,7 +161,7 @@ std::string MPFD::Field::GetFileName() {
     }
 }
 
-void MPFD::Field::SetFileName(std::string name) {
+void MPFD::Field::SetFileName(const std::string& name) {
     FileName = name;
 
 }
@@ -170,7 +170,7 @@ void MPFD::Field::SetUploadedFilesStorage(int where) {
     WhereToStoreUploadedFiles = where;
 }
 
-void MPFD::Field::SetFileContentType(std::string type) {
+void MPFD::Field::SetFileContentType(const std::string& type) {
     FileContentType = type;
 }
 

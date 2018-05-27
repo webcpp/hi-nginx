@@ -28,7 +28,7 @@ namespace MPFD {
 
         void SetContentType(const std::string& type);
 
-        void AcceptSomeData(const char *data, const long length);
+        void AcceptSomeData(const char *data, long length);
 
 
 

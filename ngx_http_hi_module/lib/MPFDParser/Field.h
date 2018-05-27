@@ -32,12 +32,12 @@ namespace MPFD {
 
         // File functions
         void SetUploadedFilesStorage(int where);
-        void SetTempDir(std::string dir);
+        void SetTempDir(const std::string& dir);
 
-        void SetFileName(std::string name);
+        void SetFileName(const std::string& name);
         std::string GetFileName();
 
-        void SetFileContentType(std::string type);
+        void SetFileContentType(const std::string& type);
         std::string GetFileMimeType();
 
         const std::string& GetFileContent()const;
