@@ -25,7 +25,7 @@ extern "C" {
 
 
 
-#include "lib/module_class.hpp"
+#include "lib/module.hpp"
 #include "lib/lrucache.hpp"
 #include "lib/param.hpp"
 #include "lib/redis.hpp"
@@ -68,7 +68,7 @@ struct kvdb_ele_t {
     std::string key, value;
 };
 
-static std::unordered_map<std::string, std::shared_ptr<hi::module_class<hi::servlet>>> PLUGIN;
+static std::unordered_map<std::string, std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, cache_ele_t>>> CACHE;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, kvdb_ele_t>>> KVDB;
 static std::shared_ptr<hi::redis> REDIS;
@@ -640,7 +640,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     }
     if (conf->module_path.len > 0) {
         if (PLUGIN.find((char*) conf->module_path.data) == PLUGIN.end()) {
-            PLUGIN[(char*) conf->module_path.data] = std::move(std::make_shared<hi::module_class < hi::servlet >> ((char*) conf->module_path.data));
+            PLUGIN[(char*) conf->module_path.data] = std::move(std::make_shared<hi::module < hi::servlet >> ((char*) conf->module_path.data));
         }
         conf->app_type = application_t::__cpp__;
     }
