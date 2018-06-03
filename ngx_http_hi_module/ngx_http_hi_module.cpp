@@ -13,8 +13,6 @@ extern "C" {
 #ifdef HTTP_HI_CPP
 
 #include <vector>
-#include <list>
-#include <unordered_map>
 #include <memory>
 #include <fstream>
 #include <streambuf>
@@ -68,7 +66,7 @@ struct kvdb_ele_t {
     std::string key, value;
 };
 
-static std::unordered_map<std::string, std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
+static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, cache_ele_t>>> CACHE;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, kvdb_ele_t>>> KVDB;
 static std::shared_ptr<hi::redis> REDIS;
@@ -135,7 +133,8 @@ typedef struct {
     , php_script
 #endif
     ;
-    ngx_int_t redis_port
+    ngx_int_t module_index
+    , redis_port
     , cache_expires
     , session_expires
     , cache_index
@@ -522,6 +521,7 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
     if (conf) {
         conf->module_path.len = 0;
         conf->module_path.data = NULL;
+        conf->module_index = NGX_CONF_UNSET;
 
         conf->redis_host.len = 0;
         conf->redis_host.data = NULL;
@@ -638,10 +638,9 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     if (conf->need_session == 1 && conf->need_cookies == 0) {
         conf->need_cookies = 1;
     }
-    if (conf->module_path.len > 0) {
-        if (PLUGIN.find((char*) conf->module_path.data) == PLUGIN.end()) {
-            PLUGIN[(char*) conf->module_path.data] = std::move(std::make_shared<hi::module < hi::servlet >> ((char*) conf->module_path.data));
-        }
+    if (conf->module_path.len > 0 && conf->module_index == NGX_CONF_UNSET) {
+        PLUGIN.push_back(std::move(std::make_shared<hi::module < hi::servlet >> ((char*) conf->module_path.data)));
+        conf->module_index = PLUGIN.size() - 1;
         conf->app_type = application_t::__cpp__;
     }
 #ifdef HTTP_HI_PYTHON
@@ -1051,7 +1050,7 @@ static ngx_str_t get_input_body(ngx_http_request_t *r) {
 }
 
 static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-    std::shared_ptr<hi::servlet> view_instance = std::move(PLUGIN[(char*) conf->module_path.data]->make_obj());
+    std::shared_ptr<hi::servlet> view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
     if (view_instance) {
         view_instance->handler(req, res);
     }
