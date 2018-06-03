@@ -10,23 +10,39 @@ namespace hi {
     template< class T>
     class module {
     public:
-        module() = delete;
 
-        module(const std::string& path) : handle(NULL), create(NULL), destroy(NULL), path(path) {
-            this->handle = dlopen(this->path.c_str(), RTLD_NOW);
-            if (this->handle != NULL) {
-                dlerror();
-                this->create = (create_t*) dlsym(this->handle, "create");
-                if (dlerror() != NULL)this->create = NULL;
-                this->destroy = (destroy_t*) dlsym(this->handle, "destroy");
-                if (dlerror() != NULL)this->destroy = NULL;
-            }
+        module() : handle(NULL), create(NULL), destroy(NULL), path(), creator(false) {
+
+        }
+
+        module(const std::string& path) : handle(NULL), create(NULL), destroy(NULL), path(path), creator(false) {
+            this->init();
+        }
+
+        module(const module<T>& other) :
+        handle(other.handle), create(other.create), destroy(other.destroy), path(other.path), creator(false) {
+        }
+
+        module<T>& operator=(const module<T>& right) {
+            if (this == &right)
+                return *this;
+            this->handle = right.handle;
+            this->create = right.create;
+            this->destroy = right.destroy;
+            this->path = right.path;
+            this->creator = false;
+            return *this;
         }
 
         virtual~module() {
-            if (this->handle != NULL) {
+            if (this->handle != NULL && this->creator) {
                 dlclose(this->handle);
             }
+        }
+
+        void set_module(const std::string& path) {
+            this->path = path;
+            this->init();
         }
 
         const std::string& get_module()const {
@@ -54,6 +70,24 @@ namespace hi {
         create_t *create;
         destroy_t *destroy;
         std::string path;
+        bool creator;
+
+        void init() {
+            this->handle = dlopen(this->path.c_str(), RTLD_NOW);
+            if (this->handle != NULL) {
+                dlerror();
+                this->create = (create_t*) dlsym(this->handle, "create");
+                if (dlerror() != NULL) this->create = NULL;
+                this->destroy = (destroy_t*) dlsym(this->handle, "destroy");
+                if (dlerror() != NULL)this->destroy = NULL;
+
+                if (this->create != NULL && this->destroy != NULL) {
+                    this->creator = true;
+                }
+
+            }
+
+        }
 
     };
 }
