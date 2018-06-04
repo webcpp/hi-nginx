@@ -146,6 +146,7 @@ namespace hi {
         , filereader_ctor;
         jfieldID status, content, client, user_agent, method, uri, param
         , req_headers, form, cookies, req_session, req_cache, res_headers, res_session, res_cache;
+        static bool JAVA_IS_READY;
     private:
 
         bool create_vm(const std::string& classpath, const std::string& jvmoptions) {
@@ -188,6 +189,7 @@ namespace hi {
 
 
     };
+    bool java::JAVA_IS_READY = false;
 }
 
 #endif /* JAVA_HPP */

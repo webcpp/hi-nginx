@@ -8,7 +8,11 @@ extern "C" {
 #include <sys/stat.h>
 #include <openssl/md5.h>
 
-
+//#define HTTP_HI_CPP
+//#define HTTP_HI_LUA
+//#define HTTP_HI_JAVA
+//#define HTTP_HI_PYTHON
+//#define HTTP_HI_PHP
 
 #ifdef HTTP_HI_CPP
 
@@ -82,7 +86,7 @@ static std::shared_ptr<hi::lua> LUA;
 #ifdef HTTP_HI_JAVA
 static std::shared_ptr<hi::java> JAVA;
 static std::shared_ptr<hi::cache::lru_cache<std::string, hi::java_servlet_t>> JAVA_SERVLET_CACHE;
-static bool JAVA_IS_READY = false;
+//static bool JAVA_IS_READY = false;
 #endif
 
 #ifdef HTTP_HI_PHP
@@ -500,7 +504,7 @@ static ngx_int_t clean_up(ngx_conf_t *cf) {
 #ifdef HTTP_HI_JAVA
     JAVA.reset();
     JAVA_SERVLET_CACHE.reset();
-    JAVA_IS_READY = false;
+    hi::java::JAVA_IS_READY = false;
 #endif
 #ifdef HTTP_HI_PHP
     PHP.reset();
@@ -1426,7 +1430,7 @@ static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req,
 }
 
 static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
-    if (JAVA_IS_READY)return JAVA_IS_READY;
+    if (hi::java::JAVA_IS_READY)return hi::java::JAVA_IS_READY;
     if (!JAVA) {
         JAVA = std::make_shared<hi::java>((char*) conf->java_classpath.data, (char*) conf->java_options.data, conf->java_version);
         if (JAVA->is_ok()) {
@@ -1492,13 +1496,13 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
                     if (JAVA->script_engine_instance != NULL) {
                         JAVA->filereader = JAVA->env->FindClass("java/io/FileReader");
                         JAVA->filereader_ctor = JAVA->env->GetMethodID(JAVA->filereader, "<init>", "(Ljava/lang/String;)V");
-                        JAVA_IS_READY = true;
+                        hi::java::JAVA_IS_READY = true;
                     }
                 }
             }
         }
     }
-    return JAVA_IS_READY;
+    return hi::java::JAVA_IS_READY;
 }
 #endif
 
