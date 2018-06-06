@@ -272,7 +272,7 @@ hi_res.status = 200;
     
 ```nginx
             location = /hello {
-                hi hi/hello.so ;
+                hi cpp/hello.so ;
             }
 ```
 - directives : content: http,srv,loc,if in loc ,if in srv
