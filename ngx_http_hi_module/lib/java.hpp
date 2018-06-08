@@ -4,6 +4,8 @@
 #include <jni.h>
 #include <string>
 #include <ctime>
+#include <vector>
+#include <utility>
 
 namespace hi {
 
@@ -55,7 +57,7 @@ namespace hi {
         , ok(false)
         , env(0)
         , version(v)
-        , script_manager_instance(0), script_engine_instance(0), compilable_instance(0)
+        , script_manager_instance(0)
         , request(0), response(0), hashmap(0), arraylist(0), iterator(0), set(0)
         , script_manager(0), script_engine(0), compilable(0), compiledscript(0), filereader(0)
         , request_ctor(0), response_ctor(0), hashmap_put(0), hashmap_get(0)
@@ -65,17 +67,16 @@ namespace hi {
         , status(0), content(0)
         , client(0), user_agent(0), method(0), uri(0), param(0)
         , req_headers(0), form(0), cookies(0), req_session(0), req_cache(0)
-        , res_headers(0), res_session(0), res_cache(0) {
+        , res_headers(0), res_session(0), res_cache(0)
+        , engines() {
             this->ok = this->create_vm(classpath, jvmoptions);
         }
 
         virtual~java() {
             if (this->ok) {
-                if (this->compilable_instance != 0) {
-                    this->env->DeleteLocalRef(this->compilable_instance);
-                }
-                if (this->script_engine_instance != 0) {
-                    this->env->DeleteLocalRef(this->script_engine_instance);
+                for (auto & i : this->engines) {
+                    if (i.first != NULL)this->env->DeleteLocalRef(i.first);
+                    if (i.second != NULL)this->env->DeleteLocalRef(i.second);
                 }
                 if (this->script_manager_instance != 0) {
                     this->env->DeleteLocalRef(this->script_manager_instance);
@@ -83,8 +84,6 @@ namespace hi {
                 this->free_vm();
             }
             this->script_manager_instance = 0;
-            this->script_engine_instance = 0;
-            this->compilable_instance = 0;
             this->request = 0;
             this->response = 0;
             this->hashmap = 0;
@@ -149,7 +148,7 @@ namespace hi {
     public:
         JNIEnv *env;
         int version;
-        jobject script_manager_instance, script_engine_instance, compilable_instance;
+        jobject script_manager_instance;
         jclass request, response, hashmap, arraylist, iterator, set, script_manager, script_engine, compilable, compiledscript, filereader;
         jmethodID request_ctor, response_ctor, hashmap_put, hashmap_get, hashmap_keyset, arraylist_get
         , arraylist_size, arraylist_iterator, hasnext, next, set_iterator
@@ -157,6 +156,7 @@ namespace hi {
         , compile_string, compile_filereader, compiledscript_eval_void, filereader_ctor;
         jfieldID status, content, client, user_agent, method, uri, param
         , req_headers, form, cookies, req_session, req_cache, res_headers, res_session, res_cache;
+        std::vector<std::pair<jobject, jobject>> engines;
         static bool JAVA_IS_READY;
     private:
 

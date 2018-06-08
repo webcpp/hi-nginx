@@ -146,6 +146,7 @@ typedef struct {
 #ifdef HTTP_HI_JAVA
     , java_servlet_cache_expires
     , java_version
+    , javascript_engine_index
 #endif
     ;
     size_t cache_size
@@ -193,6 +194,7 @@ static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request&
 static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
 static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
 static bool java_init_handler(ngx_http_hi_loc_conf_t * conf);
+static bool javascript_engine_init_handler(ngx_http_hi_loc_conf_t * conf);
 static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
 #endif
 
@@ -583,6 +585,7 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->javascript_lang.len = 0;
         conf->javascript_extension.data = NULL;
         conf->javascript_extension.len = 0;
+        conf->javascript_engine_index = NGX_CONF_UNSET;
 #endif
         return conf;
     }
@@ -1119,7 +1122,16 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 #ifdef HTTP_HI_JAVA
 
 static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-    if (java_init_handler(conf)) {
+    if (java_init_handler(conf) && javascript_engine_init_handler(conf)) {
+
+        if (conf->javascript_engine_index == NGX_CONF_UNSET) {
+            return;
+        }
+        std::pair<jobject, jobject>& engine = JAVA->engines[conf->javascript_engine_index];
+
+        if (engine.first == NULL) {
+            return;
+        }
 
         jobject request_instance, response_instance;
 
@@ -1132,8 +1144,8 @@ static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::re
         jstring jhi_res = JAVA->env->NewStringUTF("hi_res");
 
 
-        JAVA->env->CallVoidMethod(JAVA->script_engine_instance, JAVA->script_engine_put, jhi_req, request_instance);
-        JAVA->env->CallVoidMethod(JAVA->script_engine_instance, JAVA->script_engine_put, jhi_res, response_instance);
+        JAVA->env->CallVoidMethod(engine.first, JAVA->script_engine_put, jhi_req, request_instance);
+        JAVA->env->CallVoidMethod(engine.first, JAVA->script_engine_put, jhi_res, response_instance);
 
         if (conf->javascript_script.len > 0) {
             std::string script_path = std::move(std::string((char*) conf->javascript_script.data, conf->javascript_script.len));
@@ -1169,14 +1181,14 @@ update_javascript_content:
                         kvdb_ptr->put(ele.key, ele);
                     }
 
-                    if (JAVA->compilable_instance != NULL) {
-                        jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(JAVA->compilable_instance, JAVA->compile_string, script_content);
+                    if (engine.second != NULL) {
+                        jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
                         if (compiledscript_instance != NULL) {
                             JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
                             JAVA->env->DeleteLocalRef(compiledscript_instance);
                         }
                     } else {
-                        JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_string, script_content);
+                        JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_string, script_content);
                     }
 
                     if (script_content) {
@@ -1190,14 +1202,14 @@ update_javascript_content:
                     jstring javascript_path = JAVA->env->NewStringUTF(script_path.c_str());
                     jobject filereader_instance = (jobject) JAVA->env->NewObject(JAVA->filereader, JAVA->filereader_ctor, javascript_path);
 
-                    if (JAVA->compilable_instance != NULL) {
-                        jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(JAVA->compilable_instance, JAVA->compile_filereader, filereader_instance);
+                    if (engine.second != NULL) {
+                        jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_filereader, filereader_instance);
                         if (compiledscript_instance != NULL) {
                             JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
                             JAVA->env->DeleteLocalRef(compiledscript_instance);
                         }
                     } else {
-                        JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_filereader, filereader_instance);
+                        JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_filereader, filereader_instance);
                     }
                     JAVA->env->DeleteLocalRef(filereader_instance);
                     JAVA->env->ReleaseStringUTFChars(javascript_path, 0);
@@ -1209,22 +1221,22 @@ update_javascript_content:
 
             jstring script_content = JAVA->env->NewStringUTF((char*) conf->javascript_content.data);
 
-            if (JAVA->compilable_instance != NULL) {
-                jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(JAVA->compilable_instance, JAVA->compile_string, script_content);
+            if (engine.second != NULL) {
+                jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
                 if (compiledscript_instance != NULL) {
                     JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
                     JAVA->env->DeleteLocalRef(compiledscript_instance);
                 }
             } else {
-                JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_string, script_content);
+                JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_string, script_content);
             }
 
             JAVA->env->ReleaseStringUTFChars(script_content, 0);
             JAVA->env->DeleteLocalRef(script_content);
         }
 
-
-
+        
+        
         java_output_handler(conf, req, res, request_instance, response_instance);
 
         JAVA->env->DeleteLocalRef(request_instance);
@@ -1518,25 +1530,43 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
                     JAVA->script_engine_eval_filereader = JAVA->env->GetMethodID(JAVA->script_engine, "eval", "(Ljava/io/Reader;)Ljava/lang/Object;");
                     JAVA->script_engine_eval_string = JAVA->env->GetMethodID(JAVA->script_engine, "eval", "(Ljava/lang/String;)Ljava/lang/Object;");
 
-                    jstring engine_name = JAVA->env->NewStringUTF((char*) conf->javascript_lang.data);
-                    JAVA->script_engine_instance = (jobject) JAVA->env->CallObjectMethod(JAVA->script_manager_instance, JAVA->script_manager_get_engine_by_name, engine_name);
-                    JAVA->env->ReleaseStringUTFChars(engine_name, 0);
-                    JAVA->env->DeleteLocalRef(engine_name);
-                    if (JAVA->script_engine_instance != NULL) {
-                        JAVA->filereader = JAVA->env->FindClass("java/io/FileReader");
-                        JAVA->filereader_ctor = JAVA->env->GetMethodID(JAVA->filereader, "<init>", "(Ljava/lang/String;)V");
-                        if (JAVA->env->IsInstanceOf(JAVA->script_engine_instance, JAVA->compilable) == JNI_TRUE) {
-                            JAVA->compilable_instance = (jobject) JAVA->script_engine_instance;
-                        }
+                    JAVA->filereader = JAVA->env->FindClass("java/io/FileReader");
+                    JAVA->filereader_ctor = JAVA->env->GetMethodID(JAVA->filereader, "<init>", "(Ljava/lang/String;)V");
 
-                        hi::java::JAVA_IS_READY = true;
-                    }
+                    hi::java::JAVA_IS_READY = true;
                 }
             }
         }
     }
     return hi::java::JAVA_IS_READY;
 }
+
+static bool javascript_engine_init_handler(ngx_http_hi_loc_conf_t * conf) {
+    bool result = false;
+    if (hi::java::JAVA_IS_READY) {
+        if (conf->javascript_engine_index == NGX_CONF_UNSET) {
+            std::pair<jobject, jobject> engine{NULL, NULL};
+            jstring engine_name = JAVA->env->NewStringUTF((char*) conf->javascript_lang.data);
+            engine.first = (jobject) JAVA->env->CallObjectMethod(JAVA->script_manager_instance, JAVA->script_manager_get_engine_by_name, engine_name);
+            JAVA->env->ReleaseStringUTFChars(engine_name, 0);
+            JAVA->env->DeleteLocalRef(engine_name);
+            if (engine.first != NULL) {
+                if (JAVA->env->IsInstanceOf(engine.first, JAVA->compilable) == JNI_TRUE) {
+                    engine.second = (jobject) engine.first;
+                } else {
+                    engine.second = NULL;
+                }
+                JAVA->engines.push_back(engine);
+                conf->javascript_engine_index = JAVA->engines.size() - 1;
+                result = true;
+            }
+        } else {
+            result = true;
+        }
+    }
+    return result;
+}
+
 #endif
 
 static std::string md5(const std::string& str) {
