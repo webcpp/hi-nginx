@@ -19,7 +19,7 @@ web development.
 [hi.py web framework for hi-nginx ](https://github.com/webcpp/hi.py)
 
 # Features
-- All features of nginx-1.14.0(latest release) are inherited, i.e., it is 100% compatible with nginx.
+- All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
 - Web development using python, c++, lua, php7, java and javascript
 
 # Dependency
