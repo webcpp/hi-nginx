@@ -20,7 +20,7 @@ web development.
 
 # Features
 - All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
-- Web development using python, c++, lua, php7, java and javascript
+- Web development using python, c++, lua, php7, java , javascript and jsr-223 JVM language
 
 # Dependency
 - linux
