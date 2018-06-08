@@ -1,5 +1,13 @@
 # Introduction
-A distribution of Nginx with c++,python,lua, java, php and javascript web development. 
+A distribution of Nginx with
+
+- c++
+- python 
+- lua 
+- java,javascript and jsr-223 JVM language
+- php
+
+web development. 
 
 
 [hi-nginx-demo](https://github.com/webcpp/hi_demo).
