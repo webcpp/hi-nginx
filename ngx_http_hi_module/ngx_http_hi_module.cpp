@@ -1208,7 +1208,17 @@ update_javascript_content:
         } else if (conf->javascript_content.len > 0) {
 
             jstring script_content = JAVA->env->NewStringUTF((char*) conf->javascript_content.data);
-            JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_string, script_content);
+
+            if (JAVA->compilable_instance != NULL) {
+                jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(JAVA->compilable_instance, JAVA->compile_string, script_content);
+                if (compiledscript_instance != NULL) {
+                    JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
+                    JAVA->env->DeleteLocalRef(compiledscript_instance);
+                }
+            } else {
+                JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_string, script_content);
+            }
+
             JAVA->env->ReleaseStringUTFChars(script_content, 0);
             JAVA->env->DeleteLocalRef(script_content);
         }
