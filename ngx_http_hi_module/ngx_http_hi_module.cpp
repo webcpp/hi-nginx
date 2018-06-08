@@ -1121,10 +1121,7 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
     if (java_init_handler(conf)) {
 
-
-
         jobject request_instance, response_instance;
-
 
         request_instance = JAVA->env->NewObject(JAVA->request, JAVA->request_ctor);
         response_instance = JAVA->env->NewObject(JAVA->response, JAVA->response_ctor);
@@ -1171,7 +1168,17 @@ update_javascript_content:
                         ele.key = std::move(md5key);
                         kvdb_ptr->put(ele.key, ele);
                     }
-                    JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_string, script_content);
+
+                    if (JAVA->compilable_instance != NULL) {
+                        jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(JAVA->compilable_instance, JAVA->compile_string, script_content);
+                        if (compiledscript_instance != NULL) {
+                            JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
+                            JAVA->env->DeleteLocalRef(compiledscript_instance);
+                        }
+                    } else {
+                        JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_string, script_content);
+                    }
+
                     if (script_content) {
                         JAVA->env->ReleaseStringUTFChars(script_content, 0);
                         JAVA->env->DeleteLocalRef(script_content);
@@ -1183,8 +1190,15 @@ update_javascript_content:
                     jstring javascript_path = JAVA->env->NewStringUTF(script_path.c_str());
                     jobject filereader_instance = (jobject) JAVA->env->NewObject(JAVA->filereader, JAVA->filereader_ctor, javascript_path);
 
-                    JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_filereader, filereader_instance);
-
+                    if (JAVA->compilable_instance != NULL) {
+                        jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(JAVA->compilable_instance, JAVA->compile_filereader, filereader_instance);
+                        if (compiledscript_instance != NULL) {
+                            JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
+                            JAVA->env->DeleteLocalRef(compiledscript_instance);
+                        }
+                    } else {
+                        JAVA->env->CallObjectMethod(JAVA->script_engine_instance, JAVA->script_engine_eval_filereader, filereader_instance);
+                    }
                     JAVA->env->DeleteLocalRef(filereader_instance);
                     JAVA->env->ReleaseStringUTFChars(javascript_path, 0);
                     JAVA->env->DeleteLocalRef(javascript_path);
@@ -1479,6 +1493,12 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
                     JAVA->script_manager = JAVA->env->FindClass("javax/script/ScriptEngineManager");
                     JAVA->script_engine = JAVA->env->FindClass("javax/script/ScriptEngine");
 
+                    JAVA->compilable = JAVA->env->FindClass("javax/script/Compilable");
+                    JAVA->compiledscript = JAVA->env->FindClass("javax/script/CompiledScript");
+
+                    JAVA->compile_string = JAVA->env->GetMethodID(JAVA->compilable, "compile", "(Ljava/lang/String;)Ljavax/script/CompiledScript;");
+                    JAVA->compile_filereader = JAVA->env->GetMethodID(JAVA->compilable, "compile", "(Ljava/io/Reader;)Ljavax/script/CompiledScript;");
+                    JAVA->compiledscript_eval_void = JAVA->env->GetMethodID(JAVA->compiledscript, "eval", "()Ljava/lang/Object;");
 
                     JAVA->script_manager_ctor = JAVA->env->GetMethodID(JAVA->script_manager, "<init>", "()V");
                     JAVA->script_manager_get_engine_by_name = JAVA->env->GetMethodID(JAVA->script_manager, "getEngineByName", "(Ljava/lang/String;)Ljavax/script/ScriptEngine;");
@@ -1495,6 +1515,10 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
                     if (JAVA->script_engine_instance != NULL) {
                         JAVA->filereader = JAVA->env->FindClass("java/io/FileReader");
                         JAVA->filereader_ctor = JAVA->env->GetMethodID(JAVA->filereader, "<init>", "(Ljava/lang/String;)V");
+                        if (JAVA->env->IsInstanceOf(JAVA->script_engine_instance, JAVA->compilable) == JNI_TRUE) {
+                            JAVA->compilable_instance = (jobject) JAVA->script_engine_instance;
+                        }
+
                         hi::java::JAVA_IS_READY = true;
                     }
                 }
