@@ -1124,9 +1124,6 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
 static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
     if (java_init_handler(conf) && javascript_engine_init_handler(conf)) {
 
-        if (conf->javascript_engine_index == NGX_CONF_UNSET) {
-            return;
-        }
         std::pair<jobject, jobject>& engine = JAVA->engines[conf->javascript_engine_index];
 
         if (engine.first == NULL) {
