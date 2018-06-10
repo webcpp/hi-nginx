@@ -164,7 +164,7 @@ typedef struct {
 } ngx_http_hi_loc_conf_t;
 
 
-static ngx_int_t clean_up(ngx_conf_t *cf);
+static void clean_up(ngx_cycle_t * cycle);
 static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* child);
@@ -461,7 +461,7 @@ ngx_command_t ngx_http_hi_commands[] = {
 
 
 ngx_http_module_t ngx_http_hi_module_ctx = {
-    clean_up, /* preconfiguration */
+    NULL, /* preconfiguration */
     NULL, /* postconfiguration */
     NULL, /* create main configuration */
     NULL, /* init main configuration */
@@ -486,12 +486,12 @@ ngx_module_t ngx_http_hi_module = {
     NULL, /* init process */
     NULL, /* init thread */
     NULL, /* exit thread */
-    NULL, /* exit process */
+    clean_up, /* exit process */
     NULL, /* exit master */
     NGX_MODULE_V1_PADDING
 };
 
-static ngx_int_t clean_up(ngx_conf_t *cf) {
+static void clean_up(ngx_cycle_t *cycle) {
     PLUGIN.clear();
     CACHE.clear();
     KVDB.clear();
@@ -510,7 +510,6 @@ static ngx_int_t clean_up(ngx_conf_t *cf) {
 #ifdef HTTP_HI_PHP
     PHP.reset();
 #endif
-    return NGX_OK;
 }
 
 static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
@@ -1152,9 +1151,8 @@ static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::re
             }
 
             if (is_file(script_path)) {
-                jstring script_content = 0;
-
                 if (conf->need_kvdb == 1) {
+                    jstring script_content = NULL;
                     std::shared_ptr<hi::cache::lru_cache < std::string, kvdb_ele_t>> kvdb_ptr = KVDB[conf->kvdb_index];
                     std::string md5key = std::move(md5(script_path));
                     if (kvdb_ptr->exists(md5key)) {
@@ -1188,7 +1186,7 @@ update_javascript_content:
                         JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_string, script_content);
                     }
 
-                    if (script_content) {
+                    if (script_content != NULL) {
                         JAVA->env->ReleaseStringUTFChars(script_content, 0);
                         JAVA->env->DeleteLocalRef(script_content);
                     }
@@ -1232,8 +1230,8 @@ update_javascript_content:
             JAVA->env->DeleteLocalRef(script_content);
         }
 
-        
-        
+
+
         java_output_handler(conf, req, res, request_instance, response_instance);
 
         JAVA->env->DeleteLocalRef(request_instance);
