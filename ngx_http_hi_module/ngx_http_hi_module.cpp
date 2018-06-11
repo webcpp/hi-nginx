@@ -1168,6 +1168,7 @@ static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::re
                         time_t now(0);
                         const std::pair<time_t, jobject>& compiledscript_pair = JAVA->compiledscript_instances[md5key];
                         if (difftime(now, compiledscript_pair.first) > conf->javascript_compiledscript_expires) {
+                            JAVA->env->DeleteLocalRef(compiledscript_pair.second);
                             JAVA->compiledscript_instances.erase(md5key);
                             goto update_string_compiledscript_instance;
                         }
@@ -1202,8 +1203,8 @@ update_javascript_content:
 
                         if (engine.second != NULL) {
                             jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
-                            JAVA->compiledscript_instances[md5key] = std::make_pair(time(0), compiledscript_instance);
                             if (compiledscript_instance != NULL) {
+                                JAVA->compiledscript_instances[md5key] = std::make_pair(time(0), compiledscript_instance);
                                 JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
                             }
                         } else {
@@ -1221,6 +1222,7 @@ update_javascript_content:
                         time_t now(NULL);
                         const std::pair<time_t, jobject>& compiledscript_pair = JAVA->compiledscript_instances[md5key];
                         if (difftime(now, compiledscript_pair.first) > conf->javascript_compiledscript_expires) {
+                            JAVA->env->DeleteLocalRef(compiledscript_pair.second);
                             JAVA->compiledscript_instances.erase(md5key);
                             goto update_file_compiledscript_instance;
                         }
@@ -1234,8 +1236,8 @@ update_file_compiledscript_instance:
 
                         if (engine.second != NULL) {
                             jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_filereader, filereader_instance);
-                            JAVA->compiledscript_instances[md5key] = std::make_pair(time(0), compiledscript_instance);
                             if (compiledscript_instance != NULL) {
+                                JAVA->compiledscript_instances[md5key] = std::make_pair(time(0), compiledscript_instance);
                                 JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
                             }
                         } else {

@@ -279,9 +279,11 @@ hi_res.status = 200;
     example:
     
 ```nginx
+
             location = /hello {
                 hi cpp/hello.so ;
             }
+
 ```
 - directives : content: http,srv,loc,if in loc ,if in srv
     - hi_need_cache,default: on
@@ -289,7 +291,9 @@ hi_res.status = 200;
     example:
 
 ```nginx
+
         hi_need_cache on|off;
+
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
@@ -298,7 +302,9 @@ hi_res.status = 200;
     example:
 
 ```nginx
+
         hi_cache_size 10;
+
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
@@ -307,7 +313,9 @@ hi_res.status = 200;
     example:
 
 ```nginx
+
         hi_cache_expires 300s;
+
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
@@ -316,7 +324,9 @@ hi_res.status = 200;
     example:
 
 ```nginx
+
         hi_need_kvdb on|off;
+
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
@@ -325,7 +335,9 @@ hi_res.status = 200;
     example:
 
 ```nginx
+
         hi_kvdb_size 10;
+
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
@@ -334,7 +346,9 @@ hi_res.status = 200;
     example:
 
 ```nginx
+
         hi_kvdb_expires 300s;
+
 ```
 
 
@@ -345,7 +359,9 @@ hi_res.status = 200;
         example:
 
 ```nginx
+
         hi_need_headers on|off;
+
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
@@ -354,7 +370,9 @@ hi_res.status = 200;
         example:
 
 ```nginx
+
         hi_need_cookies on|off;
+
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
@@ -363,7 +381,9 @@ hi_res.status = 200;
         example:
 
 ```nginx
+
         hi_need_session on|off;
+
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
@@ -372,7 +392,9 @@ hi_res.status = 200;
     example:
 
 ```nginx
+
         hi_session_expires 300s;
+
 ```
      
 
@@ -382,7 +404,9 @@ hi_res.status = 200;
     example:
 
 ```nginx
+
         hi_redis_host 127.0.0.1;
+
 ```
 
 - directives : content: http,srv,if in srv
@@ -391,7 +415,9 @@ hi_res.status = 200;
     example:
 
 ```nginx
+
         hi_redis_port 6379;
+
 ```
 
 
@@ -401,9 +427,11 @@ hi_res.status = 200;
     example:
     
 ```nginx
+
             location = /pyecho {
                 hi_python_content "hi_res.status(200)\nhi_res.content('hello,world')" ;
             }
+
 ```
 
 - directives : content: loc,if in loc
@@ -412,17 +440,21 @@ hi_res.status = 200;
     example:
     
 ```nginx
+
             location ~ \.py$  {
                 hi_python_script python;
             }
+
 ```
 
 or
 
 ```nginx
+
             location / {
                 hi_python_script python/index.py;
             }
+
 ```
 
 
@@ -433,7 +465,9 @@ or
     
 ```nginx
 
+
             hi_lua_package_path '/usr/local/nginx/lua/?.lua;';
+
 
 ```
 
@@ -444,7 +478,9 @@ or
     
 ```nginx
 
+
             hi_lua_package_cpath '/usr/local/nginx/lua/?.so;';
+
 
 ```
 
@@ -456,9 +492,11 @@ or
     example:
     
 ```nginx
+
             location = /luaecho {
                 hi_lua_content "hi_res:status(200)\nhi_res:content('hello,world')" ;
             }
+
 ```
 
 - directives : content: loc,if in loc
@@ -467,17 +505,21 @@ or
     example:
     
 ```nginx
+
             location ~ \.lua$  {
                 hi_lua_script lua;
             }
+
 ```
 
 or
 
 ```nginx
+
             location / {
                 hi_lua_script lua/index.lua;
             }
+
 ```
 
 - directives : content: http,srv,if in srv
@@ -486,7 +528,9 @@ or
     example:
 
 ```nginx
+
 hi_java_classpath "-Djava.class.path=.:/usr/local/nginx/java:/usr/local/nginx/java/hi-nginx-java.jar";
+
 
 ```
 
@@ -496,7 +540,9 @@ hi_java_classpath "-Djava.class.path=.:/usr/local/nginx/java:/usr/local/nginx/ja
     example:
 
 ```nginx
+
 hi_java_options "-server -d64 -Xmx3G -Xms3G -Xmn768m -XX:+DisableExplicitGC -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+UseNUMA -XX:+CMSParallelRemarkEnabled -XX:MaxTenuringThreshold=15 -XX:MaxGCPauseMillis=30 -XX:GCPauseIntervalMillis=150 -XX:+UseAdaptiveGCBoundary -XX:-UseGCOverheadLimit -XX:+UseBiasedLocking -XX:SurvivorRatio=8 -XX:TargetSurvivorRatio=90 -XX:MaxTenuringThreshold=15 -Dfml.ignorePatchDiscrepancies=true -Dfml.ignoreInvalidMinecraftCertificates=true -XX:+UseFastAccessorMethods -XX:+UseCompressedOops -XX:+OptimizeStringConcat -XX:+AggressiveOpts -XX:ReservedCodeCacheSize=2048m -XX:+UseCodeCacheFlushing -XX:SoftRefLRUPolicyMSPerMB=10000 -XX:ParallelGCThreads=10";
+
 
 ```
 
@@ -506,7 +552,9 @@ hi_java_options "-server -d64 -Xmx3G -Xms3G -Xmn768m -XX:+DisableExplicitGC -XX:
     example:
 
 ```nginx
+
 hi_java_servlet hi/jhello;
+
 
 
 ```
@@ -517,7 +565,9 @@ hi_java_servlet hi/jhello;
     example:
 
 ```nginx
+
 hi_java_servlet_cache_expires 300s;
+
 
 ```
 
@@ -527,7 +577,9 @@ hi_java_servlet_cache_expires 300s;
     example:
 
 ```nginx
+
 hi_java_servlet_cache_size 10;
+
 
 ```
 
@@ -537,7 +589,9 @@ hi_java_servlet_cache_size 10;
     example:
 
 ```nginx
+
 hi_java_version 8;
+
 
 ```
 
@@ -548,7 +602,9 @@ hi_java_version 8;
     example:
 
 ```nginx
+
 hi_javascript_lang javascript;
+
 
 ```
 
@@ -559,7 +615,9 @@ hi_javascript_lang javascript;
     example:
 
 ```nginx
+
 hi_javascript_extension js;
+
 
 ```
 
@@ -571,7 +629,9 @@ hi_javascript_extension js;
     example:
 
 ```nginx
+
 hi_javascript_content "hi_res.content='hello,world';hi_res.status=200;";
+
 
 ```
 
@@ -581,7 +641,9 @@ hi_javascript_content "hi_res.content='hello,world';hi_res.status=200;";
     example:
 
 ```nginx
+
 hi_javascript_script javascript/index.js;
+
 
 ```
 
@@ -589,11 +651,22 @@ or
 
 ```nginx
 
+
 hi_javascript_script javascript;
+
 
 ```
 
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_javascript_compiledscript_expires,default:300s
 
+    example:
+
+```nginx
+
+hi_javascript_compiledscript_expires 300s;
+
+```
 
 - directives : content: loc,if in loc
     - hi_php_script,default: ""
