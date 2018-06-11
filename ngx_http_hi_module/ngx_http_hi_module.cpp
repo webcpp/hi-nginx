@@ -147,6 +147,7 @@ typedef struct {
     , java_servlet_cache_expires
     , java_version
     , javascript_engine_index
+    , javascript_compiledscript_expires
 #endif
     ;
     size_t cache_size
@@ -445,6 +446,14 @@ ngx_command_t ngx_http_hi_commands[] = {
         offsetof(ngx_http_hi_loc_conf_t, javascript_extension),
         NULL
     },
+    {
+        ngx_string("hi_javascript_compiledscript_expires"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_sec_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, javascript_compiledscript_expires),
+        NULL
+    },
 #endif
 #ifdef HTTP_HI_PHP
     {
@@ -585,6 +594,7 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->javascript_extension.data = NULL;
         conf->javascript_extension.len = 0;
         conf->javascript_engine_index = NGX_CONF_UNSET;
+        conf->javascript_compiledscript_expires = NGX_CONF_UNSET;
 #endif
         return conf;
     }
@@ -623,6 +633,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_str_value(conf->javascript_content, prev->javascript_content, "");
     ngx_conf_merge_str_value(conf->javascript_lang, prev->javascript_lang, "javascript");
     ngx_conf_merge_str_value(conf->javascript_extension, prev->javascript_extension, "js");
+    ngx_conf_merge_sec_value(conf->javascript_compiledscript_expires, prev->javascript_compiledscript_expires, (ngx_int_t) 300);
 #ifdef JNI_VERSION_9
     ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t) 9);
 #else
@@ -1151,64 +1162,89 @@ static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::re
             }
 
             if (is_file(script_path)) {
+                std::string md5key = std::move(md5(script_path));
                 if (conf->need_kvdb == 1) {
-                    jstring script_content = NULL;
-                    std::shared_ptr<hi::cache::lru_cache < std::string, kvdb_ele_t>> kvdb_ptr = KVDB[conf->kvdb_index];
-                    std::string md5key = std::move(md5(script_path));
-                    if (kvdb_ptr->exists(md5key)) {
-                        time_t now = time(0);
-                        const kvdb_ele_t & old_script_content = kvdb_ptr->get(md5key);
-                        if (difftime(now, old_script_content.t) > conf->kvdb_expires) {
-                            kvdb_ptr->erase(md5key);
-                            goto update_javascript_content;
+                    if (JAVA->compiledscript_instances.find(md5key) != JAVA->compiledscript_instances.end()) {
+                        time_t now(0);
+                        const std::pair<time_t, jobject>& compiledscript_pair = JAVA->compiledscript_instances[md5key];
+                        if (difftime(now, compiledscript_pair.first) > conf->javascript_compiledscript_expires) {
+                            JAVA->compiledscript_instances.erase(md5key);
+                            goto update_string_compiledscript_instance;
                         }
-                        script_content = JAVA->env->NewStringUTF(kvdb_ptr->get(md5key).value.c_str());
+                        if (compiledscript_pair.second != NULL) {
+                            JAVA->env->CallObjectMethod(compiledscript_pair.second, JAVA->compiledscript_eval_void);
+                        }
                     } else {
+update_string_compiledscript_instance:
+                        jstring script_content = NULL;
+                        std::shared_ptr<hi::cache::lru_cache < std::string, kvdb_ele_t>> kvdb_ptr = KVDB[conf->kvdb_index];
+
+                        if (kvdb_ptr->exists(md5key)) {
+                            time_t now = time(0);
+                            const kvdb_ele_t & old_script_content = kvdb_ptr->get(md5key);
+                            if (difftime(now, old_script_content.t) > conf->kvdb_expires) {
+                                kvdb_ptr->erase(md5key);
+                                goto update_javascript_content;
+                            }
+                            script_content = JAVA->env->NewStringUTF(kvdb_ptr->get(md5key).value.c_str());
+                        } else {
 update_javascript_content:
-                        std::ifstream file_input(script_path);
-                        std::string script_str((std::istreambuf_iterator<char>(file_input)), std::istreambuf_iterator<char>());
-                        script_content = JAVA->env->NewStringUTF(script_str.c_str());
+                            std::ifstream file_input(script_path);
+                            std::string script_str((std::istreambuf_iterator<char>(file_input)), std::istreambuf_iterator<char>());
+                            script_content = JAVA->env->NewStringUTF(script_str.c_str());
 
-                        kvdb_ele_t ele;
-                        ele.t = time(0);
-                        ele.value = std::move(script_str);
-                        ele.key = std::move(md5key);
-                        kvdb_ptr->put(ele.key, ele);
-                    }
-
-                    if (engine.second != NULL) {
-                        jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
-                        if (compiledscript_instance != NULL) {
-                            JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
-                            JAVA->env->DeleteLocalRef(compiledscript_instance);
+                            kvdb_ele_t ele;
+                            ele.t = time(0);
+                            ele.value = std::move(script_str);
+                            ele.key = std::move(md5key);
+                            kvdb_ptr->put(ele.key, ele);
                         }
-                    } else {
-                        JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_string, script_content);
-                    }
 
-                    if (script_content != NULL) {
-                        JAVA->env->ReleaseStringUTFChars(script_content, 0);
-                        JAVA->env->DeleteLocalRef(script_content);
-                    }
+                        if (engine.second != NULL) {
+                            jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
+                            JAVA->compiledscript_instances[md5key] = std::make_pair(time(0), compiledscript_instance);
+                            if (compiledscript_instance != NULL) {
+                                JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
+                            }
+                        } else {
+                            JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_string, script_content);
+                        }
 
+                        if (script_content != NULL) {
+                            JAVA->env->ReleaseStringUTFChars(script_content, 0);
+                            JAVA->env->DeleteLocalRef(script_content);
+                        }
+                    }
 
                 } else {
-
-                    jstring javascript_path = JAVA->env->NewStringUTF(script_path.c_str());
-                    jobject filereader_instance = (jobject) JAVA->env->NewObject(JAVA->filereader, JAVA->filereader_ctor, javascript_path);
-
-                    if (engine.second != NULL) {
-                        jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_filereader, filereader_instance);
-                        if (compiledscript_instance != NULL) {
-                            JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
-                            JAVA->env->DeleteLocalRef(compiledscript_instance);
+                    if (JAVA->compiledscript_instances.find(md5key) != JAVA->compiledscript_instances.end()) {
+                        time_t now(NULL);
+                        const std::pair<time_t, jobject>& compiledscript_pair = JAVA->compiledscript_instances[md5key];
+                        if (difftime(now, compiledscript_pair.first) > conf->javascript_compiledscript_expires) {
+                            JAVA->compiledscript_instances.erase(md5key);
+                            goto update_file_compiledscript_instance;
+                        }
+                        if (compiledscript_pair.second != NULL) {
+                            JAVA->env->CallObjectMethod(compiledscript_pair.second, JAVA->compiledscript_eval_void);
                         }
                     } else {
-                        JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_filereader, filereader_instance);
+update_file_compiledscript_instance:
+                        jstring javascript_path = JAVA->env->NewStringUTF(script_path.c_str());
+                        jobject filereader_instance = (jobject) JAVA->env->NewObject(JAVA->filereader, JAVA->filereader_ctor, javascript_path);
+
+                        if (engine.second != NULL) {
+                            jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_filereader, filereader_instance);
+                            JAVA->compiledscript_instances[md5key] = std::make_pair(time(0), compiledscript_instance);
+                            if (compiledscript_instance != NULL) {
+                                JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
+                            }
+                        } else {
+                            JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_filereader, filereader_instance);
+                        }
+                        JAVA->env->DeleteLocalRef(filereader_instance);
+                        JAVA->env->ReleaseStringUTFChars(javascript_path, 0);
+                        JAVA->env->DeleteLocalRef(javascript_path);
                     }
-                    JAVA->env->DeleteLocalRef(filereader_instance);
-                    JAVA->env->ReleaseStringUTFChars(javascript_path, 0);
-                    JAVA->env->DeleteLocalRef(javascript_path);
                 }
             }
 
