@@ -9,6 +9,8 @@ A distribution of Nginx with
 
 web development. 
 
+[[https://github.com/webcpp/hi-nginx/blob/master/doc/ab.png|alt=pangpang@hi-nginx.com]]
+
 
 [hi-nginx-demo](https://github.com/webcpp/hi_demo).
 
