@@ -18,6 +18,7 @@ extern "C" {
 
 #include <vector>
 #include <memory>
+#include <utility>
 #include <fstream>
 #include <streambuf>
 #include <exception>
@@ -32,6 +33,7 @@ extern "C" {
 #include "lib/param.hpp"
 #include "lib/redis.hpp"
 #include "lib/MPFDParser/Parser.h"
+#include "lib/object_pool.hpp"
 
 #ifdef HTTP_HI_PYTHON
 #include "lib/py_request.hpp"
@@ -74,6 +76,7 @@ static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, cache_ele_t>>> CACHE;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, kvdb_ele_t>>> KVDB;
 static std::shared_ptr<hi::redis> REDIS;
+static std::shared_ptr<hi::object_pool<std::pair<hi::request, hi::response>>> REQ_RES_OBJECT_POOL;
 
 #ifdef HTTP_HI_PYTHON
 static std::shared_ptr<hi::pybind11_py> PYTHON;
@@ -505,6 +508,7 @@ static void clean_up(ngx_cycle_t *cycle) {
     CACHE.clear();
     KVDB.clear();
     REDIS.reset();
+    REQ_RES_OBJECT_POOL.reset();
 #ifdef HTTP_HI_PYTHON
     PYTHON.reset();
 #endif
@@ -730,9 +734,12 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             return NGX_HTTP_NOT_MODIFIED;
         }
     }
-
-    hi::request ngx_request;
-    hi::response ngx_response;
+    if (!REQ_RES_OBJECT_POOL) {
+        REQ_RES_OBJECT_POOL = std::move(hi::object_pool<std::pair < hi::request, hi::response>>::make_shared(2048));
+    }
+    std::pair<hi::request, hi::response> req_res_pair = std::move(REQ_RES_OBJECT_POOL->get());
+    hi::request &ngx_request = req_res_pair.first;
+    hi::response &ngx_response = req_res_pair.second;
     std::string SESSION_ID_VALUE;
     std::shared_ptr<hi::cache::lru_cache < std::string, cache_ele_t>> cache_ptr;
     std::shared_ptr<hi::cache::lru_cache < std::string, kvdb_ele_t>> kvdb_ptr;
@@ -975,7 +982,7 @@ done:
     if (rc != NGX_OK) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-
+    REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
     return ngx_http_output_filter(r, &out);
 
 }
@@ -1656,7 +1663,7 @@ static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
             PHP->include(script.c_str());
             const char *request = "\\hi\\request", *response = "\\hi\\response", *handler = "handler";
             php::Object php_req = php::newObject(request), php_res = php::newObject(response);
-            if (!php_req.isNull()&&!php_res.isNull()) {
+            if (!php_req.isNull() && !php_res.isNull()) {
                 php_req.set("client", php::Variant(req.client));
                 php_req.set("method", php::Variant(req.method));
                 php_req.set("user_agent", php::Variant(req.user_agent));
