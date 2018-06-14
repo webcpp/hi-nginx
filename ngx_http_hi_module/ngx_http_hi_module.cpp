@@ -1576,27 +1576,27 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
 
 static bool javascript_engine_init_handler(ngx_http_hi_loc_conf_t * conf) {
     bool result = false;
-    if (hi::java::JAVA_IS_READY) {
-        if (conf->javascript_engine_index == NGX_CONF_UNSET) {
-            std::pair<jobject, jobject> engine{NULL, NULL};
-            jstring engine_name = JAVA->env->NewStringUTF((char*) conf->javascript_lang.data);
-            engine.first = (jobject) JAVA->env->CallObjectMethod(JAVA->script_manager_instance, JAVA->script_manager_get_engine_by_name, engine_name);
-            JAVA->env->ReleaseStringUTFChars(engine_name, 0);
-            JAVA->env->DeleteLocalRef(engine_name);
-            if (engine.first != NULL) {
-                if (JAVA->env->IsInstanceOf(engine.first, JAVA->compilable) == JNI_TRUE) {
-                    engine.second = (jobject) engine.first;
-                } else {
-                    engine.second = NULL;
-                }
-                JAVA->engines.push_back(engine);
-                conf->javascript_engine_index = JAVA->engines.size() - 1;
-                result = true;
+    //    if (hi::java::JAVA_IS_READY) {
+    if (conf->javascript_engine_index == NGX_CONF_UNSET) {
+        std::pair<jobject, jobject> engine{NULL, NULL};
+        jstring engine_name = JAVA->env->NewStringUTF((char*) conf->javascript_lang.data);
+        engine.first = (jobject) JAVA->env->CallObjectMethod(JAVA->script_manager_instance, JAVA->script_manager_get_engine_by_name, engine_name);
+        JAVA->env->ReleaseStringUTFChars(engine_name, 0);
+        JAVA->env->DeleteLocalRef(engine_name);
+        if (engine.first != NULL) {
+            if (JAVA->env->IsInstanceOf(engine.first, JAVA->compilable) == JNI_TRUE) {
+                engine.second = (jobject) engine.first;
+            } else {
+                engine.second = NULL;
             }
-        } else {
+            JAVA->engines.push_back(engine);
+            conf->javascript_engine_index = JAVA->engines.size() - 1;
             result = true;
         }
+    } else {
+        result = true;
     }
+    //    }
     return result;
 }
 
