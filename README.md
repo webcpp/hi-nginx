@@ -287,6 +287,18 @@ hi_res.status = 200;
             }
 
 ```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_object_pool_size,default: 2048
+
+    example:
+
+```nginx
+
+        hi_object_pool_size 2048;
+
+```
+
 - directives : content: http,srv,loc,if in loc ,if in srv
     - hi_need_cache,default: on
 
