@@ -781,6 +781,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
         p = (u_char*) ngx_palloc(r->pool, 32);
         if (p == NULL) {
+            REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
@@ -966,6 +967,7 @@ done:
 
     if (response.len == 0) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to response size.");
+        REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
         return NGX_HTTP_NOT_FOUND;
     }
 
@@ -973,6 +975,7 @@ done:
     buf = (ngx_buf_t*) ngx_pcalloc(r->pool, sizeof (ngx_buf_t));
     if (buf == NULL) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to allocate response buffer.");
+        REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
@@ -992,6 +995,7 @@ done:
     ngx_int_t rc;
     rc = ngx_http_send_header(r);
     if (rc != NGX_OK) {
+        REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
     REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
@@ -1099,7 +1103,7 @@ static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::reques
     py_req.init(&req);
     py_res.init(&res);
     if (!PYTHON) {
-        PYTHON = std::make_shared<hi::pybind11_py>();
+        PYTHON = std::move(std::make_shared<hi::pybind11_py>());
     }
     if (PYTHON) {
         PYTHON->set_req(&py_req);
@@ -1127,8 +1131,8 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
     py_req.init(&req);
     py_res.init(&res);
     if (!LUA) {
-        LUA = std::make_shared<hi::lua>(std::string((char*) conf->lua_package_path.data, conf->lua_package_path.len),
-                std::string((char*) conf->lua_package_cpath.data, conf->lua_package_cpath.len));
+        LUA = std::move(std::make_shared<hi::lua>(std::string((char*) conf->lua_package_path.data, conf->lua_package_path.len),
+                std::string((char*) conf->lua_package_cpath.data, conf->lua_package_cpath.len)));
     }
     if (LUA) {
         LUA->set_req(&py_req);
@@ -1320,10 +1324,10 @@ static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request&
             time_t now = time(0);
             if (difftime(now, jtmp.t) > conf->java_servlet_cache_expires) {
                 JAVA_SERVLET_CACHE->erase((const char*) conf->java_servlet.data);
-                goto java_servlet_update;
+                goto update_java_servlet;
             }
         } else {
-java_servlet_update:
+update_java_servlet:
             jtmp.SERVLET = JAVA->env->FindClass((const char*) conf->java_servlet.data);
             if (jtmp.SERVLET == NULL)return;
             jtmp.CTOR = JAVA->env->GetMethodID(jtmp.SERVLET, "<init>", "()V");
@@ -1595,7 +1599,6 @@ static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
 
 static bool javascript_engine_init_handler(ngx_http_hi_loc_conf_t * conf) {
     bool result = false;
-    //    if (hi::java::JAVA_IS_READY) {
     if (conf->javascript_engine_index == NGX_CONF_UNSET) {
         std::pair<jobject, jobject> engine{NULL, NULL};
         jstring engine_name = JAVA->env->NewStringUTF((char*) conf->javascript_lang.data);
@@ -1615,7 +1618,6 @@ static bool javascript_engine_init_handler(ngx_http_hi_loc_conf_t * conf) {
     } else {
         result = true;
     }
-    //    }
     return result;
 }
 
