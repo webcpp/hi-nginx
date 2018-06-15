@@ -16,6 +16,9 @@ extern "C" {
 
 #ifdef HTTP_HI_CPP
 
+#define HI_NGINX_SERVER_VERSION         "1.5.7"
+#define HI_NGINX_SERVER_NAME            "hi-nginx"
+
 #include <vector>
 #include <memory>
 #include <utility>
@@ -988,6 +991,7 @@ done:
     out.buf = buf;
     out.next = NULL;
 
+    ngx_response.headers.insert(std::make_pair(HI_NGINX_SERVER_NAME,HI_NGINX_SERVER_VERSION));
     set_output_headers(r, ngx_response.headers);
     r->headers_out.status = ngx_response.status;
     r->headers_out.content_length_n = response.len;
