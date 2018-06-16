@@ -765,6 +765,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         kvdb_ptr = KVDB[conf->kvdb_index];
     }
 
+    ngx_request.method.assign((char*) r->method_name.data, r->method_name.len);
     ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
     if (r->args.len > 0) {
         ngx_request.param.assign((char*) r->args.data, r->args.len);
@@ -772,7 +773,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     std::shared_ptr<std::string> cache_k;
     if (conf->need_cache == 1) {
         ngx_response.headers.insert(std::make_pair("Last-Modified", (char*) ngx_cached_http_time.data));
-        cache_k = std::make_shared<std::string>(ngx_request.uri);
+        cache_k = std::make_shared<std::string>(std::move(ngx_request.method + ngx_request.uri));
         if (r->args.len > 0) {
             cache_k->append("?").append(ngx_request.param);
         }
@@ -814,7 +815,6 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         get_input_headers(r, ngx_request.headers);
     }
 
-    ngx_request.method.assign((char*) r->method_name.data, r->method_name.len);
     ngx_request.client.assign((char*) r->connection->addr_text.data, r->connection->addr_text.len);
     if (r->headers_in.user_agent->value.len > 0) {
         ngx_request.user_agent.assign((char*) r->headers_in.user_agent->value.data, r->headers_in.user_agent->value.len);
@@ -991,7 +991,7 @@ done:
     out.buf = buf;
     out.next = NULL;
 
-    ngx_response.headers.insert(std::make_pair(HI_NGINX_SERVER_NAME,HI_NGINX_SERVER_VERSION));
+    ngx_response.headers.insert(std::make_pair(HI_NGINX_SERVER_NAME, HI_NGINX_SERVER_VERSION));
     set_output_headers(r, ngx_response.headers);
     r->headers_out.status = ngx_response.status;
     r->headers_out.content_length_n = response.len;
