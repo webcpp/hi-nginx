@@ -36,7 +36,6 @@ extern "C" {
 #include "lib/param.hpp"
 #include "lib/redis.hpp"
 #include "lib/MPFDParser/Parser.h"
-#include "lib/object_pool.hpp"
 
 #ifdef HTTP_HI_PYTHON
 #include "lib/py_request.hpp"
@@ -79,7 +78,7 @@ static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, cache_ele_t>>> CACHE;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, kvdb_ele_t>>> KVDB;
 static std::shared_ptr<hi::redis> REDIS;
-static std::shared_ptr<hi::object_pool<std::pair<hi::request, hi::response>>> REQ_RES_OBJECT_POOL;
+
 
 #ifdef HTTP_HI_PYTHON
 static std::shared_ptr<hi::pybind11_py> PYTHON;
@@ -158,7 +157,6 @@ typedef struct {
     ;
     size_t cache_size
     , kvdb_size
-    , object_pool_size
 #ifdef HTTP_HI_JAVA
     , java_servlet_cache_size
 #endif
@@ -222,14 +220,6 @@ ngx_command_t ngx_http_hi_commands[] = {
         ngx_http_hi_conf_init,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, module_path),
-        NULL
-    },
-    {
-        ngx_string("hi_object_pool_size"),
-        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_conf_set_num_slot,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        offsetof(ngx_http_hi_loc_conf_t, object_pool_size),
         NULL
     },
     {
@@ -520,7 +510,6 @@ static void clean_up(ngx_cycle_t *cycle) {
     CACHE.clear();
     KVDB.clear();
     REDIS.reset();
-    REQ_RES_OBJECT_POOL.reset();
 #ifdef HTTP_HI_PYTHON
     PYTHON.reset();
 #endif
@@ -560,7 +549,6 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->cache_size = NGX_CONF_UNSET_UINT;
         conf->cache_expires = NGX_CONF_UNSET;
 
-        conf->object_pool_size = NGX_CONF_UNSET_UINT;
 
         conf->session_expires = NGX_CONF_UNSET;
 
@@ -659,7 +647,6 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 #endif
 #endif
 
-    ngx_conf_merge_uint_value(conf->object_pool_size, prev->object_pool_size, (size_t) 2048);
     ngx_conf_merge_uint_value(conf->cache_size, prev->cache_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->cache_expires, prev->cache_expires, (ngx_int_t) 300);
     ngx_conf_merge_uint_value(conf->kvdb_size, prev->kvdb_size, (size_t) 10);
@@ -749,12 +736,9 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             return NGX_HTTP_NOT_MODIFIED;
         }
     }
-    if (!REQ_RES_OBJECT_POOL) {
-        REQ_RES_OBJECT_POOL = std::move(hi::object_pool<std::pair < hi::request, hi::response>>::make_shared(conf->object_pool_size));
-    }
-    std::pair<hi::request, hi::response> req_res_pair = std::move(REQ_RES_OBJECT_POOL->get());
-    hi::request &ngx_request = req_res_pair.first;
-    hi::response &ngx_response = req_res_pair.second;
+
+    hi::request ngx_request;
+    hi::response ngx_response;
     std::string SESSION_ID_VALUE;
     std::shared_ptr<hi::cache::lru_cache < std::string, cache_ele_t>> cache_ptr;
     std::shared_ptr<hi::cache::lru_cache < std::string, kvdb_ele_t>> kvdb_ptr;
@@ -785,7 +769,6 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
         p = (u_char*) ngx_palloc(r->pool, 32);
         if (p == NULL) {
-            REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
@@ -971,7 +954,6 @@ done:
 
     if (response.len == 0) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to response size.");
-        REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
         return NGX_HTTP_NOT_FOUND;
     }
 
@@ -979,7 +961,6 @@ done:
     buf = (ngx_buf_t*) ngx_pcalloc(r->pool, sizeof (ngx_buf_t));
     if (buf == NULL) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to allocate response buffer.");
-        REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
@@ -1000,10 +981,8 @@ done:
     ngx_int_t rc;
     rc = ngx_http_send_header(r);
     if (rc != NGX_OK) {
-        REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-    REQ_RES_OBJECT_POOL->recycle(std::move(req_res_pair));
     return ngx_http_output_filter(r, &out);
 
 }
