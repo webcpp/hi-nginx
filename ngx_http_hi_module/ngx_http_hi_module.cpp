@@ -828,9 +828,9 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                             std::string upload_file_name = item.second->GetFileName(), ext;
                             std::string::size_type p = upload_file_name.find_last_of(".");
                             if (p != std::string::npos) {
-                                ext = upload_file_name.substr(p);
+                                ext = std::move(upload_file_name.substr(p));
                             }
-                            std::string temp_file = TEMP_DIRECTORY + ("/" + random_string(ngx_request.client + item.second->GetFileName()).append(ext));
+                            std::string temp_file = std::move(TEMP_DIRECTORY + ("/" + random_string(ngx_request.client + item.second->GetFileName()).append(ext)));
                             rename(item.second->GetTempFileName().c_str(), temp_file.c_str());
                             ngx_request.form.insert(std::make_pair(item.first, temp_file));
                         }
