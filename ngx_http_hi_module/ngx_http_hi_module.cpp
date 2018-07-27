@@ -16,7 +16,7 @@ extern "C" {
 
 #ifdef HTTP_HI_CPP
 
-#define HI_NGINX_SERVER_VERSION         "1.6.0"
+#define HI_NGINX_SERVER_VERSION         "1.6.1"
 #define HI_NGINX_SERVER_NAME            "hi-nginx"
 
 #include <vector>
@@ -69,14 +69,9 @@ struct cache_ele_t {
     std::string content_type, content;
 };
 
-struct kvdb_ele_t {
-    time_t t;
-    std::string key, value;
-};
 
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, cache_ele_t>>> CACHE;
-static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, kvdb_ele_t>>> KVDB;
 static std::shared_ptr<hi::redis> REDIS;
 
 
@@ -147,7 +142,6 @@ typedef struct {
     , session_expires
     , cache_index
     , kvdb_expires
-    , kvdb_index
 #ifdef HTTP_HI_JAVA
     , java_servlet_cache_expires
     , java_version
@@ -508,7 +502,6 @@ ngx_module_t ngx_http_hi_module = {
 static void clean_up(ngx_cycle_t *cycle) {
     PLUGIN.clear();
     CACHE.clear();
-    KVDB.clear();
     REDIS.reset();
 #ifdef HTTP_HI_PYTHON
     PYTHON.reset();
@@ -552,7 +545,6 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
 
         conf->session_expires = NGX_CONF_UNSET;
 
-        conf->kvdb_index = NGX_CONF_UNSET;
         conf->kvdb_size = NGX_CONF_UNSET_UINT;
         conf->kvdb_expires = NGX_CONF_UNSET;
 
@@ -694,15 +686,12 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 
 #endif
 
+
     if (conf->need_cache == 1 && conf->cache_index == NGX_CONF_UNSET) {
         CACHE.push_back(std::move(std::make_shared<hi::cache::lru_cache < std::string, cache_ele_t >> (conf->cache_size)));
         conf->cache_index = CACHE.size() - 1;
     }
 
-    if (conf->need_kvdb == 1 && conf->kvdb_index == NGX_CONF_UNSET) {
-        KVDB.push_back(std::move(std::make_shared<hi::cache::lru_cache < std::string, kvdb_ele_t >> (conf->kvdb_size)));
-        conf->kvdb_index = KVDB.size() - 1;
-    }
 
     return NGX_CONF_OK;
 }
@@ -740,13 +729,9 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     hi::request ngx_request;
     hi::response ngx_response;
     std::string SESSION_ID_VALUE;
-    std::shared_ptr<hi::cache::lru_cache < std::string, cache_ele_t>> cache_ptr;
-    std::shared_ptr<hi::cache::lru_cache < std::string, kvdb_ele_t>> kvdb_ptr;
+    std::shared_ptr<hi::cache::lru_cache < std::string, cache_ele_t> > cache_ptr;
     if (conf->need_cache == 1) {
         cache_ptr = CACHE[conf->cache_index];
-    }
-    if (conf->need_kvdb == 1) {
-        kvdb_ptr = KVDB[conf->kvdb_index];
     }
 
 
@@ -873,19 +858,22 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     }
 
 
-    if (conf->need_kvdb == 1 && kvdb_ptr->size() > 0) {
-        time_t now = time(NULL);
-        std::list<std::string> expire_key;
-        auto f = [&](const lru11::KeyValuePair<std::string, kvdb_ele_t>& item) {
-            if (difftime(now, item.value.t) > conf->kvdb_expires) {
-                expire_key.push_back(item.key);
-            } else {
-                ngx_request.cache[item.key] = item.value.value;
+    if (conf->need_kvdb == 1) {
+        if (REDIS && REDIS->is_connected()) {
+            if (!cache_k) {
+                cache_k = std::make_shared<std::string>(ngx_request.uri);
+                if (r->args.len > 0) {
+                    cache_k->append("?").append(ngx_request.param);
+                }
+                cache_k->assign(std::move(md5(*cache_k)));
             }
-        };
-        kvdb_ptr->for_each(f);
-        for (auto& item : expire_key) {
-            kvdb_ptr->erase(item);
+            if (REDIS->exists(*cache_k)) {
+                REDIS->hgetall(*cache_k, ngx_request.cache);
+            } else {
+                REDIS->hset(*cache_k, "kvdb_key", *cache_k);
+                REDIS->expire(*cache_k, conf->kvdb_expires);
+                ngx_request.cache["kvdb_key"] = *cache_k;
+            }
         }
     }
 
@@ -936,14 +924,8 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     }
 
     if (conf->need_kvdb == 1 && !ngx_response.cache.empty()) {
-        kvdb_ele_t kv_ele;
-        kv_ele.t = time(NULL);
-        for (auto & item : ngx_response.cache) {
-            kv_ele.value = std::move(item.second);
-            if (kvdb_ptr->exists(item.first)) {
-                kv_ele.t = kvdb_ptr->get(item.first).t;
-            }
-            kvdb_ptr->put(item.first, kv_ele);
+        if (REDIS && REDIS->is_connected() && cache_k) {
+            REDIS->hmset(*cache_k, ngx_response.cache);
         }
     }
 
@@ -981,6 +963,7 @@ done:
     ngx_int_t rc;
     rc = ngx_http_send_header(r);
     if (rc != NGX_OK) {
+
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
     return ngx_http_output_filter(r, &out);
@@ -988,6 +971,7 @@ done:
 }
 
 static void ngx_http_hi_body_handler(ngx_http_request_t* r) {
+
     ngx_http_finalize_request(r, ngx_http_hi_normal_handler(r));
 }
 
@@ -1000,6 +984,7 @@ static void get_input_headers(ngx_http_request_t* r, std::unordered_map<std::str
     for (i = 0; /* void */; i++) {
         if (i >= part->nelts) {
             if (part->next == NULL) {
+
                 break;
             }
             part = part->next;
@@ -1014,6 +999,7 @@ static void set_output_headers(ngx_http_request_t* r, std::unordered_multimap<st
     for (auto& item : output_headers) {
         ngx_table_elt_t * h = (ngx_table_elt_t *) ngx_list_push(&r->headers_out.headers);
         if (h) {
+
             h->hash = 1;
             h->key.data = (u_char*) item.first.c_str();
             h->key.len = item.first.size();
@@ -1069,12 +1055,14 @@ static ngx_str_t get_input_body(ngx_http_request_t *r) {
 
     body.len = len;
     body.data = data;
+
     return body;
 }
 
 static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
     std::shared_ptr<hi::servlet> view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
     if (view_instance) {
+
         view_instance->handler(req, res);
     }
 
@@ -1102,6 +1090,7 @@ static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::reques
                 PYTHON->call_script(script);
             }
         } else if (conf->python_content.len > 0) {
+
             PYTHON->call_content((char*) conf->python_content.data);
         }
     }
@@ -1131,6 +1120,7 @@ static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& 
                 LUA->call_script(script);
             }
         } else if (conf->lua_content.len > 0) {
+
             LUA->call_content((char*) conf->lua_content.data);
         }
     }
@@ -1185,29 +1175,27 @@ static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::re
                     } else {
 update_string_compiledscript_instance:
                         jstring script_content = NULL;
-                        std::shared_ptr<hi::cache::lru_cache < std::string, kvdb_ele_t>> kvdb_ptr = KVDB[conf->kvdb_index];
-
-                        if (kvdb_ptr->exists(md5key)) {
-                            time_t now = time(0);
-                            const kvdb_ele_t & old_script_content = kvdb_ptr->get(md5key);
-                            if (difftime(now, old_script_content.t) > conf->kvdb_expires) {
-                                kvdb_ptr->erase(md5key);
-                                goto update_javascript_content;
-                            }
-                            script_content = JAVA->env->NewStringUTF(kvdb_ptr->get(md5key).value.c_str());
-                        } else {
+                        if (REDIS && REDIS->is_connected()) {
+                            if (REDIS->exists(md5key)) {
+                                bool has;
+                                std::string md5val = std::move(REDIS->get(md5key, has));
+                                if (has) {
+                                    script_content = JAVA->env->NewStringUTF(md5val.c_str());
+                                } else {
+                                    goto update_javascript_content;
+                                }
+                            } else {
 update_javascript_content:
+                                std::ifstream file_input(script_path);
+                                std::string script_str((std::istreambuf_iterator<char>(file_input)), std::istreambuf_iterator<char>());
+                                script_content = JAVA->env->NewStringUTF(script_str.c_str());
+                                REDIS->setex(md5key, script_str, conf->kvdb_expires);
+                            }
+                        } else {
                             std::ifstream file_input(script_path);
                             std::string script_str((std::istreambuf_iterator<char>(file_input)), std::istreambuf_iterator<char>());
                             script_content = JAVA->env->NewStringUTF(script_str.c_str());
-
-                            kvdb_ele_t ele;
-                            ele.t = time(0);
-                            ele.value = std::move(script_str);
-                            ele.key = std::move(md5key);
-                            kvdb_ptr->put(ele.key, ele);
                         }
-
                         if (engine.second != NULL) {
                             jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
                             if (compiledscript_instance != NULL) {
@@ -1268,6 +1256,7 @@ update_file_compiledscript_instance:
                     JAVA->env->DeleteLocalRef(compiledscript_instance);
                 }
             } else {
+
                 JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_string, script_content);
             }
 
@@ -1313,6 +1302,7 @@ static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request&
         } else {
 update_java_servlet:
             jtmp.SERVLET = JAVA->env->FindClass((const char*) conf->java_servlet.data);
+
             if (jtmp.SERVLET == NULL)return;
             jtmp.CTOR = JAVA->env->GetMethodID(jtmp.SERVLET, "<init>", "()V");
             jtmp.HANDLER = JAVA->env->GetMethodID(jtmp.SERVLET, "handler", "(Lhi/request;Lhi/response;)V");
@@ -1416,6 +1406,7 @@ static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, 
     if (conf->need_kvdb == 1) {
         jobject req_cache = JAVA->env->GetObjectField(request_instance, JAVA->req_cache);
         for (auto& item : req.cache) {
+
             jstring k = JAVA->env->NewStringUTF(item.first.c_str())
                     , v = JAVA->env->NewStringUTF(item.second.c_str());
             JAVA->env->CallObjectMethod(req_cache, JAVA->hashmap_put, k, v);
@@ -1600,6 +1591,7 @@ static bool javascript_engine_init_handler(ngx_http_hi_loc_conf_t * conf) {
             result = true;
         }
     } else {
+
         result = true;
     }
     return result;
@@ -1618,6 +1610,7 @@ static std::string md5(const std::string& str) {
     unsigned char hex[] = "0123456789abcdef";
     int len = 16;
     while (len--) {
+
         *dst++ = hex[*src >> 4];
         *dst++ = hex[*src++ & 0xf];
     }
@@ -1640,6 +1633,7 @@ static bool is_dir(const std::string& s) {
 
 static bool is_file(const std::string& s) {
     struct stat st;
+
     return stat(s.c_str(), &st) >= 0 && S_ISREG(st.st_mode);
 }
 
