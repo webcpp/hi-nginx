@@ -11,6 +11,7 @@ web development.
 
 ![ab.png](https://github.com/webcpp/hi-nginx/blob/master/doc/ab.png)
 
+[chat](http://fusheng.hi-nginx.com)
 
 [hi-nginx-demo](https://github.com/webcpp/hi_demo).
 
