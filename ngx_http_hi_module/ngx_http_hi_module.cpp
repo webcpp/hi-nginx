@@ -16,7 +16,7 @@ extern "C" {
 
 #ifdef HTTP_HI_CPP
 
-#define HI_NGINX_SERVER_VERSION         "1.6.1"
+#define HI_NGINX_SERVER_VERSION         "1.6.2"
 #define HI_NGINX_SERVER_NAME            "hi-nginx"
 
 #include <vector>
