@@ -15,7 +15,7 @@ namespace hi {
         , headers()
         , session()
         , cache() {
-            this->headers.insert(std::make_pair("Content-Type", "text/html;charset=UTF-8"));
+            this->headers.insert(std::move(std::make_pair(std::move("Content-Type"),std::move("text/html;charset=UTF-8"))));
         }
         virtual~response() = default;
 

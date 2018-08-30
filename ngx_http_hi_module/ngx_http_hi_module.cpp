@@ -5,6 +5,8 @@ extern "C" {
 #include <ngx_md5.h>
 }
 
+#include <unistd.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <openssl/md5.h>
 
@@ -16,7 +18,7 @@ extern "C" {
 
 #ifdef HTTP_HI_CPP
 
-#define HI_NGINX_SERVER_VERSION         "1.6.2"
+#define HI_NGINX_SERVER_VERSION         "1.6.4"
 #define HI_NGINX_SERVER_NAME            "hi-nginx"
 
 #include <vector>
@@ -901,15 +903,6 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         default:break;
     }
 
-    if (ngx_response.headers.count("Content-Type") > 1) {
-        auto range = ngx_response.headers.equal_range("Content-Type");
-        for (auto & it = range.first; it != range.second; ++it) {
-            if (it->second == "text/html;charset=UTF-8") {
-                ngx_response.headers.erase(it);
-                break;
-            }
-        }
-    }
 
     if (r->method == NGX_HTTP_GET && conf->need_cache == 1 && ngx_response.status == 200 && conf->cache_expires > 0) {
         cache_ele_t cache_v;
