@@ -18,10 +18,10 @@ extern "C" {
 #define TEMP_DIRECTORY "temp"
 #define LEVELDB_PATH "leveldb"
 
-#define HTTP_HI_LUA
-#define HTTP_HI_JAVA
-#define HTTP_HI_PYTHON
-#define HTTP_HI_PHP
+//#define HTTP_HI_LUA
+//#define HTTP_HI_JAVA
+//#define HTTP_HI_PYTHON
+//#define HTTP_HI_PHP
 
 #ifndef HTTP_HI_CPP
 #define HTTP_HI_CPP
@@ -40,7 +40,6 @@ extern "C" {
 #include "lib/module.hpp"
 #include "lib/lrucache.hpp"
 #include "lib/param.hpp"
-#include "lib/redis.hpp"
 #include "lib/MPFDParser/Parser.h"
 #include "lib/leveldb/db.h"
 #include "lib/msgpack/msgpack.hpp"
@@ -51,7 +50,6 @@ extern "C" {
 
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, hi::cache_t>>> CACHE;
-static std::shared_ptr<hi::redis> REDIS;
 static leveldb::DB* LEVELDB=0;
 static leveldb::Options LEVELDB_OPTIONS;
 

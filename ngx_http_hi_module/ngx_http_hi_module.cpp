@@ -478,7 +478,6 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 static void clean_up(ngx_cycle_t * cycle) {
     PLUGIN.clear();
     CACHE.clear();
-    REDIS.reset();
     if (LEVELDB) {
         delete LEVELDB;
     }

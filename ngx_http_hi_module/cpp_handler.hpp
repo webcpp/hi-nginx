@@ -1,8 +1,6 @@
 #ifndef CPP_HANDLER_HPP
 #define CPP_HANDLER_HPP
 
-
-
 #include "module_config.hpp"
 
 #ifdef HTTP_HI_PYTHON

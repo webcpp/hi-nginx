@@ -28,7 +28,6 @@ web development.
 # Dependency
 - linux
 - gcc and g++(c++11) or clang and clang++
-- hiredis-devel
 - python-devel,if `--enable-http-hi-python=YES` and `with-http-hi-python-version=python2`
 - python3.x-devel if `--enable-http-hi-python=YES` and `with-http-hi-python-version=python3`
 - lua-devel(lua5.x),if `--enable-http-hi-lua=YES`  and `--with-http-hi-lua-version=lua5.x`
@@ -38,13 +37,13 @@ web development.
 
 ## centos
 ```
-sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel hiredis-devel python-devel python3.x-devel lua-devel
+sudo yum install gcc gcc-c++ make pcre-devel zlib-devel openssl-devel python-devel python3.x-devel lua-devel
 
 ```
 
 ## ubuntu
 ```
-sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev libhiredis-dev python-dev python3-dev liblua5.3-dev 
+sudo apt-get install build-essential libpcre3-dev zlib1g-dev libssl-dev python-dev python3-dev liblua5.3-dev 
 
 ```
 
