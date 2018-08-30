@@ -86,7 +86,11 @@ namespace hi {
                                 }
                                 arr.clean();
                             } else {
-                                res.headers.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
+                                if (i.key().toString() == "Content-Type") {
+                                    res.headers.find("Content-Type")->second = std::move(i.value().toString());
+                                } else {
+                                    res.headers.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
+                                }
                             }
                         }
                         if (conf->need_session == 1) {
