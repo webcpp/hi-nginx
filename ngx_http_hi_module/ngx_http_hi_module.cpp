@@ -560,9 +560,40 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                 || ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) form_urlencoded_type,
                 form_urlencoded_type_len) != 0) {
             ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-            std::string upload_err_msg;
-            if (!hi::upload(ngx_request, (const char*) body.data, body.len, TEMP_DIRECTORY, clcf->client_max_body_size, upload_err_msg)) {
-                ngx_response.content = std::move(upload_err_msg);
+            //            std::string upload_err_msg;
+            //            if (!hi::upload(ngx_request, (const char*) body.data, body.len, TEMP_DIRECTORY, clcf->client_max_body_size, upload_err_msg)) {
+            //                ngx_response.content = std::move(upload_err_msg);
+            //                ngx_response.status = 500;
+            //                goto done;
+            //            }
+
+            try {
+                if ((hi::is_dir(TEMP_DIRECTORY) || mkdir(TEMP_DIRECTORY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)) {
+                    ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+                    std::shared_ptr<MPFD::Parser> POSTParser(new MPFD::Parser());
+                    POSTParser->SetTempDirForFileUpload(TEMP_DIRECTORY);
+                    POSTParser->SetUploadedFilesStorage(MPFD::Parser::StoreUploadedFilesInFilesystem);
+                    POSTParser->SetMaxCollectedDataLength(clcf->client_max_body_size);
+                    POSTParser->SetContentType((char*) r->headers_in.content_type->value.data);
+                    POSTParser->AcceptSomeData((char*) body.data, body.len);
+                    auto fields = POSTParser->GetFieldsMap();
+                    for (auto &item : fields) {
+                        if (item.second->GetType() == MPFD::Field::TextType) {
+                            ngx_request.form.insert(std::make_pair(item.first, item.second->GetTextTypeContent()));
+                        } else {
+                            std::string upload_file_name = item.second->GetFileName(), ext;
+                            std::string::size_type p = upload_file_name.find_last_of(".");
+                            if (p != std::string::npos) {
+                                ext = std::move(upload_file_name.substr(p));
+                            }
+                            std::string temp_file = std::move(TEMP_DIRECTORY + ("/" + hi::random_string(ngx_request.client + item.second->GetFileName()).append(ext)));
+                            rename(item.second->GetTempFileName().c_str(), temp_file.c_str());
+                            ngx_request.form.insert(std::make_pair(item.first, temp_file));
+                        }
+                    }
+                }
+            } catch (MPFD::Exception& err) {
+                ngx_response.content = err.GetError();
                 ngx_response.status = 500;
                 goto done;
             }
