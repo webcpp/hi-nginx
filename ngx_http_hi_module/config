@@ -12,8 +12,10 @@ if test $HTTP_HI_CPP = YES ; then
 
     CXXFLAGS="$CXXFLAGS -DHTTP_HI_CPP"
     CXXFLAGS="$CXXFLAGS -Wall"
+    CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib"
     CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib/leveldb -DLEVELDB_PLATFORM_POSIX"
     CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib/msgpack"
+    CFLAGS="$CFLAGS -I$ngx_addon_dir/lib"
     CFLAGS="$CFLAGS -I$ngx_addon_dir/lib/msgpack"
     CXXFLAGS="$CXXFLAGS -O3 -std=c++11 `pkg-config --cflags hiredis`"
     CORE_LIBS="$CORE_LIBS -lstdc++"
