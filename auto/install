@@ -104,7 +104,7 @@ $NGX_OBJS/nginx.8:	$NGX_MAN $NGX_AUTO_CONFIG_H
 		-e "s|%%ERROR_LOG_PATH%%|${NGX_ERROR_LOG_PATH:-stderr}|" \\
 		< $NGX_MAN > \$@
 
-DIRS=ngx_http_hi_module/include cpp php python java javascript lua temp doc
+DIRS=ngx_http_hi_module/include cpp php python java javascript lua temp doc leveldb
 
 install:	build $NGX_INSTALL_PERL_MODULES
 	test -d '\$(DESTDIR)$NGX_PREFIX' || mkdir -p '\$(DESTDIR)$NGX_PREFIX'

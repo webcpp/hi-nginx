@@ -1,213 +1,27 @@
-extern "C" {
-#include <ngx_config.h>
-#include <ngx_core.h>
-#include <ngx_http.h>
-#include <ngx_md5.h>
-}
+#include "module_config.hpp"
+#include "cpp_handler.hpp"
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <openssl/md5.h>
-
-//#define HTTP_HI_CPP
-//#define HTTP_HI_LUA
-//#define HTTP_HI_JAVA
-//#define HTTP_HI_PYTHON
-//#define HTTP_HI_PHP
-
-#ifdef HTTP_HI_CPP
-
-#define HI_NGINX_SERVER_VERSION         "1.6.4"
-#define HI_NGINX_SERVER_NAME            "hi-nginx"
-
-#include <vector>
-#include <memory>
-#include <utility>
-#include <fstream>
-#include <streambuf>
-#include <exception>
-#include "include/request.hpp"
-#include "include/response.hpp"
-#include "include/servlet.hpp"
-
-
-
-#include "lib/module.hpp"
-#include "lib/lrucache.hpp"
-#include "lib/param.hpp"
-#include "lib/redis.hpp"
-#include "lib/MPFDParser/Parser.h"
-
-#ifdef HTTP_HI_PYTHON
-#include "lib/py_request.hpp"
-#include "lib/py_response.hpp"
-#include "lib/pybind11_py.hpp"
-#endif
-
-#ifdef HTTP_HI_LUA
-#include "lib/lua.hpp"
-#endif
-
-#ifdef HTTP_HI_JAVA
-#include "lib/java.hpp"
-#endif
-
-#ifdef HTTP_HI_PHP
-#include "lib/php-x/phpx.h"
-#include "lib/php-x/phpx_embed.h"
-#endif
-
-
-
-#define SESSION_ID_NAME "SESSIONID"
-#define form_urlencoded_type "application/x-www-form-urlencoded"
-#define form_urlencoded_type_len (sizeof(form_urlencoded_type) - 1)
-#define TEMP_DIRECTORY "temp"
-
-struct cache_ele_t {
-    int status = 200;
-    time_t t;
-    std::string content_type, content;
-};
-
-
-static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
-static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, cache_ele_t>>> CACHE;
-static std::shared_ptr<hi::redis> REDIS;
-
-
-#ifdef HTTP_HI_PYTHON
-static std::shared_ptr<hi::pybind11_py> PYTHON;
-#endif
-
-#ifdef HTTP_HI_LUA
-static std::shared_ptr<hi::lua> LUA;
-#endif
-
-#ifdef HTTP_HI_JAVA
-static std::shared_ptr<hi::java> JAVA;
-static std::shared_ptr<hi::cache::lru_cache<std::string, hi::java_servlet_t>> JAVA_SERVLET_CACHE;
-#endif
-
-#ifdef HTTP_HI_PHP
-static std::shared_ptr<php::VM> PHP;
-#endif
-
-enum application_t {
-    __cpp__,
-#ifdef HTTP_HI_PYTHON
-    __python__,
-#endif
-#ifdef HTTP_HI_LUA
-    __lua__,
-#endif
-#ifdef HTTP_HI_JAVA    
-    __java__,
-    __javascript__,
-#endif
-#ifdef HTTP_HI_PHP
-    __php__,
-#endif
-    __unkown__
-};
-
-typedef struct {
-    ngx_str_t module_path
-    , redis_host
-#ifdef HTTP_HI_PYTHON
-    , python_script
-    , python_content
-#endif
-#ifdef HTTP_HI_LUA
-    , lua_script
-    , lua_content
-    , lua_package_path
-    , lua_package_cpath
-#endif
-#ifdef HTTP_HI_JAVA
-    , java_classpath
-    , java_options
-    , java_servlet
-    , javascript_script
-    , javascript_content
-    , javascript_lang
-    , javascript_extension
-#endif
-#ifdef HTTP_HI_PHP
-    , php_script
-#endif
-    ;
-    ngx_int_t module_index
-    , redis_port
-    , cache_expires
-    , session_expires
-    , cache_index
-    , kvdb_expires
-#ifdef HTTP_HI_JAVA
-    , java_servlet_cache_expires
-    , java_version
-    , javascript_engine_index
-    , javascript_compiledscript_expires
-#endif
-    ;
-    size_t cache_size
-    , kvdb_size
-#ifdef HTTP_HI_JAVA
-    , java_servlet_cache_size
-#endif
-    ;
-    ngx_flag_t need_headers
-    , need_cache
-    , need_cookies
-    , need_session
-    , need_kvdb;
-    application_t app_type;
-} ngx_http_hi_loc_conf_t;
-
-
-static void clean_up(ngx_cycle_t * cycle);
 static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* child);
-
-
-static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r);
-static void ngx_http_hi_body_handler(ngx_http_request_t* r);
+static void clean_up(ngx_cycle_t * cycle);
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r);
+static void ngx_http_hi_body_handler(ngx_http_request_t* r);
+static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r);
 
 
-static void get_input_headers(ngx_http_request_t* r, std::unordered_map<std::string, std::string>& input_headers);
-static void set_output_headers(ngx_http_request_t* r, std::unordered_multimap<std::string, std::string>& output_headers);
-static ngx_str_t get_input_body(ngx_http_request_t *r);
+ngx_http_module_t ngx_http_hi_module_ctx = {
+    NULL, /* preconfiguration */
+    NULL, /* postconfiguration */
+    NULL, /* create main configuration */
+    NULL, /* init main configuration */
 
-static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
+    NULL, /* create server configuration */
+    NULL, /* merge server configuration */
 
-#ifdef HTTP_HI_PYTHON
-static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
-#endif
-
-#ifdef HTTP_HI_LUA
-static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
-#endif
-
-#ifdef HTTP_HI_JAVA
-static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
-static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
-static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance);
-static bool java_init_handler(ngx_http_hi_loc_conf_t * conf);
-static bool javascript_engine_init_handler(ngx_http_hi_loc_conf_t * conf);
-static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
-#endif
-
-#ifdef HTTP_HI_PHP
-static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res);
-#endif
-
-static std::string md5(const std::string& str);
-static std::string random_string(const std::string& s);
-static bool is_dir(const std::string& s);
-static bool is_file(const std::string& s);
+    ngx_http_hi_create_loc_conf, /* create location configuration */
+    ngx_http_hi_merge_loc_conf /* merge location configuration */
+};
 
 ngx_command_t ngx_http_hi_commands[] = {
     {
@@ -469,23 +283,6 @@ ngx_command_t ngx_http_hi_commands[] = {
     ngx_null_command
 };
 
-
-ngx_http_module_t ngx_http_hi_module_ctx = {
-    NULL, /* preconfiguration */
-    NULL, /* postconfiguration */
-    NULL, /* create main configuration */
-    NULL, /* init main configuration */
-
-    NULL, /* create server configuration */
-    NULL, /* merge server configuration */
-
-    ngx_http_hi_create_loc_conf, /* create location configuration */
-    ngx_http_hi_merge_loc_conf /* merge location configuration */
-};
-
-
-
-
 ngx_module_t ngx_http_hi_module = {
     NGX_MODULE_V1,
     &ngx_http_hi_module_ctx, /* module context */
@@ -500,26 +297,6 @@ ngx_module_t ngx_http_hi_module = {
     NULL, /* exit master */
     NGX_MODULE_V1_PADDING
 };
-
-static void clean_up(ngx_cycle_t *cycle) {
-    PLUGIN.clear();
-    CACHE.clear();
-    REDIS.reset();
-#ifdef HTTP_HI_PYTHON
-    PYTHON.reset();
-#endif
-#ifdef HTTP_HI_LUA
-    LUA.reset();
-#endif
-#ifdef HTTP_HI_JAVA
-    JAVA.reset();
-    JAVA_SERVLET_CACHE.reset();
-    hi::java::JAVA_IS_READY = false;
-#endif
-#ifdef HTTP_HI_PHP
-    PHP.reset();
-#endif
-}
 
 static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
     ngx_http_core_loc_conf_t *clcf;
@@ -651,6 +428,8 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_value(conf->need_kvdb, prev->need_kvdb, (ngx_flag_t) 1);
     ngx_conf_merge_value(conf->need_cookies, prev->need_cookies, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_session, prev->need_session, (ngx_flag_t) 0);
+
+
     if (conf->need_session == 1 && conf->need_cookies == 0) {
         conf->need_cookies = 1;
     }
@@ -658,6 +437,10 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         PLUGIN.push_back(std::move(std::make_shared<hi::module < hi::servlet >> ((char*) conf->module_path.data)));
         conf->module_index = PLUGIN.size() - 1;
         conf->app_type = application_t::__cpp__;
+    }
+    if (conf->need_cache == 1 && conf->cache_index == NGX_CONF_UNSET) {
+        CACHE.push_back(std::move(std::make_shared<hi::cache::lru_cache < std::string, hi::cache_t >> (conf->cache_size)));
+        conf->cache_index = CACHE.size() - 1;
     }
 #ifdef HTTP_HI_PYTHON
     if (conf->python_content.len > 0 || conf->python_script.len > 0) {
@@ -689,32 +472,30 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 #endif
 
 
-    if (conf->need_cache == 1 && conf->cache_index == NGX_CONF_UNSET) {
-        CACHE.push_back(std::move(std::make_shared<hi::cache::lru_cache < std::string, cache_ele_t >> (conf->cache_size)));
-        conf->cache_index = CACHE.size() - 1;
-    }
-
-
     return NGX_CONF_OK;
 }
 
-static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
-    if (r->headers_in.content_length_n > 0) {
-        ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-        if (clcf->client_body_buffer_size < (size_t) clcf->client_max_body_size) {
-            clcf->client_body_buffer_size = clcf->client_max_body_size;
-        }
-        r->request_body_in_single_buf = 1;
-        r->request_body_file_log_level = 0;
-        ngx_int_t rc = ngx_http_read_client_request_body(r, ngx_http_hi_body_handler);
-        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-            return rc;
-        }
-        return NGX_DONE;
-    } else {
-        ngx_http_discard_request_body(r);
-        return ngx_http_hi_normal_handler(r);
+static void clean_up(ngx_cycle_t * cycle) {
+    PLUGIN.clear();
+    CACHE.clear();
+    REDIS.reset();
+    if (LEVELDB) {
+        delete LEVELDB;
     }
+#ifdef HTTP_HI_PYTHON
+    PYTHON.reset();
+#endif
+#ifdef HTTP_HI_LUA
+    LUA.reset();
+#endif
+#ifdef HTTP_HI_JAVA
+    JAVA.reset();
+    JAVA_SERVLET_CACHE.reset();
+    hi::java::JAVA_IS_READY = false;
+#endif
+#ifdef HTTP_HI_PHP
+    PHP.reset();
+#endif
 }
 
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
@@ -731,7 +512,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     hi::request ngx_request;
     hi::response ngx_response;
     std::string SESSION_ID_VALUE;
-    std::shared_ptr<hi::cache::lru_cache < std::string, cache_ele_t> > cache_ptr;
+    std::shared_ptr<hi::cache::lru_cache < std::string, hi::cache_t> > cache_ptr;
     if (conf->need_cache == 1) {
         cache_ptr = CACHE[conf->cache_index];
     }
@@ -748,30 +529,11 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         if (r->args.len > 0) {
             cache_k->append("?").append(ngx_request.param);
         }
-
-
-        u_char *p;
-        ngx_md5_t md5;
-        u_char md5_buf[16];
-
-        p = (u_char*) ngx_palloc(r->pool, 32);
-        if (p == NULL) {
-            return NGX_HTTP_INTERNAL_SERVER_ERROR;
-        }
-
-        ngx_md5_init(&md5);
-        ngx_md5_update(&md5, (u_char*) cache_k->c_str(), cache_k->size());
-        ngx_md5_final(md5_buf, &md5);
-        ngx_hex_dump(p, md5_buf, sizeof (md5_buf));
-
-        cache_k->assign((char*) p, 32);
-
-
+        cache_k->assign(std::move(hi::md5(*cache_k)));
 
         if (cache_ptr->exists(*cache_k)) {
-            const cache_ele_t& cache_v = cache_ptr->get(*cache_k);
-            time_t now = time(NULL);
-            if (difftime(now, cache_v.t) > conf->cache_expires) {
+            const hi::cache_t& cache_v = cache_ptr->get(*cache_k);
+            if (cache_v.expired(conf->cache_expires)) {
                 cache_ptr->erase(*cache_k);
             } else {
                 ngx_response.content = cache_v.content;
@@ -782,7 +544,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         }
     }
     if (conf->need_headers == 1) {
-        get_input_headers(r, ngx_request.headers);
+        hi::get_input_headers(r, ngx_request.headers);
     }
 
     ngx_request.method.assign((char*) r->method_name.data, r->method_name.len);
@@ -794,37 +556,14 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         hi::parser_param(ngx_request.param, ngx_request.form);
     }
     if (r->headers_in.content_length_n > 0) {
-        ngx_str_t body = get_input_body(r);
+        ngx_str_t body = hi::get_input_body(r);
         if (r->headers_in.content_type->value.len < form_urlencoded_type_len
                 || ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) form_urlencoded_type,
                 form_urlencoded_type_len) != 0) {
-            try {
-                if ((is_dir(TEMP_DIRECTORY) || mkdir(TEMP_DIRECTORY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)) {
-                    ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-                    std::shared_ptr<MPFD::Parser> POSTParser(new MPFD::Parser());
-                    POSTParser->SetTempDirForFileUpload(TEMP_DIRECTORY);
-                    POSTParser->SetUploadedFilesStorage(MPFD::Parser::StoreUploadedFilesInFilesystem);
-                    POSTParser->SetMaxCollectedDataLength(clcf->client_max_body_size);
-                    POSTParser->SetContentType((char*) r->headers_in.content_type->value.data);
-                    POSTParser->AcceptSomeData((char*) body.data, body.len);
-                    auto fields = POSTParser->GetFieldsMap();
-                    for (auto &item : fields) {
-                        if (item.second->GetType() == MPFD::Field::TextType) {
-                            ngx_request.form.insert(std::make_pair(item.first, item.second->GetTextTypeContent()));
-                        } else {
-                            std::string upload_file_name = item.second->GetFileName(), ext;
-                            std::string::size_type p = upload_file_name.find_last_of(".");
-                            if (p != std::string::npos) {
-                                ext = std::move(upload_file_name.substr(p));
-                            }
-                            std::string temp_file = std::move(TEMP_DIRECTORY + ("/" + random_string(ngx_request.client + item.second->GetFileName()).append(ext)));
-                            rename(item.second->GetTempFileName().c_str(), temp_file.c_str());
-                            ngx_request.form.insert(std::make_pair(item.first, temp_file));
-                        }
-                    }
-                }
-            } catch (MPFD::Exception& err) {
-                ngx_response.content = err.GetError();
+            ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+            std::string upload_err_msg;
+            if (!hi::upload(ngx_request, (const char*) body.data, body.len, TEMP_DIRECTORY, clcf->client_max_body_size, upload_err_msg)) {
+                ngx_response.content = std::move(upload_err_msg);
                 ngx_response.status = 500;
                 goto done;
             }
@@ -841,63 +580,55 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         }
     }
     if (conf->need_session == 1 && ngx_request.cookies.find(SESSION_ID_NAME) != ngx_request.cookies.end()) {
-        if (!REDIS) {
-            REDIS = std::make_shared<hi::redis>();
-        }
-        if (!REDIS->is_connected() && conf->redis_host.len > 0 && conf->redis_port > 0) {
-            REDIS->connect((char*) conf->redis_host.data, (int) conf->redis_port);
-        }
-        if (REDIS->is_connected()) {
+        if (LEVELDB) {
             SESSION_ID_VALUE = ngx_request.cookies[SESSION_ID_NAME];
-            if (!REDIS->exists(SESSION_ID_VALUE)) {
-                REDIS->hset(SESSION_ID_VALUE, SESSION_ID_NAME, SESSION_ID_VALUE);
-                REDIS->expire(SESSION_ID_VALUE, conf->session_expires);
-                ngx_request.session[SESSION_ID_NAME] = SESSION_ID_VALUE;
+            std::string v;
+            if (LEVELDB->Get(leveldb::ReadOptions(), SESSION_ID_VALUE, &v).ok()) {
+                hi::deserialize(v, ngx_request.session);
             } else {
-                REDIS->hgetall(SESSION_ID_VALUE, ngx_request.session);
+                LEVELDB->Put(leveldb::WriteOptions(), SESSION_ID_VALUE, hi::serialize(ngx_request.session));
             }
         }
     }
 
 
     if (conf->need_kvdb == 1) {
-        if (REDIS && REDIS->is_connected()) {
+        if (LEVELDB) {
             if (!cache_k) {
                 cache_k = std::make_shared<std::string>(ngx_request.uri);
                 if (r->args.len > 0) {
                     cache_k->append("?").append(ngx_request.param);
                 }
-                cache_k->assign(std::move(md5(*cache_k)));
+                cache_k->assign(std::move(hi::md5(*cache_k)));
             }
-            if (REDIS->exists(*cache_k)) {
-                REDIS->hgetall(*cache_k, ngx_request.cache);
+            std::string cache_v;
+            if (LEVELDB->Get(leveldb::ReadOptions(), *cache_k, &cache_v).ok()) {
+                hi::deserialize(cache_v, ngx_request.cache);
             } else {
-                REDIS->hset(*cache_k, "kvdb_key", *cache_k);
-                REDIS->expire(*cache_k, conf->kvdb_expires);
-                ngx_request.cache["kvdb_key"] = *cache_k;
+                LEVELDB->Put(leveldb::WriteOptions(), *cache_k, hi::serialize(ngx_request.cache));
             }
         }
     }
 
     switch (conf->app_type) {
-        case application_t::__cpp__:ngx_http_hi_cpp_handler(conf, ngx_request, ngx_response);
+        case application_t::__cpp__:hi::ngx_http_hi_cpp_handler(conf, ngx_request, ngx_response);
             break;
 #ifdef HTTP_HI_PYTHON
-        case application_t::__python__:ngx_http_hi_python_handler(conf, ngx_request, ngx_response);
+        case application_t::__python__:hi::ngx_http_hi_python_handler(conf, ngx_request, ngx_response);
             break;
 #endif
 #ifdef HTTP_HI_LUA
-        case application_t::__lua__:ngx_http_hi_lua_handler(conf, ngx_request, ngx_response);
+        case application_t::__lua__:hi::ngx_http_hi_lua_handler(conf, ngx_request, ngx_response);
             break;
 #endif
 #ifdef HTTP_HI_JAVA
-        case application_t::__java__:ngx_http_hi_java_handler(conf, ngx_request, ngx_response);
+        case application_t::__java__:hi::ngx_http_hi_java_handler(conf, ngx_request, ngx_response);
             break;
-        case application_t::__javascript__:ngx_http_hi_javascript_handler(conf, ngx_request, ngx_response);
+        case application_t::__javascript__:hi::ngx_http_hi_javascript_handler(conf, ngx_request, ngx_response);
             break;
 #endif
 #ifdef HTTP_HI_PHP
-        case application_t::__php__:ngx_http_hi_php_handler(conf, ngx_request, ngx_response);
+        case application_t::__php__:hi::ngx_http_hi_php_handler(conf, ngx_request, ngx_response);
             break;
 #endif
         default:break;
@@ -905,21 +636,39 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
 
     if (r->method == NGX_HTTP_GET && conf->need_cache == 1 && ngx_response.status == 200 && conf->cache_expires > 0) {
-        cache_ele_t cache_v;
+        hi::cache_t cache_v;
         cache_v.content = ngx_response.content;
         cache_v.content_type = ngx_response.headers.find("Content-Type")->second;
         cache_v.status = ngx_response.status;
         cache_v.t = time(NULL);
         cache_ptr->put(*cache_k, cache_v);
     }
-    if (REDIS && REDIS->is_connected() && !SESSION_ID_VALUE.empty()) {
-        REDIS->hmset(SESSION_ID_VALUE, ngx_response.session);
+
+
+    if (conf->need_session == 1 && LEVELDB && !ngx_response.session.empty()) {
+        std::unordered_map<std::string, std::string>* ptr = 0;
+        if (!ngx_request.session.empty()) {
+            for (auto &i : ngx_response.session) {
+                ngx_request.session[i.first] = std::move(i.second);
+            }
+            ptr = &ngx_request.session;
+        } else {
+            ptr = &ngx_response.session;
+        }
+        LEVELDB->Put(leveldb::WriteOptions(), SESSION_ID_VALUE, hi::serialize(*ptr));
     }
 
-    if (conf->need_kvdb == 1 && !ngx_response.cache.empty()) {
-        if (REDIS && REDIS->is_connected() && cache_k) {
-            REDIS->hmset(*cache_k, ngx_response.cache);
+    if (conf->need_kvdb == 1 && LEVELDB && !ngx_response.cache.empty()) {
+        std::unordered_map<std::string, std::string>* ptr = 0;
+        if (!ngx_request.cache.empty()) {
+            for (auto &i : ngx_response.cache) {
+                ngx_request.cache[i.first] = std::move(i.second);
+            }
+            ptr = &ngx_request.cache;
+        } else {
+            ptr = &ngx_response.cache;
         }
+        LEVELDB->Put(leveldb::WriteOptions(), *cache_k, hi::serialize(*ptr));
     }
 
 done:
@@ -949,7 +698,7 @@ done:
     out.next = NULL;
 
     ngx_response.headers.insert(std::make_pair(HI_NGINX_SERVER_NAME, HI_NGINX_SERVER_VERSION));
-    set_output_headers(r, ngx_response.headers);
+    hi::set_output_headers(r, ngx_response.headers);
     r->headers_out.status = ngx_response.status;
     r->headers_out.content_length_n = response.len;
 
@@ -960,794 +709,34 @@ done:
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
     return ngx_http_output_filter(r, &out);
-
 }
 
 static void ngx_http_hi_body_handler(ngx_http_request_t* r) {
-
     ngx_http_finalize_request(r, ngx_http_hi_normal_handler(r));
 }
 
-static void get_input_headers(ngx_http_request_t* r, std::unordered_map<std::string, std::string>& input_headers) {
-    ngx_table_elt_t *th;
-    ngx_list_part_t *part;
-    part = &r->headers_in.headers.part;
-    th = (ngx_table_elt_t*) part->elts;
-    ngx_uint_t i;
-    for (i = 0; /* void */; i++) {
-        if (i >= part->nelts) {
-            if (part->next == NULL) {
+static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
+    ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
+    if (!LEVELDB) {
+        LEVELDB_OPTIONS.create_if_missing = true;
+        leveldb::DB::Open(LEVELDB_OPTIONS, LEVELDB_PATH + ("/" + std::to_string(getpid() % getppid())), &LEVELDB);
+    }
 
-                break;
-            }
-            part = part->next;
-            th = (ngx_table_elt_t*) part->elts;
-            i = 0;
+
+    if (r->headers_in.content_length_n > 0) {
+        ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+        if (clcf->client_body_buffer_size < (size_t) clcf->client_max_body_size) {
+            clcf->client_body_buffer_size = clcf->client_max_body_size;
         }
-        input_headers[(char*) th[i].key.data] = std::move(std::string((char*) th[i].value.data, th[i].value.len));
-    }
-}
-
-static void set_output_headers(ngx_http_request_t* r, std::unordered_multimap<std::string, std::string>& output_headers) {
-    for (auto& item : output_headers) {
-        ngx_table_elt_t * h = (ngx_table_elt_t *) ngx_list_push(&r->headers_out.headers);
-        if (h) {
-
-            h->hash = 1;
-            h->key.data = (u_char*) item.first.c_str();
-            h->key.len = item.first.size();
-            h->value.data = (u_char*) item.second.c_str();
-            h->value.len = item.second.size();
+        r->request_body_in_single_buf = 1;
+        r->request_body_file_log_level = 0;
+        ngx_int_t rc = ngx_http_read_client_request_body(r, ngx_http_hi_body_handler);
+        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+            return rc;
         }
-    }
-
-}
-
-static ngx_str_t get_input_body(ngx_http_request_t *r) {
-    u_char *p;
-    u_char *data;
-    size_t len;
-    ngx_buf_t *buf, *next;
-    ngx_chain_t *cl;
-    ngx_str_t body = ngx_null_string;
-
-    if (r->request_body == NULL || r->request_body->bufs == NULL) {
-        return body;
-    }
-
-    if (r->request_body->temp_file) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "temp_file: %s", r->request_body->temp_file->file.name.data);
-        body = r->request_body->temp_file->file.name;
-        return body;
+        return NGX_DONE;
     } else {
-        cl = r->request_body->bufs;
-        buf = cl->buf;
-
-        if (cl->next == NULL) {
-            len = buf->last - buf->pos;
-            p = (u_char*) ngx_pnalloc(r->pool, len + 1);
-            if (p == NULL) {
-                return body;
-            }
-            data = p;
-            ngx_memcpy(p, buf->pos, len);
-            data[len] = 0;
-        } else {
-            next = cl->next->buf;
-            len = (buf->last - buf->pos) + (next->last - next->pos);
-            p = (u_char*) ngx_pnalloc(r->pool, len + 1);
-            data = p;
-            if (p == NULL) {
-                return body;
-            }
-            p = ngx_cpymem(p, buf->pos, buf->last - buf->pos);
-            ngx_memcpy(p, next->pos, next->last - next->pos);
-            data[len] = 0;
-        }
-    }
-
-    body.len = len;
-    body.data = data;
-
-    return body;
-}
-
-static void ngx_http_hi_cpp_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-    std::shared_ptr<hi::servlet> view_instance = std::move(PLUGIN[conf->module_index]->make_obj());
-    if (view_instance) {
-
-        view_instance->handler(req, res);
-    }
-
-}
-#ifdef HTTP_HI_PYTHON
-
-static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-    hi::py_request py_req;
-    hi::py_response py_res;
-    py_req.init(&req);
-    py_res.init(&res);
-    if (!PYTHON) {
-        PYTHON = std::move(std::make_shared<hi::pybind11_py>());
-    }
-    if (PYTHON) {
-        PYTHON->set_req(&py_req);
-        PYTHON->set_res(&py_res);
-        if (conf->python_script.len > 0) {
-            std::string script = std::move(std::string((char*) conf->python_script.data, conf->python_script.len));
-            auto c = script.find_last_of('.');
-            if (c == std::string::npos || script.substr(c + 1) != "py") {
-                script.append(req.uri);
-            }
-            if (is_file(script)) {
-                PYTHON->call_script(script);
-            }
-        } else if (conf->python_content.len > 0) {
-
-            PYTHON->call_content((char*) conf->python_content.data);
-        }
+        ngx_http_discard_request_body(r);
+        return ngx_http_hi_normal_handler(r);
     }
 }
-#endif
-#ifdef HTTP_HI_LUA
-
-static void ngx_http_hi_lua_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-    hi::py_request py_req;
-    hi::py_response py_res;
-    py_req.init(&req);
-    py_res.init(&res);
-    if (!LUA) {
-        LUA = std::move(std::make_shared<hi::lua>(std::string((char*) conf->lua_package_path.data, conf->lua_package_path.len),
-                std::string((char*) conf->lua_package_cpath.data, conf->lua_package_cpath.len)));
-    }
-    if (LUA) {
-        LUA->set_req(&py_req);
-        LUA->set_res(&py_res);
-        if (conf->lua_script.len > 0) {
-            std::string script = std::move(std::string((char*) conf->lua_script.data, conf->lua_script.len));
-            auto c = script.find_last_of('.');
-            if (c == std::string::npos || script.substr(c + 1) != "lua") {
-                script.append(req.uri);
-            }
-            if (is_file(script)) {
-                LUA->call_script(script);
-            }
-        } else if (conf->lua_content.len > 0) {
-
-            LUA->call_content((char*) conf->lua_content.data);
-        }
-    }
-}
-#endif
-#ifdef HTTP_HI_JAVA
-
-static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-    if (java_init_handler(conf) && javascript_engine_init_handler(conf)) {
-
-        std::pair<jobject, jobject>& engine = JAVA->engines[conf->javascript_engine_index];
-
-        if (engine.first == NULL) {
-            return;
-        }
-
-        jobject request_instance, response_instance;
-
-        request_instance = JAVA->env->NewObject(JAVA->request, JAVA->request_ctor);
-        response_instance = JAVA->env->NewObject(JAVA->response, JAVA->response_ctor);
-
-        java_input_handler(conf, req, res, request_instance, response_instance);
-
-        jstring jhi_req = JAVA->env->NewStringUTF("hi_req");
-        jstring jhi_res = JAVA->env->NewStringUTF("hi_res");
-
-
-        JAVA->env->CallVoidMethod(engine.first, JAVA->script_engine_put, jhi_req, request_instance);
-        JAVA->env->CallVoidMethod(engine.first, JAVA->script_engine_put, jhi_res, response_instance);
-
-        if (conf->javascript_script.len > 0) {
-            std::string script_path = std::move(std::string((char*) conf->javascript_script.data, conf->javascript_script.len));
-            auto c = script_path.find_last_of('.');
-            if (c == std::string::npos || script_path.substr(c + 1) != (char*) conf->javascript_extension.data) {
-                script_path.append(req.uri);
-            }
-
-            if (is_file(script_path)) {
-                std::string md5key = std::move(md5(script_path));
-                if (conf->need_kvdb == 1) {
-                    if (JAVA->compiledscript_instances.find(md5key) != JAVA->compiledscript_instances.end()) {
-                        time_t now(0);
-                        const std::pair<time_t, jobject>& compiledscript_pair = JAVA->compiledscript_instances[md5key];
-                        if (difftime(now, compiledscript_pair.first) > conf->javascript_compiledscript_expires) {
-                            JAVA->env->DeleteLocalRef(compiledscript_pair.second);
-                            JAVA->compiledscript_instances.erase(md5key);
-                            goto update_string_compiledscript_instance;
-                        }
-                        if (compiledscript_pair.second != NULL) {
-                            JAVA->env->CallObjectMethod(compiledscript_pair.second, JAVA->compiledscript_eval_void);
-                        }
-                    } else {
-update_string_compiledscript_instance:
-                        jstring script_content = NULL;
-                        if (REDIS && REDIS->is_connected()) {
-                            if (REDIS->exists(md5key)) {
-                                bool has;
-                                std::string md5val = std::move(REDIS->get(md5key, has));
-                                if (has) {
-                                    script_content = JAVA->env->NewStringUTF(md5val.c_str());
-                                } else {
-                                    goto update_javascript_content;
-                                }
-                            } else {
-update_javascript_content:
-                                std::ifstream file_input(script_path);
-                                std::string script_str((std::istreambuf_iterator<char>(file_input)), std::istreambuf_iterator<char>());
-                                script_content = JAVA->env->NewStringUTF(script_str.c_str());
-                                REDIS->setex(md5key, script_str, conf->kvdb_expires);
-                            }
-                        } else {
-                            std::ifstream file_input(script_path);
-                            std::string script_str((std::istreambuf_iterator<char>(file_input)), std::istreambuf_iterator<char>());
-                            script_content = JAVA->env->NewStringUTF(script_str.c_str());
-                        }
-                        if (engine.second != NULL) {
-                            jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
-                            if (compiledscript_instance != NULL) {
-                                JAVA->compiledscript_instances[md5key] = std::make_pair(time(0), compiledscript_instance);
-                                JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
-                            }
-                        } else {
-                            JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_string, script_content);
-                        }
-
-                        if (script_content != NULL) {
-                            JAVA->env->ReleaseStringUTFChars(script_content, 0);
-                            JAVA->env->DeleteLocalRef(script_content);
-                        }
-                    }
-
-                } else {
-                    if (JAVA->compiledscript_instances.find(md5key) != JAVA->compiledscript_instances.end()) {
-                        time_t now(NULL);
-                        const std::pair<time_t, jobject>& compiledscript_pair = JAVA->compiledscript_instances[md5key];
-                        if (difftime(now, compiledscript_pair.first) > conf->javascript_compiledscript_expires) {
-                            JAVA->env->DeleteLocalRef(compiledscript_pair.second);
-                            JAVA->compiledscript_instances.erase(md5key);
-                            goto update_file_compiledscript_instance;
-                        }
-                        if (compiledscript_pair.second != NULL) {
-                            JAVA->env->CallObjectMethod(compiledscript_pair.second, JAVA->compiledscript_eval_void);
-                        }
-                    } else {
-update_file_compiledscript_instance:
-                        jstring javascript_path = JAVA->env->NewStringUTF(script_path.c_str());
-                        jobject filereader_instance = (jobject) JAVA->env->NewObject(JAVA->filereader, JAVA->filereader_ctor, javascript_path);
-
-                        if (engine.second != NULL) {
-                            jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_filereader, filereader_instance);
-                            if (compiledscript_instance != NULL) {
-                                JAVA->compiledscript_instances[md5key] = std::make_pair(time(0), compiledscript_instance);
-                                JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
-                            }
-                        } else {
-                            JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_filereader, filereader_instance);
-                        }
-                        JAVA->env->DeleteLocalRef(filereader_instance);
-                        JAVA->env->ReleaseStringUTFChars(javascript_path, 0);
-                        JAVA->env->DeleteLocalRef(javascript_path);
-                    }
-                }
-            }
-
-        } else if (conf->javascript_content.len > 0) {
-
-            jstring script_content = JAVA->env->NewStringUTF((char*) conf->javascript_content.data);
-
-            if (engine.second != NULL) {
-                jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
-                if (compiledscript_instance != NULL) {
-                    JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
-                    JAVA->env->DeleteLocalRef(compiledscript_instance);
-                }
-            } else {
-
-                JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_string, script_content);
-            }
-
-            JAVA->env->ReleaseStringUTFChars(script_content, 0);
-            JAVA->env->DeleteLocalRef(script_content);
-        }
-
-
-
-        java_output_handler(conf, req, res, request_instance, response_instance);
-
-        JAVA->env->DeleteLocalRef(request_instance);
-        JAVA->env->DeleteLocalRef(response_instance);
-
-        JAVA->env->ReleaseStringUTFChars(jhi_req, 0);
-        JAVA->env->DeleteLocalRef(jhi_req);
-        JAVA->env->ReleaseStringUTFChars(jhi_res, 0);
-        JAVA->env->DeleteLocalRef(jhi_res);
-    }
-}
-
-static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-    if (java_init_handler(conf)) {
-
-        jobject request_instance, response_instance;
-
-
-        request_instance = JAVA->env->NewObject(JAVA->request, JAVA->request_ctor);
-        response_instance = JAVA->env->NewObject(JAVA->response, JAVA->response_ctor);
-
-        java_input_handler(conf, req, res, request_instance, response_instance);
-
-
-
-        hi::java_servlet_t jtmp;
-        if (JAVA_SERVLET_CACHE->exists((const char*) conf->java_servlet.data)) {
-            jtmp = JAVA_SERVLET_CACHE->get((const char*) conf->java_servlet.data);
-            time_t now = time(0);
-            if (difftime(now, jtmp.t) > conf->java_servlet_cache_expires) {
-                JAVA_SERVLET_CACHE->erase((const char*) conf->java_servlet.data);
-                goto update_java_servlet;
-            }
-        } else {
-update_java_servlet:
-            jtmp.SERVLET = JAVA->env->FindClass((const char*) conf->java_servlet.data);
-
-            if (jtmp.SERVLET == NULL)return;
-            jtmp.CTOR = JAVA->env->GetMethodID(jtmp.SERVLET, "<init>", "()V");
-            jtmp.HANDLER = JAVA->env->GetMethodID(jtmp.SERVLET, "handler", "(Lhi/request;Lhi/response;)V");
-            jtmp.t = time(0);
-            JAVA_SERVLET_CACHE->put((const char*) conf->java_servlet.data, jtmp);
-        }
-        jobject servlet_instance = JAVA->env->NewObject(jtmp.SERVLET, jtmp.CTOR);
-        JAVA->env->CallVoidMethod(servlet_instance, jtmp.HANDLER, request_instance, response_instance);
-        JAVA->env->DeleteLocalRef(servlet_instance);
-
-
-        java_output_handler(conf, req, res, request_instance, response_instance);
-
-
-        JAVA->env->DeleteLocalRef(request_instance);
-        JAVA->env->DeleteLocalRef(response_instance);
-    }
-
-}
-
-static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance) {
-    jstring client = JAVA->env->NewStringUTF(req.client.c_str());
-    JAVA->env->SetObjectField(request_instance, JAVA->client, client);
-    JAVA->env->ReleaseStringUTFChars(client, 0);
-    JAVA->env->DeleteLocalRef(client);
-
-    jstring user_agent = JAVA->env->NewStringUTF(req.user_agent.c_str());
-    JAVA->env->SetObjectField(request_instance, JAVA->user_agent, user_agent);
-    JAVA->env->ReleaseStringUTFChars(user_agent, 0);
-    JAVA->env->DeleteLocalRef(user_agent);
-
-    jstring method = JAVA->env->NewStringUTF(req.method.c_str());
-    JAVA->env->SetObjectField(request_instance, JAVA->method, method);
-    JAVA->env->ReleaseStringUTFChars(method, 0);
-    JAVA->env->DeleteLocalRef(method);
-
-    jstring uri = JAVA->env->NewStringUTF(req.uri.c_str());
-    JAVA->env->SetObjectField(request_instance, JAVA->uri, uri);
-    JAVA->env->ReleaseStringUTFChars(uri, 0);
-    JAVA->env->DeleteLocalRef(uri);
-
-    jstring param = JAVA->env->NewStringUTF(req.param.c_str());
-    JAVA->env->SetObjectField(request_instance, JAVA->param, param);
-    JAVA->env->ReleaseStringUTFChars(param, 0);
-    JAVA->env->DeleteLocalRef(param);
-
-    if (conf->need_headers == 1) {
-        jobject req_headers = JAVA->env->GetObjectField(request_instance, JAVA->req_headers);
-        for (auto& item : req.headers) {
-            jstring k = JAVA->env->NewStringUTF(item.first.c_str())
-                    , v = JAVA->env->NewStringUTF(item.second.c_str());
-            JAVA->env->CallObjectMethod(req_headers, JAVA->hashmap_put, k, v);
-            JAVA->env->ReleaseStringUTFChars(k, 0);
-            JAVA->env->ReleaseStringUTFChars(v, 0);
-            JAVA->env->DeleteLocalRef(k);
-            JAVA->env->DeleteLocalRef(v);
-        }
-        JAVA->env->DeleteLocalRef(req_headers);
-    }
-
-    jobject req_form = JAVA->env->GetObjectField(request_instance, JAVA->form);
-    for (auto& item : req.form) {
-        jstring k = JAVA->env->NewStringUTF(item.first.c_str())
-                , v = JAVA->env->NewStringUTF(item.second.c_str());
-        JAVA->env->CallObjectMethod(req_form, JAVA->hashmap_put, k, v);
-        JAVA->env->ReleaseStringUTFChars(k, 0);
-        JAVA->env->ReleaseStringUTFChars(v, 0);
-        JAVA->env->DeleteLocalRef(k);
-        JAVA->env->DeleteLocalRef(v);
-    }
-    JAVA->env->DeleteLocalRef(req_form);
-
-    if (conf->need_cookies == 1) {
-        jobject req_cookies = JAVA->env->GetObjectField(request_instance, JAVA->cookies);
-        for (auto& item : req.cookies) {
-            jstring k = JAVA->env->NewStringUTF(item.first.c_str())
-                    , v = JAVA->env->NewStringUTF(item.second.c_str());
-            JAVA->env->CallObjectMethod(req_cookies, JAVA->hashmap_put, k, v);
-            JAVA->env->ReleaseStringUTFChars(k, 0);
-            JAVA->env->ReleaseStringUTFChars(v, 0);
-            JAVA->env->DeleteLocalRef(k);
-            JAVA->env->DeleteLocalRef(v);
-        }
-        JAVA->env->DeleteLocalRef(req_cookies);
-    }
-
-    if (conf->need_session == 1) {
-        jobject req_session = JAVA->env->GetObjectField(request_instance, JAVA->req_session);
-        for (auto& item : req.session) {
-            jstring k = JAVA->env->NewStringUTF(item.first.c_str())
-                    , v = JAVA->env->NewStringUTF(item.second.c_str());
-            JAVA->env->CallObjectMethod(req_session, JAVA->hashmap_put, k, v);
-            JAVA->env->ReleaseStringUTFChars(k, 0);
-            JAVA->env->ReleaseStringUTFChars(v, 0);
-            JAVA->env->DeleteLocalRef(k);
-            JAVA->env->DeleteLocalRef(v);
-        }
-        JAVA->env->DeleteLocalRef(req_session);
-    }
-
-    if (conf->need_kvdb == 1) {
-        jobject req_cache = JAVA->env->GetObjectField(request_instance, JAVA->req_cache);
-        for (auto& item : req.cache) {
-
-            jstring k = JAVA->env->NewStringUTF(item.first.c_str())
-                    , v = JAVA->env->NewStringUTF(item.second.c_str());
-            JAVA->env->CallObjectMethod(req_cache, JAVA->hashmap_put, k, v);
-            JAVA->env->ReleaseStringUTFChars(k, 0);
-            JAVA->env->ReleaseStringUTFChars(v, 0);
-            JAVA->env->DeleteLocalRef(k);
-            JAVA->env->DeleteLocalRef(v);
-        }
-        JAVA->env->DeleteLocalRef(req_cache);
-    }
-
-}
-
-static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance) {
-    jobject res_headers = JAVA->env->GetObjectField(response_instance, JAVA->res_headers);
-    jobject keyset = JAVA->env->CallObjectMethod(res_headers, JAVA->hashmap_keyset);
-    jobject iterator = JAVA->env->CallObjectMethod(keyset, JAVA->set_iterator);
-    while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext)) {
-        jstring k = (jstring) JAVA->env->CallObjectMethod(iterator, JAVA->next);
-        jobject item = JAVA->env->CallObjectMethod(res_headers, JAVA->hashmap_get, k);
-        jobject jterator = JAVA->env->CallObjectMethod(item, JAVA->arraylist_iterator);
-        const char * kstr = JAVA->env->GetStringUTFChars(k, NULL);
-        while ((bool)JAVA->env->CallBooleanMethod(jterator, JAVA->hasnext)) {
-            jstring v = (jstring) JAVA->env->CallObjectMethod(jterator, JAVA->next);
-            const char* vstr = JAVA->env->GetStringUTFChars(v, NULL);
-            res.headers.insert(std::make_pair(kstr, vstr));
-            JAVA->env->ReleaseStringUTFChars(v, vstr);
-            JAVA->env->DeleteLocalRef(v);
-        }
-        JAVA->env->ReleaseStringUTFChars(k, kstr);
-        JAVA->env->DeleteLocalRef(k);
-        JAVA->env->DeleteLocalRef(item);
-        JAVA->env->DeleteLocalRef(jterator);
-    }
-    JAVA->env->DeleteLocalRef(res_headers);
-    JAVA->env->DeleteLocalRef(keyset);
-    JAVA->env->DeleteLocalRef(iterator);
-
-    if (conf->need_session == 1) {
-        jobject res_session = JAVA->env->GetObjectField(response_instance, JAVA->res_session);
-        keyset = JAVA->env->CallObjectMethod(res_session, JAVA->hashmap_keyset);
-        iterator = JAVA->env->CallObjectMethod(keyset, JAVA->set_iterator);
-        while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext)) {
-            jstring k = (jstring) JAVA->env->CallObjectMethod(iterator, JAVA->next);
-            jstring v = (jstring) JAVA->env->CallObjectMethod(res_session, JAVA->hashmap_get, k);
-            const char * kstr = JAVA->env->GetStringUTFChars(k, NULL),
-                    * vstr = JAVA->env->GetStringUTFChars(v, NULL);
-            res.session[kstr] = vstr;
-            JAVA->env->ReleaseStringUTFChars(k, kstr);
-            JAVA->env->DeleteLocalRef(k);
-            JAVA->env->ReleaseStringUTFChars(v, vstr);
-            JAVA->env->DeleteLocalRef(v);
-        }
-        JAVA->env->DeleteLocalRef(res_session);
-        JAVA->env->DeleteLocalRef(keyset);
-        JAVA->env->DeleteLocalRef(iterator);
-    }
-
-    if (conf->need_kvdb == 1) {
-        jobject res_cache = JAVA->env->GetObjectField(response_instance, JAVA->res_cache);
-        keyset = JAVA->env->CallObjectMethod(res_cache, JAVA->hashmap_keyset);
-        iterator = JAVA->env->CallObjectMethod(keyset, JAVA->set_iterator);
-        while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext)) {
-
-            jstring k = (jstring) JAVA->env->CallObjectMethod(iterator, JAVA->next);
-            jstring v = (jstring) JAVA->env->CallObjectMethod(res_cache, JAVA->hashmap_get, k);
-            const char * kstr = JAVA->env->GetStringUTFChars(k, NULL),
-                    * vstr = JAVA->env->GetStringUTFChars(v, NULL);
-            res.cache[kstr] = vstr;
-            JAVA->env->ReleaseStringUTFChars(k, kstr);
-            JAVA->env->DeleteLocalRef(k);
-            JAVA->env->ReleaseStringUTFChars(v, vstr);
-            JAVA->env->DeleteLocalRef(v);
-        }
-        JAVA->env->DeleteLocalRef(res_cache);
-        JAVA->env->DeleteLocalRef(keyset);
-        JAVA->env->DeleteLocalRef(iterator);
-    }
-
-
-    res.status = JAVA->env->GetIntField(response_instance, JAVA->status);
-    jstring content = (jstring) JAVA->env->GetObjectField(response_instance, JAVA->content);
-    const char* contentstr = JAVA->env->GetStringUTFChars(content, NULL);
-    res.content = contentstr;
-    JAVA->env->ReleaseStringUTFChars(content, contentstr);
-    JAVA->env->DeleteLocalRef(content);
-}
-
-static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
-    if (hi::java::JAVA_IS_READY)return hi::java::JAVA_IS_READY;
-    if (!JAVA) {
-        JAVA = std::make_shared<hi::java>((char*) conf->java_classpath.data, (char*) conf->java_options.data, conf->java_version);
-        if (JAVA->is_ok()) {
-            JAVA->request = JAVA->env->FindClass("hi/request");
-            if (JAVA->request != NULL) {
-                JAVA->request_ctor = JAVA->env->GetMethodID(JAVA->request, "<init>", "()V");
-                JAVA->client = JAVA->env->GetFieldID(JAVA->request, "client", "Ljava/lang/String;");
-                JAVA->user_agent = JAVA->env->GetFieldID(JAVA->request, "user_agent", "Ljava/lang/String;");
-                JAVA->method = JAVA->env->GetFieldID(JAVA->request, "method", "Ljava/lang/String;");
-                JAVA->uri = JAVA->env->GetFieldID(JAVA->request, "uri", "Ljava/lang/String;");
-                JAVA->param = JAVA->env->GetFieldID(JAVA->request, "param", "Ljava/lang/String;");
-                JAVA->req_headers = JAVA->env->GetFieldID(JAVA->request, "headers", "Ljava/util/HashMap;");
-                JAVA->form = JAVA->env->GetFieldID(JAVA->request, "form", "Ljava/util/HashMap;");
-                JAVA->cookies = JAVA->env->GetFieldID(JAVA->request, "cookies", "Ljava/util/HashMap;");
-                JAVA->req_session = JAVA->env->GetFieldID(JAVA->request, "session", "Ljava/util/HashMap;");
-                JAVA->req_cache = JAVA->env->GetFieldID(JAVA->request, "cache", "Ljava/util/HashMap;");
-
-
-                JAVA->response = JAVA->env->FindClass("hi/response");
-                if (JAVA->response != NULL) {
-
-                    JAVA->response_ctor = JAVA->env->GetMethodID(JAVA->response, "<init>", "()V");
-                    JAVA->status = JAVA->env->GetFieldID(JAVA->response, "status", "I");
-                    JAVA->content = JAVA->env->GetFieldID(JAVA->response, "content", "Ljava/lang/String;");
-                    JAVA->res_headers = JAVA->env->GetFieldID(JAVA->response, "headers", "Ljava/util/HashMap;");
-                    JAVA->res_session = JAVA->env->GetFieldID(JAVA->response, "session", "Ljava/util/HashMap;");
-                    JAVA->res_cache = JAVA->env->GetFieldID(JAVA->response, "cache", "Ljava/util/HashMap;");
-
-                    JAVA->hashmap = JAVA->env->FindClass("java/util/HashMap");
-                    JAVA->hashmap_put = JAVA->env->GetMethodID(JAVA->hashmap, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
-                    JAVA->hashmap_get = JAVA->env->GetMethodID(JAVA->hashmap, "get", "(Ljava/lang/Object;)Ljava/lang/Object;");
-                    JAVA->hashmap_keyset = JAVA->env->GetMethodID(JAVA->hashmap, "keySet", "()Ljava/util/Set;");
-
-                    JAVA->arraylist = JAVA->env->FindClass("java/util/ArrayList");
-                    JAVA->arraylist_get = JAVA->env->GetMethodID(JAVA->arraylist, "get", "(I)Ljava/lang/Object;");
-                    JAVA->arraylist_size = JAVA->env->GetMethodID(JAVA->arraylist, "size", "()I");
-                    JAVA->arraylist_iterator = JAVA->env->GetMethodID(JAVA->arraylist, "iterator", "()Ljava/util/Iterator;");
-
-                    JAVA->iterator = JAVA->env->FindClass("java/util/Iterator");
-                    JAVA->hasnext = JAVA->env->GetMethodID(JAVA->iterator, "hasNext", "()Z");
-                    JAVA->next = JAVA->env->GetMethodID(JAVA->iterator, "next", "()Ljava/lang/Object;");
-
-                    JAVA->set = JAVA->env->FindClass("java/util/Set");
-                    JAVA->set_iterator = JAVA->env->GetMethodID(JAVA->set, "iterator", "()Ljava/util/Iterator;");
-
-
-                    JAVA->script_manager = JAVA->env->FindClass("javax/script/ScriptEngineManager");
-                    JAVA->script_engine = JAVA->env->FindClass("javax/script/ScriptEngine");
-
-                    JAVA->compilable = JAVA->env->FindClass("javax/script/Compilable");
-                    JAVA->compiledscript = JAVA->env->FindClass("javax/script/CompiledScript");
-
-                    JAVA->compile_string = JAVA->env->GetMethodID(JAVA->compilable, "compile", "(Ljava/lang/String;)Ljavax/script/CompiledScript;");
-                    JAVA->compile_filereader = JAVA->env->GetMethodID(JAVA->compilable, "compile", "(Ljava/io/Reader;)Ljavax/script/CompiledScript;");
-                    JAVA->compiledscript_eval_void = JAVA->env->GetMethodID(JAVA->compiledscript, "eval", "()Ljava/lang/Object;");
-
-                    JAVA->script_manager_ctor = JAVA->env->GetMethodID(JAVA->script_manager, "<init>", "()V");
-                    JAVA->script_manager_get_engine_by_name = JAVA->env->GetMethodID(JAVA->script_manager, "getEngineByName", "(Ljava/lang/String;)Ljavax/script/ScriptEngine;");
-                    JAVA->script_manager_instance = JAVA->env->NewObject(JAVA->script_manager, JAVA->script_manager_ctor);
-
-                    JAVA->script_engine_put = JAVA->env->GetMethodID(JAVA->script_engine, "put", "(Ljava/lang/String;Ljava/lang/Object;)V");
-                    JAVA->script_engine_eval_filereader = JAVA->env->GetMethodID(JAVA->script_engine, "eval", "(Ljava/io/Reader;)Ljava/lang/Object;");
-                    JAVA->script_engine_eval_string = JAVA->env->GetMethodID(JAVA->script_engine, "eval", "(Ljava/lang/String;)Ljava/lang/Object;");
-
-                    JAVA->filereader = JAVA->env->FindClass("java/io/FileReader");
-                    JAVA->filereader_ctor = JAVA->env->GetMethodID(JAVA->filereader, "<init>", "(Ljava/lang/String;)V");
-
-                    hi::java::JAVA_IS_READY = true;
-                }
-            }
-        }
-    }
-    return hi::java::JAVA_IS_READY;
-}
-
-static bool javascript_engine_init_handler(ngx_http_hi_loc_conf_t * conf) {
-    bool result = false;
-    if (conf->javascript_engine_index == NGX_CONF_UNSET) {
-        std::pair<jobject, jobject> engine{NULL, NULL};
-        jstring engine_name = JAVA->env->NewStringUTF((char*) conf->javascript_lang.data);
-        engine.first = (jobject) JAVA->env->CallObjectMethod(JAVA->script_manager_instance, JAVA->script_manager_get_engine_by_name, engine_name);
-        JAVA->env->ReleaseStringUTFChars(engine_name, 0);
-        JAVA->env->DeleteLocalRef(engine_name);
-        if (engine.first != NULL) {
-            if (JAVA->env->IsInstanceOf(engine.first, JAVA->compilable) == JNI_TRUE) {
-                engine.second = (jobject) engine.first;
-            } else {
-                engine.second = NULL;
-            }
-            JAVA->engines.push_back(engine);
-            conf->javascript_engine_index = JAVA->engines.size() - 1;
-            result = true;
-        }
-    } else {
-
-        result = true;
-    }
-    return result;
-}
-
-#endif
-
-static std::string md5(const std::string& str) {
-    unsigned char digest[16] = {0};
-    MD5_CTX ctx;
-    MD5_Init(&ctx);
-    MD5_Update(&ctx, str.c_str(), str.size());
-    MD5_Final(digest, &ctx);
-
-    unsigned char tmp[32] = {0}, *dst = &tmp[0], *src = &digest[0];
-    unsigned char hex[] = "0123456789abcdef";
-    int len = 16;
-    while (len--) {
-
-        *dst++ = hex[*src >> 4];
-        *dst++ = hex[*src++ & 0xf];
-    }
-
-    return std::string((char*) tmp, 32);
-}
-
-static std::string random_string(const std::string& s) {
-    time_t now = time(NULL);
-    char* now_str = ctime(&now);
-
-    return md5(s + now_str);
-}
-
-static bool is_dir(const std::string& s) {
-    struct stat st;
-
-    return stat(s.c_str(), &st) >= 0 && S_ISDIR(st.st_mode);
-}
-
-static bool is_file(const std::string& s) {
-    struct stat st;
-
-    return stat(s.c_str(), &st) >= 0 && S_ISREG(st.st_mode);
-}
-
-#ifdef HTTP_HI_PHP
-
-static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-    if (!PHP) {
-        int argc = 1;
-        char* argv[2] = {"ngx_http_hi_php", NULL};
-        PHP = std::move(std::make_shared<php::VM>(argc, argv));
-    }
-    std::string script = std::move(std::string((char*) conf->php_script.data, conf->php_script.len));
-    auto c = script.find_last_of('.');
-    if (c == std::string::npos || script.substr(c + 1) != "php") {
-        script.append(req.uri);
-    }
-    if (is_file(script)) {
-        zend_first_try{
-            PHP->include(script.c_str());
-            const char *request = "\\hi\\request", *response = "\\hi\\response", *handler = "handler";
-            php::Object php_req = php::newObject(request), php_res = php::newObject(response);
-            if (!php_req.isNull() && !php_res.isNull()) {
-                php_req.set("client", php::Variant(req.client));
-                php_req.set("method", php::Variant(req.method));
-                php_req.set("user_agent", php::Variant(req.user_agent));
-                php_req.set("param", php::Variant(req.param));
-                php_req.set("uri", php::Variant(req.uri));
-
-                php::Array php_req_headers, php_req_form, php_req_cookies, php_req_session, php_req_cache;
-                if (conf->need_headers == 1) {
-                    for (auto & i : req.headers) {
-                        php_req_headers.set(i.first.c_str(), php::Variant(i.second));
-                    }
-
-                }
-                for (auto & i : req.form) {
-                    php_req_form.set(i.first.c_str(), php::Variant(i.second));
-                }
-                if (conf->need_cookies == 1) {
-                    for (auto & i : req.cookies) {
-                        php_req_cookies.set(i.first.c_str(), php::Variant(i.second));
-                    }
-                }
-                if (conf->need_session == 1) {
-                    for (auto & i : req.session) {
-                        php_req_session.set(i.first.c_str(), php::Variant(i.second));
-                    }
-                }
-                if (conf->need_kvdb == 1) {
-                    for (auto & i : req.cache) {
-                        php_req_cache.set(i.first.c_str(), php::Variant(i.second));
-                    }
-                }
-                php_req.set("headers", php_req_headers);
-                php_req.set("form", php_req_form);
-                php_req.set("cookies", php_req_cookies);
-                php_req.set("session", php_req_session);
-                php_req.set("cache", php_req_cache);
-
-
-
-
-                auto p = script.find_last_of('/'), q = script.find_last_of('.');
-
-                std::string class_name = std::move(script.substr(p + 1, q - 1 - p));
-
-
-                php::Object servlet = php::newObject(class_name.c_str());
-
-
-                if (!servlet.isNull() && servlet.methodExists(handler)) {
-                    servlet.exec(handler, php_req, php_res);
-                    php::Array res_headers = php_res.get("headers"), res_session = php_res.get("session"), res_cache = php_res.get("cache");
-
-
-                    for (auto i = res_headers.begin(); i != res_headers.end(); i++) {
-                        auto v = i.value();
-                        if (v.isArray()) {
-                            php::Array arr(v);
-                            for (size_t j = 0; j < arr.count(); j++) {
-                                res.headers.insert(std::move(std::make_pair(i.key().toString(), arr[j].toString())));
-                            }
-                            arr.clean();
-                        } else {
-                            res.headers.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
-                        }
-                    }
-                    if (conf->need_session == 1) {
-                        for (auto i = res_session.begin(); i != res_session.end(); i++) {
-                            res.session.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
-                        }
-                    }
-                    if (conf->need_kvdb == 1) {
-                        for (auto i = res_cache.begin(); i != res_cache.end(); i++) {
-                            res.cache.insert(std::move(std::make_pair(i.key().toString(), i.value().toString())));
-                        }
-                    }
-
-                    res.content = std::move(php_res.get("content").toString());
-
-                    res.status = php_res.get("status").toInt();
-
-
-                    php_req_headers.clean();
-                    php_req_form.clean();
-                    php_req_cookies.clean();
-                    php_req_session.clean();
-
-                    res_headers.clean();
-                    res_session.clean();
-
-                    return;
-                }
-            }}
-        zend_catch{
-            res.content = std::move("<p style='text-align:center;margin:100px;'>PHP Throw Exception</p>");
-            res.status = 500;}
-        zend_end_try();
-    }
-}
-#endif
-
-
-#endif

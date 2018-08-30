@@ -12,6 +12,9 @@ if test $HTTP_HI_CPP = YES ; then
 
     CXXFLAGS="$CXXFLAGS -DHTTP_HI_CPP"
     CXXFLAGS="$CXXFLAGS -Wall"
+    CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib/leveldb -DLEVELDB_PLATFORM_POSIX"
+    CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib/msgpack"
+    CFLAGS="$CFLAGS -I$ngx_addon_dir/lib/msgpack"
     CXXFLAGS="$CXXFLAGS -O3 -std=c++11 `pkg-config --cflags hiredis`"
     CORE_LIBS="$CORE_LIBS -lstdc++"
     NGX_LD_OPT="$NGX_LD_OPT `pkg-config --libs hiredis`"
@@ -46,6 +49,8 @@ if test $HTTP_HI_CPP = YES ; then
     fi
 
     NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/MPFDParser -type f -name '*.cpp'`"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/leveldb -type f -name '*.cc'`"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/msgpack -type f -name '*.c'`"
     NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_hi_module.cpp"
 fi
 
