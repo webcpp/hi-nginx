@@ -560,12 +560,12 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                 || ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) form_urlencoded_type,
                 form_urlencoded_type_len) != 0) {
             ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-                        std::string upload_err_msg;
-                        if (!hi::upload(ngx_request, (const char*) body.data, body.len, TEMP_DIRECTORY, clcf->client_max_body_size, upload_err_msg)) {
-                            ngx_response.content = std::move(upload_err_msg);
-                            ngx_response.status = 500;
-                            goto done;
-                        }
+            std::string upload_err_msg;
+            if (!hi::upload(ngx_request, &body, clcf, r, TEMP_DIRECTORY, upload_err_msg)) {
+                ngx_response.content = std::move(upload_err_msg);
+                ngx_response.status = 500;
+                goto done;
+            }
 
             /*try {
                 if ((hi::is_dir(TEMP_DIRECTORY) || mkdir(TEMP_DIRECTORY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)) {

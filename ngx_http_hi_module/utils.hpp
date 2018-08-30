@@ -1,6 +1,11 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+extern "C" {
+#include <ngx_config.h>
+#include <ngx_core.h>
+#include <ngx_http.h>
+}
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -58,16 +63,16 @@ namespace hi {
         return stat(s.c_str(), &st) >= 0 && S_ISREG(st.st_mode);
     }
 
-    bool upload(hi::request& req, const char* body, size_t body_size, const std::string& temp_dir, long max_body_size, std::string& err_msg) {
+    bool upload(hi::request& req, ngx_str_t* body, ngx_http_core_loc_conf_t* clcf, ngx_http_request_t *r, const std::string& temp_dir, std::string& err_msg) {
         bool result = false;
         try {
             if ((is_dir(temp_dir) || mkdir(temp_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)) {
                 std::shared_ptr<MPFD::Parser> POSTParser(new MPFD::Parser());
                 POSTParser->SetTempDirForFileUpload(temp_dir);
                 POSTParser->SetUploadedFilesStorage(MPFD::Parser::StoreUploadedFilesInFilesystem);
-                POSTParser->SetMaxCollectedDataLength(max_body_size);
-                POSTParser->SetContentType(req.headers["Content-Type"]);
-                POSTParser->AcceptSomeData(body, body_size);
+                POSTParser->SetMaxCollectedDataLength(clcf->client_max_body_size);
+                POSTParser->SetContentType((char*) r->headers_in.content_type->value.data);
+                POSTParser->AcceptSomeData((char*) body->data, body->len);
                 auto fields = POSTParser->GetFieldsMap();
 
                 for (auto &item : fields) {
