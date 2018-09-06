@@ -578,9 +578,10 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             }
         }
     }
-    if (conf->need_session == 1 && ngx_request.cookies.find(SESSION_ID_NAME) != ngx_request.cookies.end()) {
+    std::unordered_map<std::string, std::string>::const_iterator iterator;
+    if (conf->need_session == 1 && (iterator = ngx_request.cookies.find(SESSION_ID_NAME)) != ngx_request.cookies.end()) {
         if (LEVELDB) {
-            SESSION_ID_VALUE = ngx_request.cookies[SESSION_ID_NAME];
+            SESSION_ID_VALUE = iterator->second;
             std::string v;
             if (LEVELDB->Get(leveldb::ReadOptions(), SESSION_ID_VALUE, &v).ok()) {
                 hi::deserialize(v, ngx_request.session);
