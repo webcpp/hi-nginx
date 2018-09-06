@@ -438,10 +438,6 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         conf->module_index = PLUGIN.size() - 1;
         conf->app_type = application_t::__cpp__;
     }
-    if (conf->need_cache == 1 && conf->cache_index == NGX_CONF_UNSET) {
-        CACHE.push_back(std::move(std::make_shared<hi::cache::lru_cache < std::string, hi::cache_t >> (conf->cache_size)));
-        conf->cache_index = CACHE.size() - 1;
-    }
 #ifdef HTTP_HI_PYTHON
     if (conf->python_content.len > 0 || conf->python_script.len > 0) {
         conf->app_type = application_t::__python__;
@@ -477,7 +473,6 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 
 static void clean_up(ngx_cycle_t * cycle) {
     PLUGIN.clear();
-    CACHE.clear();
     if (LEVELDB) {
         delete LEVELDB;
     }
@@ -511,11 +506,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     hi::request ngx_request;
     hi::response ngx_response;
     std::string SESSION_ID_VALUE;
-    std::shared_ptr<hi::cache::lru_cache < std::string, hi::cache_t> > cache_ptr;
     std::unordered_map<std::string, std::string>::const_iterator iterator;
-    if (conf->need_cache == 1) {
-        cache_ptr = CACHE[conf->cache_index];
-    }
 
 
     ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
@@ -523,26 +514,6 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         ngx_request.param.assign((char*) r->args.data, r->args.len);
     }
     std::shared_ptr<std::string> cache_k;
-    if (r->method == NGX_HTTP_GET && conf->need_cache == 1) {
-        ngx_response.headers.insert(std::make_pair("Last-Modified", (char*) ngx_cached_http_time.data));
-        cache_k = std::make_shared<std::string>(ngx_request.uri);
-        if (r->args.len > 0) {
-            cache_k->append("?").append(ngx_request.param);
-        }
-        cache_k->assign(std::move(hi::md5(*cache_k)));
-
-        if (cache_ptr->exists(*cache_k)) {
-            const hi::cache_t& cache_v = cache_ptr->get(*cache_k);
-            if (cache_v.expired(conf->cache_expires)) {
-                cache_ptr->erase(*cache_k);
-            } else {
-                ngx_response.content = cache_v.content;
-                ngx_response.headers.find("Content-Type")->second = cache_v.content_type;
-                ngx_response.status = cache_v.status;
-                goto done;
-            }
-        }
-    }
     if (conf->need_headers == 1) {
         hi::get_input_headers(r, ngx_request.headers);
     }
@@ -634,17 +605,6 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 #endif
         default:break;
     }
-
-
-    if (r->method == NGX_HTTP_GET && conf->need_cache == 1 && ngx_response.status == 200 && conf->cache_expires > 0) {
-        hi::cache_t cache_v;
-        cache_v.content = ngx_response.content;
-        cache_v.content_type = ngx_response.headers.find("Content-Type")->second;
-        cache_v.status = ngx_response.status;
-        cache_v.t = time(NULL);
-        cache_ptr->put(*cache_k, cache_v);
-    }
-
 
     if (conf->need_session == 1 && LEVELDB && !ngx_response.session.empty()) {
         std::unordered_map<std::string, std::string>* ptr = 0;

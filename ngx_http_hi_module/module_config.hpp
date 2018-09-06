@@ -49,7 +49,6 @@ extern "C" {
 #include "utils.hpp"
 
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
-static std::vector<std::shared_ptr<hi::cache::lru_cache<std::string, hi::cache_t>>> CACHE;
 static leveldb::DB* LEVELDB=0;
 static leveldb::Options LEVELDB_OPTIONS;
 
