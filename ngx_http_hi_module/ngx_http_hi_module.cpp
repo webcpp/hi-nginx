@@ -512,6 +512,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     hi::response ngx_response;
     std::string SESSION_ID_VALUE;
     std::shared_ptr<hi::cache::lru_cache < std::string, hi::cache_t> > cache_ptr;
+    std::unordered_map<std::string, std::string>::const_iterator iterator;
     if (conf->need_cache == 1) {
         cache_ptr = CACHE[conf->cache_index];
     }
@@ -578,7 +579,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             }
         }
     }
-    std::unordered_map<std::string, std::string>::const_iterator iterator;
+
     if (conf->need_session == 1 && (iterator = ngx_request.cookies.find(SESSION_ID_NAME)) != ngx_request.cookies.end()) {
         if (LEVELDB) {
             SESSION_ID_VALUE = iterator->second;
