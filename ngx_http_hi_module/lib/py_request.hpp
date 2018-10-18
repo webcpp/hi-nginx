@@ -47,7 +47,7 @@ namespace hi {
         }
 
         std::string get_header(const std::string& key)const {
-            return this->req->headers.find(key)->second;
+            return this->req->headers[key];
         }
 
         bool has_form(const std::string& key) const {
@@ -55,7 +55,7 @@ namespace hi {
         }
 
         std::string get_form(const std::string& key)const {
-            return this->req->form.find(key)->second;
+            return this->req->form[key];
         }
 
         bool has_cookie(const std::string& key) const {
@@ -63,7 +63,7 @@ namespace hi {
         }
 
         std::string get_cookie(const std::string& key)const {
-            return this->req->cookies.find(key)->second;
+            return this->req->cookies[key];
         }
 
         bool has_session(const std::string& key) const {
@@ -71,7 +71,7 @@ namespace hi {
         }
 
         std::string get_session(const std::string& key)const {
-            return this->req->session.find(key)->second;
+            return this->req->session[key];
         }
 
         bool has_cache(const std::string& key) const {
@@ -79,7 +79,7 @@ namespace hi {
         }
 
         std::string get_cache(const std::string& key)const {
-            return this->req->cache.find(key)->second;
+            return this->req->cache[key];
         }
 
     private:
