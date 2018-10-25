@@ -528,9 +528,8 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     }
     if (r->headers_in.content_length_n > 0) {
         ngx_str_t body = hi::get_input_body(r);
-        if (r->headers_in.content_type->value.len < form_urlencoded_type_len
-                || ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) form_urlencoded_type,
-                form_urlencoded_type_len) != 0) {
+        if (ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) form_multipart_type,
+                form_multipart_type_len) == 0) {
             ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
             std::string upload_err_msg;
             if (!hi::upload(ngx_request, &body, clcf, r, TEMP_DIRECTORY, upload_err_msg)) {
@@ -538,8 +537,11 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                 ngx_response.status = 500;
                 goto done;
             }
-        } else {
+        } else if (ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) form_urlencoded_type,
+                form_urlencoded_type_len) == 0) {
             hi::parser_param(std::string((char*) body.data, body.len), ngx_request.form);
+        } else {
+            ngx_request.form["__body__"] = std::move(std::string((char*) body.data, body.len));
         }
     }
     if (conf->need_cookies == 1 && r->headers_in.cookies.elts != NULL && r->headers_in.cookies.nelts != 0) {

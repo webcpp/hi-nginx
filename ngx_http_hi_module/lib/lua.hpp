@@ -60,21 +60,24 @@ namespace hi {
         }
 
         void set_res(py_response* res) {
+            this->res = res;
             this->state["hi_res"] = res;
         }
 
         void call_script(const std::string& lua_script) {
-            if (!this->state.dofile(lua_script)) {
+            this->state.setErrorHandler([&](int errCode, const char * szError) {
+                this->res->content(szError);
                 this->res->status(500);
-                this->res->content(this->error_message);
-            }
+            });
+            this->state.dofile(lua_script);
         }
 
         void call_content(const std::string& py_content) {
-            if (!this->state.dostring(py_content)) {
+            this->state.setErrorHandler([&](int errCode, const char * szError) {
+                this->res->content(szError);
                 this->res->status(500);
-                this->res->content(this->error_message);
-            }
+            });
+            this->state.dostring(py_content);
         }
 
 

@@ -10,9 +10,11 @@ extern "C" {
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "1.6.9"
+#define HI_NGINX_SERVER_VERSION "1.7.0"
 #define HI_NGINX_SERVER_NAME "hi-nginx"
 #define SESSION_ID_NAME "SESSIONID"
+#define form_multipart_type "multipart/form-data"
+#define form_multipart_type_len (sizeof(form_multipart_type) - 1)
 #define form_urlencoded_type "application/x-www-form-urlencoded"
 #define form_urlencoded_type_len (sizeof(form_urlencoded_type) - 1)
 #define TEMP_DIRECTORY "temp"
@@ -49,7 +51,7 @@ extern "C" {
 #include "utils.hpp"
 
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
-static leveldb::DB* LEVELDB=0;
+static leveldb::DB* LEVELDB = 0;
 static leveldb::Options LEVELDB_OPTIONS;
 
 #ifdef HTTP_HI_PYTHON
@@ -75,7 +77,6 @@ static std::shared_ptr<hi::cache::lru_cache<std::string, hi::java_servlet_t>> JA
 #include "lib/php-x/phpx_embed.h"
 static std::shared_ptr<php::VM> PHP;
 #endif
-
 
 typedef struct {
     ngx_str_t module_path
