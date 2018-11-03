@@ -299,6 +299,29 @@ ngx_module_t ngx_http_hi_module = {
 };
 
 static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    if (mtx == 0) {
+        mtx = (pthread_mutex_t*) mmap(0, sizeof (pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (mtx != MAP_FAILED) {
+            if (mtx_attr == 0) {
+                mtx_attr = (pthread_mutexattr_t*) mmap(0, sizeof (pthread_mutexattr_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+                if (mtx_attr != MAP_FAILED) {
+                    pthread_mutexattr_init(mtx_attr);
+                    pthread_mutexattr_setpshared(mtx_attr, PTHREAD_PROCESS_SHARED);
+                    pthread_mutexattr_settype(mtx_attr, PTHREAD_MUTEX_DEFAULT);
+                    pthread_mutex_init(mtx, mtx_attr);
+                    if (cpu_count == 0) {
+                        cpu_count = (size_t*) mmap(0, sizeof (size_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+                        if (cpu_count != MAP_FAILED) {
+                            pthread_mutex_lock(mtx);
+                            *cpu_count = 0;
+                            pthread_mutex_unlock(mtx);
+                        }
+                    }
+
+                }
+            }
+        }
+    }
     ngx_http_core_loc_conf_t *clcf;
     clcf = (ngx_http_core_loc_conf_t *) ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
     clcf->handler = ngx_http_hi_handler;
@@ -472,6 +495,12 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 }
 
 static void clean_up(ngx_cycle_t * cycle) {
+    if (mtx)pthread_mutex_destroy(mtx);
+    if (mtx_attr)pthread_mutexattr_destroy(mtx_attr);
+    if (mtx_attr)munmap(mtx_attr, sizeof (pthread_mutexattr_t));
+    if (mtx)munmap(mtx, sizeof (pthread_mutex_t));
+    if (cpu_count)munmap(cpu_count, sizeof (size_t));
+
     PLUGIN.clear();
     if (LEVELDB) {
         delete LEVELDB;
@@ -682,7 +711,15 @@ static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
     if (!LEVELDB) {
         LEVELDB_OPTIONS.create_if_missing = true;
-        leveldb::DB::Open(LEVELDB_OPTIONS, LEVELDB_PATH + ("/" + std::to_string(getpid() % getppid())), &LEVELDB);
+        std::string i;
+        pthread_mutex_lock(mtx);
+        if (*cpu_count > std::thread::hardware_concurrency() - 1) {
+            *cpu_count = 0;
+        }
+        i = std::move(std::to_string(*cpu_count));
+        *cpu_count = (*cpu_count) + 1;
+        pthread_mutex_unlock(mtx);
+        leveldb::DB::Open(LEVELDB_OPTIONS, LEVELDB_PATH + ("/" + i), &LEVELDB);
     }
 
 
