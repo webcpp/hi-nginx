@@ -13,7 +13,7 @@ if ! test -f Makefile;then
                 --with-http-hi-python-version=python-3.5               \
                 --with-http-hi-lua-version=lua5.1                   \
                 --add-module=ngx_http_hi_module                     \
-                --add-module=3rd/nchan-1.2.1                       \
+                --add-module=3rd/nchan-1.2.3                       \
                 --add-module=3rd/nginx-rtmp-module-1.2.1            
 else
     echo ready.
