@@ -447,11 +447,15 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_sec_value(conf->kvdb_expires, prev->kvdb_expires, (ngx_int_t) 300);
     ngx_conf_merge_sec_value(conf->session_expires, prev->session_expires, (ngx_int_t) 300);
     ngx_conf_merge_value(conf->need_headers, prev->need_headers, (ngx_flag_t) 0);
-    ngx_conf_merge_value(conf->need_cache, prev->need_cache, (ngx_flag_t) 1);
+    ngx_conf_merge_value(conf->need_cache, prev->need_cache, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_kvdb, prev->need_kvdb, (ngx_flag_t) 1);
     ngx_conf_merge_value(conf->need_cookies, prev->need_cookies, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_session, prev->need_session, (ngx_flag_t) 0);
 
+    if (conf->need_cache == 1 && conf->cache_index == NGX_CONF_UNSET) {
+        CACHE.push_back(std::move(std::make_shared<lru11::Cache<std::string, std::shared_ptr < hi::cache_t>>>(conf->cache_size)));
+        conf->cache_index = CACHE.size() - 1;
+    }
 
     if (conf->need_session == 1 && conf->need_cookies == 0) {
         conf->need_cookies = 1;
@@ -502,6 +506,7 @@ static void clean_up(ngx_cycle_t * cycle) {
     if (cpu_count)munmap(cpu_count, sizeof (size_t));
 
     PLUGIN.clear();
+    CACHE.clear();
     if (LEVELDB) {
         delete LEVELDB;
     }
@@ -542,7 +547,27 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     if (r->args.len > 0) {
         ngx_request.param.assign((char*) r->args.data, r->args.len);
     }
-    std::shared_ptr<std::string> cache_k;
+    std::shared_ptr<std::string> cache_k = std::make_shared<std::string>(ngx_request.uri);
+    if (r->args.len > 0) {
+        cache_k->append("?").append(ngx_request.param);
+    }
+    cache_k->assign(std::move(hi::md5(*cache_k)));
+    if (r->method == NGX_HTTP_GET && conf->need_cache == 1) {
+        auto lru_cache = CACHE[conf->cache_index];
+        if (lru_cache->contains(*cache_k)) {
+            auto cache_ele = lru_cache->get(*cache_k);
+            if (cache_ele->expired(conf->cache_expires)) {
+                lru_cache->remove(*cache_k);
+            } else {
+                ngx_response.content = cache_ele->content;
+                ngx_response.headers.find("Content-Type")->second = cache_ele->content_type;
+                ngx_response.status = cache_ele->status;
+                goto done;
+            }
+        }
+    }
+
+
     if (conf->need_headers == 1) {
         hi::get_input_headers(r, ngx_request.headers);
     }
@@ -597,13 +622,6 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
     if (conf->need_kvdb == 1) {
         if (LEVELDB) {
-            if (!cache_k) {
-                cache_k = std::make_shared<std::string>(ngx_request.uri);
-                if (r->args.len > 0) {
-                    cache_k->append("?").append(ngx_request.param);
-                }
-                cache_k->assign(std::move(hi::md5(*cache_k)));
-            }
             std::string cache_v;
             if (LEVELDB->Get(leveldb::ReadOptions(), *cache_k, &cache_v).ok()) {
                 hi::deserialize(cache_v, ngx_request.cache);
@@ -635,6 +653,13 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             break;
 #endif
         default:break;
+    }
+
+    if (r->method == NGX_HTTP_GET && conf->need_cache == 1 && ngx_response.status == 200 && conf->cache_expires > 0) {
+        std::shared_ptr<hi::cache_t> cache_v = std::make_shared<hi::cache_t>();
+        cache_v->content = ngx_response.content;
+        cache_v->content_type = ngx_response.headers.find("Content-Type")->second;
+        CACHE[conf->cache_index]->insert(*cache_k, cache_v);
     }
 
     if (conf->need_session == 1 && LEVELDB && !ngx_response.session.empty()) {

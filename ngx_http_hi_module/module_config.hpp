@@ -10,7 +10,7 @@ extern "C" {
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "1.7.1"
+#define HI_NGINX_SERVER_VERSION "1.7.2"
 #define HI_NGINX_SERVER_NAME "hi-nginx"
 #define SESSION_ID_NAME "SESSIONID"
 #define form_multipart_type "multipart/form-data"
@@ -43,6 +43,7 @@ extern "C" {
 #include "include/response.hpp"
 #include "include/servlet.hpp"
 #include "lib/module.hpp"
+#include "lib/LRUCache11.hpp"
 #include "lib/lrucache.hpp"
 #include "lib/param.hpp"
 #include "lib/MPFDParser/Parser.h"
@@ -57,6 +58,7 @@ pthread_mutex_t *mtx = 0;
 pthread_mutexattr_t *mtx_attr = 0;
 size_t *cpu_count = 0;
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
+static std::vector<std::shared_ptr<lru11::Cache<std::string,std::shared_ptr<hi::cache_t>>>> CACHE;
 static leveldb::DB* LEVELDB = 0;
 static leveldb::Options LEVELDB_OPTIONS;
 

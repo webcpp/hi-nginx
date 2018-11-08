@@ -6,8 +6,13 @@
 
 namespace hi {
 
-    struct cache_t {
-        int status = 200;
+    class cache_t {
+    public:
+
+        cache_t() : status(200), t(time(0)), content_type(), content() {
+        }
+        ~cache_t() = default;
+        int status;
         time_t t;
         std::string content_type, content;
 
