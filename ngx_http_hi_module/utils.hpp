@@ -54,13 +54,13 @@ namespace hi {
     static bool is_dir(const std::string& s) {
         struct stat st;
 
-        return stat(s.c_str(), &st) >= 0 && S_ISDIR(st.st_mode);
+        return stat(s.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
     }
 
     static bool is_file(const std::string& s) {
         struct stat st;
 
-        return stat(s.c_str(), &st) >= 0 && S_ISREG(st.st_mode);
+        return stat(s.c_str(), &st) == 0 && S_ISREG(st.st_mode);
     }
 
     bool upload(hi::request& req, ngx_str_t* body, ngx_http_core_loc_conf_t* clcf, ngx_http_request_t *r, const std::string& temp_dir, std::string& err_msg) {

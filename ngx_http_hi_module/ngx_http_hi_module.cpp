@@ -4,7 +4,8 @@
 static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* child);
-static void clean_up(ngx_cycle_t * cycle);
+static void ngx_http_hi_exit_process(ngx_cycle_t* cycle);
+static void ngx_http_hi_exit_master(ngx_cycle_t* cycle);
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r);
 static void ngx_http_hi_body_handler(ngx_http_request_t* r);
 static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r);
@@ -293,8 +294,8 @@ ngx_module_t ngx_http_hi_module = {
     NULL, /* init process */
     NULL, /* init thread */
     NULL, /* exit thread */
-    clean_up, /* exit process */
-    NULL, /* exit master */
+    ngx_http_hi_exit_process, /* exit process */
+    ngx_http_hi_exit_master, /* exit master */
     NGX_MODULE_V1_PADDING
 };
 
@@ -498,13 +499,12 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     return NGX_CONF_OK;
 }
 
-static void clean_up(ngx_cycle_t * cycle) {
+static void ngx_http_hi_exit_process(ngx_cycle_t * cycle) {
     if (mtx)pthread_mutex_destroy(mtx);
     if (mtx_attr)pthread_mutexattr_destroy(mtx_attr);
     if (mtx_attr)munmap(mtx_attr, sizeof (pthread_mutexattr_t));
     if (mtx)munmap(mtx, sizeof (pthread_mutex_t));
     if (cpu_count)munmap(cpu_count, sizeof (size_t));
-
     PLUGIN.clear();
     CACHE.clear();
     if (LEVELDB) {
@@ -524,6 +524,10 @@ static void clean_up(ngx_cycle_t * cycle) {
 #ifdef HTTP_HI_PHP
     PHP.reset();
 #endif
+}
+
+static void ngx_http_hi_exit_master(ngx_cycle_t * cycle) {
+
 }
 
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
