@@ -666,7 +666,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         CACHE[conf->cache_index]->insert(*cache_k, cache_v);
         u_char tmp_t[100];
         ngx_http_time(tmp_t, time(0));
-        ngx_response.headers.insert(std::make_pair("Last-Modified", (char*) now));
+        ngx_response.headers.insert(std::make_pair("Last-Modified", (char*) tmp_t));
     }
 
     if (conf->need_session == 1 && LEVELDB && !ngx_response.session.empty()) {
