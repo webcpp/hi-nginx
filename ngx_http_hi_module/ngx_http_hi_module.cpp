@@ -534,7 +534,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
 
-    if (r->headers_in.if_modified_since && r->headers_in.if_modified_since->value.data) {
+    if (conf->need_cache == 1 && r->headers_in.if_modified_since && r->headers_in.if_modified_since->value.data) {
         time_t now = time(NULL), old = ngx_http_parse_time(r->headers_in.if_modified_since->value.data, r->headers_in.if_modified_since->value.len);
         if (difftime(now, old) <= conf->cache_expires) {
             return NGX_HTTP_NOT_MODIFIED;
@@ -664,6 +664,9 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         cache_v->content = ngx_response.content;
         cache_v->content_type = ngx_response.headers.find("Content-Type")->second;
         CACHE[conf->cache_index]->insert(*cache_k, cache_v);
+        u_char tmp_t[100];
+        ngx_http_time(tmp_t, time(0));
+        ngx_response.headers.insert(std::make_pair("Last-Modified", (char*) now));
     }
 
     if (conf->need_session == 1 && LEVELDB && !ngx_response.session.empty()) {

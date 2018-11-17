@@ -105,7 +105,6 @@ namespace hi {
     }
 
     void deserialize(const std::string& str, std::unordered_map<std::string, std::string>& m) {
-        // m=msgpack::unpack(str.c_str(), str.size()).get().as<std::unordered_map<std::string, std::string>>();
         msgpack::unpack(str.c_str(), str.size()).get().convert(m);
     }
 }
