@@ -566,6 +566,9 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                 ngx_response.content = cache_ele->content;
                 ngx_response.headers.find("Content-Type")->second = cache_ele->content_type;
                 ngx_response.status = cache_ele->status;
+                u_char tmp_t[100];
+                ngx_http_time(tmp_t, time(0));
+                ngx_response.headers.insert(std::make_pair("Last-Modified", (char*) tmp_t));
                 goto done;
             }
         }
