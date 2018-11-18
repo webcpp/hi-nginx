@@ -16,6 +16,7 @@ extern "C" {
 #include <string>
 #include <ctime>
 #include <sstream>
+#include <fstream>
 #include <unordered_map>
 
 #include "include/request.hpp"
@@ -63,7 +64,12 @@ namespace hi {
         return stat(s.c_str(), &st) == 0 && S_ISREG(st.st_mode);
     }
 
-    bool upload(hi::request& req, ngx_str_t* body, ngx_http_core_loc_conf_t* clcf, ngx_http_request_t *r, const std::string& temp_dir, std::string& err_msg) {
+    static std::string read_file(const std::string& path) {
+        std::ifstream ifs(path.c_str());
+        return std::string((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    }
+
+    static bool upload(hi::request& req, ngx_str_t* body, ngx_http_core_loc_conf_t* clcf, ngx_http_request_t *r, const std::string& temp_dir, std::string & err_msg) {
         bool result = false;
         try {
             if ((is_dir(temp_dir) || mkdir(temp_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)) {
@@ -97,14 +103,14 @@ namespace hi {
         return result;
     }
 
-    std::string serialize(const std::unordered_map<std::string, std::string>& m) {
+    static std::string serialize(const std::unordered_map<std::string, std::string>& m) {
         std::stringstream ss;
         msgpack::pack(ss, m);
         ss.seekg(0);
         return ss.str();
     }
 
-    void deserialize(const std::string& str, std::unordered_map<std::string, std::string>& m) {
+    static void deserialize(const std::string& str, std::unordered_map<std::string, std::string>& m) {
         msgpack::unpack(str.c_str(), str.size()).get().convert(m);
     }
 }

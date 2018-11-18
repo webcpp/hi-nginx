@@ -1,6 +1,7 @@
 #ifndef JAVA_HANDLER_HPP
 #define JAVA_HANDLER_HPP
 
+
 #include "module_config.hpp"
 #include "lib/java.hpp"
 
@@ -377,15 +378,12 @@ update_string_compiledscript_instance:
                                     script_content = JAVA->env->NewStringUTF(md5val.c_str());
                                 } else {
 update_javascript_content:
-                                    std::ifstream file_input(script_path);
-                                    std::string script_str((std::istreambuf_iterator<char>(file_input)), std::istreambuf_iterator<char>());
+                                    std::string script_str = std::move(read_file(script_path));
                                     script_content = JAVA->env->NewStringUTF(script_str.c_str());
                                     LEVELDB->Put(leveldb::WriteOptions(), md5key, script_str);
                                 }
                             } else {
-                                std::ifstream file_input(script_path);
-                                std::string script_str((std::istreambuf_iterator<char>(file_input)), std::istreambuf_iterator<char>());
-                                script_content = JAVA->env->NewStringUTF(script_str.c_str());
+                                script_content = JAVA->env->NewStringUTF(read_file(script_path).c_str());
                             }
                             if (engine.second != NULL) {
                                 jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
