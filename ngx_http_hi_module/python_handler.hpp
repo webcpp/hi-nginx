@@ -9,7 +9,7 @@
 
 namespace hi {
 
-    static void ngx_http_hi_python_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    static void ngx_http_hi_python_handler(ngx_http_request_t *r,ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
         hi::py_request py_req;
         hi::py_response py_res;
         py_req.init(&req);

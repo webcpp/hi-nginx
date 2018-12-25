@@ -181,6 +181,40 @@ ngx_command_t ngx_http_hi_commands[] = {
         NULL
     },
 #endif
+#ifdef HTTP_HI_DUKTAPE
+    {
+        ngx_string("hi_duktape_script"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_http_hi_conf_init,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, duktape_script),
+        NULL
+    },
+    {
+        ngx_string("hi_duktape_content"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_http_hi_conf_init,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, duktape_content),
+        NULL
+    },
+    {
+        ngx_string("hi_duktape_package_path"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_str_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, duktape_package_path),
+        NULL
+    },
+    {
+        ngx_string("hi_duktape_package_cpath"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_str_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, duktape_package_cpath),
+        NULL
+    },
+#endif
 #ifdef HTTP_HI_JAVA
     {
         ngx_string("hi_java_classpath"),
@@ -374,6 +408,16 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->lua_package_cpath.len = 0;
         conf->lua_package_cpath.data = NULL;
 #endif
+#ifdef HTTP_HI_DUKTAPE
+        conf->duktape_script.len = 0;
+        conf->duktape_script.data = NULL;
+        conf->duktape_content.len = 0;
+        conf->duktape_content.data = NULL;
+        conf->duktape_package_path.len = 0;
+        conf->duktape_package_path.data = NULL;
+        conf->duktape_package_cpath.len = 0;
+        conf->duktape_package_cpath.data = NULL;
+#endif
 #ifdef HTTP_HI_PHP
         conf->php_script.len = 0;
         conf->php_script.data = NULL;
@@ -419,6 +463,12 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_str_value(conf->lua_content, prev->lua_content, "");
     ngx_conf_merge_str_value(conf->lua_package_path, prev->lua_package_path, "");
     ngx_conf_merge_str_value(conf->lua_package_cpath, prev->lua_package_cpath, "");
+#endif
+#ifdef HTTP_HI_DUKTAPE
+    ngx_conf_merge_str_value(conf->duktape_script, prev->duktape_script, "");
+    ngx_conf_merge_str_value(conf->duktape_content, prev->duktape_content, "");
+    ngx_conf_merge_str_value(conf->duktape_package_path, prev->duktape_package_path, "");
+    ngx_conf_merge_str_value(conf->duktape_package_cpath, prev->duktape_package_cpath, "");
 #endif
 #ifdef HTTP_HI_PHP
     ngx_conf_merge_str_value(conf->php_script, prev->php_script, "");
@@ -476,6 +526,11 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         conf->app_type = application_t::__lua__;
     }
 #endif
+#ifdef HTTP_HI_DUKTAPE
+    if (conf->duktape_content.len > 0 || conf->duktape_script.len > 0) {
+        conf->app_type = application_t::__duktape__;
+    }
+#endif
 #ifdef HTTP_HI_PHP
     if (conf->php_script.len > 0) {
         conf->app_type = application_t::__php__;
@@ -515,6 +570,9 @@ static void ngx_http_hi_exit_process(ngx_cycle_t * cycle) {
 #endif
 #ifdef HTTP_HI_LUA
     LUA.reset();
+#endif
+#ifdef HTTP_HI_DUKTAPE
+    DUKTAPE.reset();
 #endif
 #ifdef HTTP_HI_JAVA
     JAVA.reset();
@@ -639,24 +697,28 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     }
 
     switch (conf->app_type) {
-        case application_t::__cpp__:hi::ngx_http_hi_cpp_handler(conf, ngx_request, ngx_response);
+        case application_t::__cpp__:hi::ngx_http_hi_cpp_handler(r, conf, ngx_request, ngx_response);
             break;
 #ifdef HTTP_HI_PYTHON
-        case application_t::__python__:hi::ngx_http_hi_python_handler(conf, ngx_request, ngx_response);
+        case application_t::__python__:hi::ngx_http_hi_python_handler(r, conf, ngx_request, ngx_response);
             break;
 #endif
 #ifdef HTTP_HI_LUA
-        case application_t::__lua__:hi::ngx_http_hi_lua_handler(conf, ngx_request, ngx_response);
+        case application_t::__lua__:hi::ngx_http_hi_lua_handler(r, conf, ngx_request, ngx_response);
+            break;
+#endif
+#ifdef HTTP_HI_DUKTAPE
+        case application_t::__duktape__:hi::ngx_http_hi_duktape_handler(r, conf, ngx_request, ngx_response);
             break;
 #endif
 #ifdef HTTP_HI_JAVA
-        case application_t::__java__:hi::ngx_http_hi_java_handler(conf, ngx_request, ngx_response);
+        case application_t::__java__:hi::ngx_http_hi_java_handler(r, conf, ngx_request, ngx_response);
             break;
-        case application_t::__javascript__:hi::ngx_http_hi_javascript_handler(conf, ngx_request, ngx_response);
+        case application_t::__javascript__:hi::ngx_http_hi_javascript_handler(r, conf, ngx_request, ngx_response);
             break;
 #endif
 #ifdef HTTP_HI_PHP
-        case application_t::__php__:hi::ngx_http_hi_php_handler(conf, ngx_request, ngx_response);
+        case application_t::__php__:hi::ngx_http_hi_php_handler(r, conf, ngx_request, ngx_response);
             break;
 #endif
         default:break;

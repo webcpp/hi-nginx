@@ -281,7 +281,7 @@ namespace hi {
         return result;
     }
 
-    static void ngx_http_hi_java_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    static void ngx_http_hi_java_handler(ngx_http_request_t *r,ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
         if (java_init_handler(conf)) {
 
             jobject request_instance, response_instance;
@@ -325,7 +325,7 @@ update_java_servlet:
         }
     }
 
-    static void ngx_http_hi_javascript_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    static void ngx_http_hi_javascript_handler(ngx_http_request_t *r,ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
         if (java_init_handler(conf) && javascript_engine_init_handler(conf)) {
 
             std::pair<jobject, jobject>& engine = JAVA->engines[conf->javascript_engine_index];

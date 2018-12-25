@@ -7,7 +7,7 @@
 
 namespace hi {
 
-    static void ngx_http_hi_php_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    static void ngx_http_hi_php_handler(ngx_http_request_t *r,ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
         if (!PHP) {
             int argc = 1;
             char* argv[2] = {"ngx_http_hi_php", NULL};

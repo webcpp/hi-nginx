@@ -16,6 +16,9 @@ enum application_t {
 #ifdef HTTP_HI_PHP
     __php__,
 #endif
+#ifdef HTTP_HI_DUKTAPE
+    __duktape__,
+#endif
     __unkown__
 };
 

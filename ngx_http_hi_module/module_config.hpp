@@ -10,7 +10,7 @@ extern "C" {
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "1.7.6"
+#define HI_NGINX_SERVER_VERSION "1.7.7"
 #define HI_NGINX_SERVER_NAME "hi-nginx"
 #define SESSION_ID_NAME "SESSIONID"
 #define form_multipart_type "multipart/form-data"
@@ -24,6 +24,7 @@ extern "C" {
 //#define HTTP_HI_JAVA
 //#define HTTP_HI_PYTHON
 //#define HTTP_HI_PHP
+//#define HTTP_HI_DUKTAPE
 
 #ifndef HTTP_HI_CPP
 #define HTTP_HI_CPP
@@ -86,6 +87,11 @@ static std::shared_ptr<hi::cache::lru_cache<std::string, hi::java_servlet_t>> JA
 static std::shared_ptr<php::VM> PHP;
 #endif
 
+#ifdef HTTP_HI_DUKTAPE
+#include "lib/duktape.hpp"
+static std::shared_ptr<hi::duktape> DUKTAPE;
+#endif
+
 typedef struct {
     ngx_str_t module_path
     , redis_host
@@ -110,6 +116,12 @@ typedef struct {
 #endif
 #ifdef HTTP_HI_PHP
     , php_script
+#endif
+#ifdef HTTP_HI_DUKTAPE
+    , duktape_script
+    , duktape_content
+    , duktape_package_path
+    , duktape_package_cpath
 #endif
     ;
     ngx_int_t module_index
