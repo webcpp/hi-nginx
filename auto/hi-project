@@ -2,7 +2,7 @@ if test -n "$1";then
     if test "$1" = "--help" || test "$1" = "-h" ;then
         echo \$1:project name.
         echo -e "\tdefault:demo"
-        echo \$2:type:cpp,python,lua ,php , java or javascript
+        echo \$2:type:cpp,python,lua ,php , java , javascript or duktape
         echo -e "\tdefault:cpp"
         echo \$3:hi\(nginx\) install directory.
         echo -e "\tdefault:/usr/local/nginx"
@@ -127,6 +127,40 @@ cat << END                                                     > $PROJECT/$PROJE
 
 hi_res.status(200)
 hi_res.content('hello,python')
+
+
+END
+}
+
+duktape_makefile_tpl(){
+
+cat << END                                                     > $PROJECT/Makefile
+
+SRC=\$(shell find . -type f | egrep *.js\$\$)
+
+ifndef NGINX_INSTALL_DIR
+NGINX_INSTALL_DIR=/usr/local/nginx
+endif
+
+all:
+	@echo 'ok'
+
+clean:
+	@echo 'ok'
+
+install:\${SRC}
+	for i in \${SRC};do test -d \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` || mkdir -p \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` && install \$\$i \$(NGINX_INSTALL_DIR)/$TYPE/\$\$i ;done
+
+
+END
+
+echo "create hi project $PROJECT demo source file."
+
+cat << END                                                     > $PROJECT/$PROJECT.js
+
+hi_res.status(200)
+hi_res.header('Content-Type','text/plain;charset=UTF-8')
+hi_res.content('hello,duktape')
 
 
 END
@@ -368,10 +402,11 @@ case $TYPE in
     cpp) cpp_makefile_tpl;;
     python) python_makefile_tpl;;
     lua) lua_makefile_tpl;;
+    duktape) duktape_makefile_tpl;;
     java) java_makefile_tpl;;
     php) php_makefile_tpl;;
     javascript) javascript_makefile_tpl;;
-    *) echo 'Please set TYPE in (cpp,python,lua,php, java or javascript)';;
+    *) echo 'Please set TYPE in (cpp,python,lua,php, java, javascript or duktape)';;
 esac
 
 if ! test -f Makefile ;
