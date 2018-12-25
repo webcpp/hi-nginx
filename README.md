@@ -123,7 +123,7 @@ include_path = ".:/usr/local/nginx/php"
 ```
 
 
-# python, lua,javascript and duktape api
+# python, lua and duktape api
 ## hi_req
 - uri
 - method
