@@ -1,4 +1,26 @@
 #include "module_config.hpp"
+
+#ifdef HTTP_HI_PYTHON
+#include "python_handler.hpp"
+#endif
+
+#ifdef HTTP_HI_LUA
+#include "lua_handler.hpp"
+#endif
+
+#ifdef HTTP_HI_DUKTAPE
+#include "duktape_handler.hpp"
+#endif
+
+#ifdef HTTP_HI_JAVA
+#include "java_handler.hpp"
+#endif
+
+#ifdef HTTP_HI_PHP
+#include "php_handler.hpp"
+#endif
+
+
 #include "cpp_handler.hpp"
 
 static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);

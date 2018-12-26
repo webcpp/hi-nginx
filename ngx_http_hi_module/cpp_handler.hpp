@@ -3,26 +3,6 @@
 
 #include "module_config.hpp"
 
-#ifdef HTTP_HI_PYTHON
-#include "python_handler.hpp"
-#endif
-
-#ifdef HTTP_HI_LUA
-#include "lua_handler.hpp"
-#endif
-
-#ifdef HTTP_HI_LUA
-#include "duktape_handler.hpp"
-#endif
-
-#ifdef HTTP_HI_JAVA
-#include "java_handler.hpp"
-#endif
-
-#ifdef HTTP_HI_PHP
-#include "php_handler.hpp"
-#endif
-
 namespace hi {
 
     static void get_input_headers(ngx_http_request_t* r, std::unordered_map<std::string, std::string>& input_headers) {
