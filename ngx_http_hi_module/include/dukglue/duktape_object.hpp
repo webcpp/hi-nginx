@@ -1,5 +1,5 @@
-#ifndef DUKTAP_OBJECT_HPP
-#define DUKTAP_OBJECT_HPP
+#ifndef DUKTAPE_OBJECT_HPP
+#define DUKTAPE_OBJECT_HPP
 
 namespace hi {
 
@@ -10,5 +10,5 @@ namespace hi {
     };
 }
 
-#endif /* DUKTAP_OBJECT_HPP */
+#endif /* DUKTAPE_OBJECT_HPP */
 

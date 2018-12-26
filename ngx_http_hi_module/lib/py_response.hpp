@@ -2,7 +2,7 @@
 #define PY_RESPONSE_HPP
 
 
-#include "../include/response.hpp"
+#include "response.hpp"
 
 namespace hi {
 

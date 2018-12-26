@@ -12,11 +12,13 @@ if test $HTTP_HI_CPP = YES ; then
 
     CXXFLAGS="$CXXFLAGS -DHTTP_HI_CPP"
     CXXFLAGS="$CXXFLAGS -O3 -std=c++11"
+    CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir -I$ngx_addon_dir/include -I$ngx_addon_dir/include/dukglue"
     CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib"
     CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib/leveldb -DLEVELDB_PLATFORM_POSIX"
     CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib/msgpack"
 
     CFLAGS="$CFLAGS -O3"
+    CFLAGS="$CFLAGS -I$ngx_addon_dir -I$ngx_addon_dir/include -I$ngx_addon_dir/include/dukglue"
     CFLAGS="$CFLAGS -I$ngx_addon_dir/lib"
     CFLAGS="$CFLAGS -I$ngx_addon_dir/lib/msgpack"
 

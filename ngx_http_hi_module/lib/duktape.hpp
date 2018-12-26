@@ -13,11 +13,12 @@
 #include "dukglue/duk_print_alert.h"
 #include "dukglue/duk_module_duktape.h"
 #include "dukglue/duk_console.h"
+#include "dukglue/duktape_object.hpp"
 #include "dukglue/dukglue.h"
 #include "py_request.hpp"
 #include "py_response.hpp"
-#include "../utils.hpp"
-#include "../include/duktap_object.hpp"
+#include "utils.hpp"
+
 #include "file_mmap.hpp"
 
 namespace hi {

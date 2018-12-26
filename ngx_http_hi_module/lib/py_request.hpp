@@ -2,7 +2,7 @@
 #define PY_REQUEST_HPP
 
 
-#include "../include/request.hpp"
+#include "request.hpp"
 
 namespace hi {
 
