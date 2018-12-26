@@ -593,8 +593,8 @@ or
     
 ```nginx
 
-            location = /luaecho {
-                hi_duktape_content "hi_res:status(200);hi_res:content('hello,world')" ;
+            location = /jsecho {
+                hi_duktape_content "hi_res.status(200);hi_res.content('hello,world')" ;
             }
 
 ```
@@ -606,7 +606,7 @@ or
     
 ```nginx
 
-            location ~ \.lua$  {
+            location ~ \.js$  {
                 hi_duktape_script duktape;
             }
 
