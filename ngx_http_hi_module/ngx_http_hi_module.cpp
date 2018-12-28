@@ -923,10 +923,9 @@ static ngx_int_t ngx_http_hi_subrequest_post_handler(ngx_http_request_t *r, void
     pr->headers_out.status = r->headers_out.status;
     std::string subrequest_key = std::move(subrequest_md5key(pr, conf));
     std::shared_ptr<hi::request> req(new hi::request());
-    ngx_buf_t *upstream_buffer = 0;
     req->form[SUBREQUEST_CONTENT_TYPE_NAME] = std::move(std::string((char*) r->headers_out.content_type.data, r->headers_out.content_type.len));
     req->form[SUBREQUEST_STATUS_NAME] = std::move(std::to_string(r->headers_out.status));
-    upstream_buffer = &r->upstream->buffer;
+    ngx_buf_t *upstream_buffer = &r->upstream->buffer;
     for (; upstream_buffer->pos != upstream_buffer->last; upstream_buffer->pos++) {
         req->form[SUBREQUEST_BODY_NAME].push_back(*upstream_buffer->pos);
     }
