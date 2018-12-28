@@ -643,6 +643,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     hi::request ngx_request;
     hi::response ngx_response;
     bool subrequest_is_found = false;
+    std::shared_ptr<std::string> cache_k = std::make_shared<std::string>();
     if (conf->subrequest.len > 0) {
         std::string subrequest_key = std::move(subrequest_md5key(r, conf));
         std::unordered_map<std::string, std::shared_ptr < hi::request>>::iterator subrequest_response_iter;
@@ -650,26 +651,26 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         if ((subrequest_response_iter = SUB_REQUEST_RESPONSE.find(subrequest_key)) != SUB_REQUEST_RESPONSE.end()) {
             ngx_request = *subrequest_response_iter->second;
             subrequest_is_found = true;
+            cache_k->assign(std::move(subrequest_key));
         } else {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to subrequest.");
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
     } else {
         ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
+        cache_k->assign(ngx_request.uri);
+        if (r->args.len > 0) {
+            ngx_request.param.assign((char*) r->args.data, r->args.len);
+            cache_k->append("?").append(ngx_request.param);
+        }
+
+        cache_k->assign(std::move(hi::md5(*cache_k)));
     }
 
 
     std::string SESSION_ID_VALUE;
     std::unordered_map<std::string, std::string>::const_iterator iterator;
 
-
-    std::shared_ptr<std::string> cache_k = std::make_shared<std::string>(ngx_request.uri);
-    if (r->args.len > 0) {
-        ngx_request.param.assign((char*) r->args.data, r->args.len);
-        cache_k->append("?").append(ngx_request.param);
-    }
-
-    cache_k->assign(std::move(hi::md5(*cache_k)));
 
     if (r->method == NGX_HTTP_GET && conf->need_cache == 1) {
         auto lru_cache = CACHE[conf->cache_index];

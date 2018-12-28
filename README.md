@@ -806,7 +806,7 @@ or
 
         location ^~ /query {
                 internal;
-                proxy_pass /echo;
+                proxy_pass http://127.0.0.1/echo;
                 proxy_set_header Accept-Encoding '';
         }
 
