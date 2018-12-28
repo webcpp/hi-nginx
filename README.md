@@ -800,19 +800,15 @@ or
                 hi_lua_content 'hi_res:header("Content-Type",hi_req:get_form("__subrequest_content_type__"))\nhi_res:status(tonumber(hi_req:get_form("__subrequest_status__")))\nhi_res:content(hi_req:get_form("__subrequest_body__"))';
         }
 
-        location ^~ /echo {
-                hi_lua_content "hi_res:content('hello,subrequest,'..hi_req:param())\nhi_res:status(200)";
-        }
-
         location ^~ /query {
                 internal;
-                proxy_pass http://127.0.0.1/echo;
+                proxy_pass http://http://hq.sinajs.cn/;
                 proxy_set_header Accept-Encoding '';
         }
-
-
+#  curl -i http://localhost/sub?list=sh601006
 
 ```
+
 
 ## nginx.conf
 
