@@ -651,8 +651,11 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
             ngx_request = *subrequest_response_iter->second;
             subrequest_is_found = true;
         } else {
-            ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to subrequest.");
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
+    } else {
+        ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
     }
 
 
