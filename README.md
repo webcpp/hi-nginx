@@ -789,6 +789,31 @@ or
             }
 ```
 
+- directives : content: loc if in loc
+    - hi_subrequest , default : ""
+    example:
+
+```nginx
+
+        location ^~ /sub {
+                hi_subrequest '/query';
+                hi_lua_content 'hi_res:header("Content-Type",hi_req:get_form("__subrequest_content_type__"))\nhi_res:status(tonumber(hi_req:get_form("__subrequest_status__")))\nhi_res:content(hi_req:get_form("__subrequest_body__"))';
+        }
+
+        location ^~ /echo {
+                hi_lua_content "hi_res:content('hello,subrequest,'..hi_req:param())\nhi_res:status(200)";
+        }
+
+        location ^~ /query {
+                internal;
+                proxy_pass /echo;
+                proxy_set_header Accept-Encoding '';
+        }
+
+
+
+```
+
 ## nginx.conf
 
 [hi_demo_conf](https://github.com/webcpp/hi_demo/blob/master/demo.conf)
