@@ -32,6 +32,11 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r);
 static void ngx_http_hi_body_handler(ngx_http_request_t* r);
 static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r);
 
+static ngx_int_t ngx_http_hi_subrequest_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_hi_subrequest_post_handler(ngx_http_request_t *r, void *data, ngx_int_t rc);
+static void ngx_http_hi_subrequest_callback_handler(ngx_http_request_t *r);
+static std::string subrequest_md5key(ngx_http_request_t *r, ngx_http_hi_loc_conf_t * conf);
+
 
 ngx_http_module_t ngx_http_hi_module_ctx = {
     NULL, /* preconfiguration */
@@ -53,6 +58,14 @@ ngx_command_t ngx_http_hi_commands[] = {
         ngx_http_hi_conf_init,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, module_path),
+        NULL
+    },
+    {
+        ngx_string("hi_subrequest"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_str_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, subrequest),
         NULL
     },
     {
@@ -397,6 +410,11 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->redis_host.data = NULL;
         conf->redis_port = NGX_CONF_UNSET;
 
+        conf->subrequest.len = 0;
+        conf->subrequest.data = NULL;
+
+
+
         conf->cache_index = NGX_CONF_UNSET;
         conf->cache_size = NGX_CONF_UNSET_UINT;
         conf->cache_expires = NGX_CONF_UNSET;
@@ -521,7 +539,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_sec_value(conf->session_expires, prev->session_expires, (ngx_int_t) 300);
     ngx_conf_merge_value(conf->need_headers, prev->need_headers, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_cache, prev->need_cache, (ngx_flag_t) 0);
-    ngx_conf_merge_value(conf->need_kvdb, prev->need_kvdb, (ngx_flag_t) 1);
+    ngx_conf_merge_value(conf->need_kvdb, prev->need_kvdb, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_cookies, prev->need_cookies, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_session, prev->need_session, (ngx_flag_t) 0);
 
@@ -584,6 +602,7 @@ static void ngx_http_hi_exit_process(ngx_cycle_t * cycle) {
     if (cpu_count)munmap(cpu_count, sizeof (size_t));
     PLUGIN.clear();
     CACHE.clear();
+    SUB_REQUEST_RESPONSE.clear();
     if (LEVELDB) {
         delete LEVELDB;
     }
@@ -623,19 +642,32 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
     hi::request ngx_request;
     hi::response ngx_response;
+    bool subrequest_is_found = false;
+    if (conf->subrequest.len > 0) {
+        std::string subrequest_key = std::move(subrequest_md5key(r, conf));
+        std::unordered_map<std::string, std::shared_ptr < hi::request>>::iterator subrequest_response_iter;
+
+        if ((subrequest_response_iter = SUB_REQUEST_RESPONSE.find(subrequest_key)) != SUB_REQUEST_RESPONSE.end()) {
+            ngx_request = *subrequest_response_iter->second;
+            subrequest_is_found = true;
+        } else {
+            ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
+        }
+    }
+
+
     std::string SESSION_ID_VALUE;
     std::unordered_map<std::string, std::string>::const_iterator iterator;
 
 
-    ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
-    if (r->args.len > 0) {
-        ngx_request.param.assign((char*) r->args.data, r->args.len);
-    }
     std::shared_ptr<std::string> cache_k = std::make_shared<std::string>(ngx_request.uri);
     if (r->args.len > 0) {
+        ngx_request.param.assign((char*) r->args.data, r->args.len);
         cache_k->append("?").append(ngx_request.param);
     }
+
     cache_k->assign(std::move(hi::md5(*cache_k)));
+
     if (r->method == NGX_HTTP_GET && conf->need_cache == 1) {
         auto lru_cache = CACHE[conf->cache_index];
         if (lru_cache->contains(*cache_k)) {
@@ -646,7 +678,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                 ngx_response.content = cache_ele->content;
                 ngx_response.headers.find("Content-Type")->second = cache_ele->content_type;
                 ngx_response.status = cache_ele->status;
-                u_char tmp_t[sizeof ("Mon, 28 Sep 1970 06:00:00 GMT") - 1];
+                u_char tmp_t[HTTP_TIME_SIZE];
                 u_char* p = ngx_http_time(tmp_t, time(0));
                 ngx_response.headers.insert(std::move(std::make_pair("Last-Modified", std::string((char*) tmp_t, p - tmp_t))));
                 goto done;
@@ -682,7 +714,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                 form_urlencoded_type_len) == 0) {
             hi::parser_param(std::string((char*) body.data, body.len), ngx_request.form);
         } else {
-            ngx_request.form["__body__"] = std::move(std::string((char*) body.data, body.len));
+            ngx_request.form[REQUEST_BODY_NAME] = std::move(std::string((char*) body.data, body.len));
         }
     }
     if (conf->need_cookies == 1 && r->headers_in.cookies.elts != NULL && r->headers_in.cookies.nelts != 0) {
@@ -746,12 +778,16 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         default:break;
     }
 
+    if (conf->subrequest.len > 0 && subrequest_is_found) {
+        SUB_REQUEST_RESPONSE.erase(*cache_k);
+    }
+
     if (r->method == NGX_HTTP_GET && conf->need_cache == 1 && ngx_response.status == 200 && conf->cache_expires > 0) {
         std::shared_ptr<hi::cache_t> cache_v = std::make_shared<hi::cache_t>();
         cache_v->content = ngx_response.content;
         cache_v->content_type = ngx_response.headers.find("Content-Type")->second;
         CACHE[conf->cache_index]->insert(*cache_k, cache_v);
-        u_char tmp_t[sizeof ("Mon, 28 Sep 1970 06:00:00 GMT") - 1];
+        u_char tmp_t[HTTP_TIME_SIZE];
         u_char* p = ngx_http_time(tmp_t, time(0));
         ngx_response.headers.insert(std::move(std::make_pair("Last-Modified", std::string((char*) tmp_t, p - tmp_t))));
     }
@@ -856,6 +892,71 @@ static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
         return NGX_DONE;
     } else {
         ngx_http_discard_request_body(r);
-        return ngx_http_hi_normal_handler(r);
+        if (conf->subrequest.len > 0) {
+            return ngx_http_hi_subrequest_handler(r);
+        } else {
+            return ngx_http_hi_normal_handler(r);
+        }
     }
+}
+
+static ngx_int_t ngx_http_hi_subrequest_handler(ngx_http_request_t *r) {
+    ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
+    ngx_http_post_subrequest_t *psr = (ngx_http_post_subrequest_t *) ngx_palloc(r->pool, sizeof (ngx_http_post_subrequest_t));
+    if (psr == NULL) {
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
+    psr->handler = ngx_http_hi_subrequest_post_handler;
+    psr->data = conf;
+
+    ngx_http_request_t *sr;
+    ngx_int_t rc = ngx_http_subrequest(r, &conf->subrequest, &r->args, &sr, psr, NGX_HTTP_SUBREQUEST_IN_MEMORY);
+    if (rc != NGX_OK) {
+        return NGX_ERROR;
+    }
+    return NGX_DONE;
+}
+
+static ngx_int_t ngx_http_hi_subrequest_post_handler(ngx_http_request_t *r, void *data, ngx_int_t rc) {
+    ngx_http_request_t *pr = r->parent;
+    ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(pr, ngx_http_hi_module);
+    pr->headers_out.status = r->headers_out.status;
+    std::string subrequest_key = std::move(subrequest_md5key(pr, conf));
+    std::shared_ptr<hi::request> req(new hi::request());
+    ngx_buf_t *upstream_buffer = 0;
+    req->form[SUBREQUEST_CONTENT_TYPE_NAME] = std::move(std::string((char*) r->headers_out.content_type.data, r->headers_out.content_type.len));
+    req->form[SUBREQUEST_STATUS_NAME] = std::move(std::to_string(r->headers_out.status));
+    upstream_buffer = &r->upstream->buffer;
+    for (; upstream_buffer->pos != upstream_buffer->last; upstream_buffer->pos++) {
+        req->form[SUBREQUEST_BODY_NAME].push_back(*upstream_buffer->pos);
+    }
+    req->uri.assign((char*) r->uri.data, r->uri.len);
+
+    SUB_REQUEST_RESPONSE[subrequest_key] = std::move(req);
+    pr->write_event_handler = ngx_http_hi_subrequest_callback_handler;
+
+    return NGX_OK;
+
+
+
+
+}
+
+static void ngx_http_hi_subrequest_callback_handler(ngx_http_request_t *r) {
+    ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
+    if (r->headers_out.status != NGX_HTTP_OK) {
+        ngx_http_finalize_request(r, r->headers_out.status);
+        return;
+    }
+    ngx_int_t ret = ngx_http_hi_normal_handler(r);
+    ngx_http_finalize_request(r, ret);
+}
+
+static std::string subrequest_md5key(ngx_http_request_t *r, ngx_http_hi_loc_conf_t * conf) {
+    std::string key((char*) conf->subrequest.data, conf->subrequest.len);
+    if (r->args.len > 0) {
+        key.append("?").append((char*) r->args.data, r->args.len);
+    }
+    return hi::md5(key);
+
 }

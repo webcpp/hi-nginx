@@ -10,7 +10,7 @@ extern "C" {
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "1.7.9"
+#define HI_NGINX_SERVER_VERSION "1.8.0"
 #define HI_NGINX_SERVER_NAME "hi-nginx"
 #define SESSION_ID_NAME "SESSIONID"
 #define form_multipart_type "multipart/form-data"
@@ -19,6 +19,13 @@ extern "C" {
 #define form_urlencoded_type_len (sizeof(form_urlencoded_type) - 1)
 #define TEMP_DIRECTORY "temp"
 #define LEVELDB_PATH "leveldb"
+
+#define REQUEST_BODY_NAME "__body__"
+#define SUBREQUEST_BODY_NAME "__subrequest_body__"
+#define SUBREQUEST_STATUS_NAME "__subrequest_status__"
+#define SUBREQUEST_CONTENT_TYPE_NAME "__subrequest_content_type__"
+
+#define HTTP_TIME_SIZE (sizeof ("Mon, 28 Sep 1970 06:00:00 GMT")-1)
 
 //#define HTTP_HI_LUA
 //#define HTTP_HI_JAVA
@@ -59,9 +66,10 @@ pthread_mutex_t *mtx = 0;
 pthread_mutexattr_t *mtx_attr = 0;
 size_t *cpu_count = 0;
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
-static std::vector<std::shared_ptr<lru11::Cache<std::string,std::shared_ptr<hi::cache_t>>>> CACHE;
+static std::vector<std::shared_ptr<lru11::Cache<std::string, std::shared_ptr<hi::cache_t>>>> CACHE;
 static leveldb::DB* LEVELDB = 0;
 static leveldb::Options LEVELDB_OPTIONS;
+static std::unordered_map<std::string, std::shared_ptr<hi::request>> SUB_REQUEST_RESPONSE;
 
 #ifdef HTTP_HI_PYTHON
 #include "lib/py_request.hpp"
@@ -95,6 +103,7 @@ static std::shared_ptr<hi::duktape> DUKTAPE;
 typedef struct {
     ngx_str_t module_path
     , redis_host
+    , subrequest
 #ifdef HTTP_HI_PYTHON
     , python_script
     , python_content
