@@ -115,7 +115,7 @@ namespace hi {
         msgpack::unpack(str.c_str(), str.size()).get().convert(m);
     }
 
-    void split(const std::string& s, const std::string& delim, std::vector<std::string>& v) {
+    static void split(const std::string& s, const std::string& delim, std::vector<std::string>& v) {
         size_t last = 0;
         size_t index = s.find_first_of(delim, last);
         std::string tmp;

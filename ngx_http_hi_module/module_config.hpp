@@ -10,7 +10,7 @@ extern "C" {
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "1.8.2"
+#define HI_NGINX_SERVER_VERSION "1.8.2.1"
 #define HI_NGINX_SERVER_NAME "hi-nginx"
 #define SESSION_ID_NAME "SESSIONID"
 #define form_multipart_type "multipart/form-data"
