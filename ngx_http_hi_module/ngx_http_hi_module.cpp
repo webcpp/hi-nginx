@@ -918,9 +918,8 @@ static ngx_int_t ngx_http_hi_subrequest_handler(ngx_http_request_t *r) {
     psr->handler = ngx_http_hi_subrequest_post_handler;
     psr->data = conf;
 
-
     ngx_http_request_t *sr;
-    ngx_int_t rc = ngx_http_subrequest_by_method(r, &conf->subrequest, &r->args, &sr, psr, NGX_HTTP_SUBREQUEST_IN_MEMORY, r->method);
+    ngx_int_t rc = ngx_http_subrequest(r, &conf->subrequest, &r->args, &sr, psr, NGX_HTTP_SUBREQUEST_IN_MEMORY);
 
     if (rc != NGX_OK) {
         return NGX_ERROR;
