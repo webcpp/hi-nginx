@@ -10,7 +10,7 @@ extern "C" {
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "1.8.1.1"
+#define HI_NGINX_SERVER_VERSION "1.8.2"
 #define HI_NGINX_SERVER_NAME "hi-nginx"
 #define SESSION_ID_NAME "SESSIONID"
 #define form_multipart_type "multipart/form-data"
@@ -45,6 +45,7 @@ extern "C" {
 #include <fstream>
 #include <streambuf>
 #include <exception>
+#include <queue>
 
 
 #include "include/request.hpp"
@@ -69,7 +70,7 @@ static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<lru11::Cache<std::string, std::shared_ptr<hi::cache_t>>>> CACHE;
 static leveldb::DB* LEVELDB = 0;
 static leveldb::Options LEVELDB_OPTIONS;
-static std::unordered_map<std::string, std::shared_ptr<hi::request>> SUB_REQUEST_RESPONSE;
+static std::vector<std::shared_ptr<hi::request>> SUBREQUEST_RESPONSE;
 
 #ifdef HTTP_HI_PYTHON
 #include "lib/py_request.hpp"
@@ -134,6 +135,7 @@ typedef struct {
 #endif
     ;
     ngx_int_t module_index
+    , subrequest_index
     , redis_port
     , cache_expires
     , session_expires

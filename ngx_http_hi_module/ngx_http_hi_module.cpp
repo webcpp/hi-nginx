@@ -35,7 +35,6 @@ static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_hi_subrequest_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_hi_subrequest_post_handler(ngx_http_request_t *r, void *data, ngx_int_t rc);
 static void ngx_http_hi_subrequest_callback_handler(ngx_http_request_t *r);
-static std::string subrequest_md5key(ngx_http_request_t *r, ngx_http_hi_loc_conf_t * conf);
 
 
 ngx_http_module_t ngx_http_hi_module_ctx = {
@@ -412,6 +411,7 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
 
         conf->subrequest.len = 0;
         conf->subrequest.data = NULL;
+        conf->subrequest_index = NGX_CONF_UNSET;
 
 
 
@@ -492,6 +492,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 
     ngx_conf_merge_str_value(conf->module_path, prev->module_path, "");
     ngx_conf_merge_str_value(conf->redis_host, prev->redis_host, "");
+    ngx_conf_merge_str_value(conf->subrequest, prev->subrequest, "");
     ngx_conf_merge_value(conf->redis_port, prev->redis_port, (ngx_int_t) 0);
 
 #ifdef HTTP_HI_PYTHON
@@ -542,6 +543,18 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_value(conf->need_kvdb, prev->need_kvdb, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_cookies, prev->need_cookies, (ngx_flag_t) 0);
     ngx_conf_merge_value(conf->need_session, prev->need_session, (ngx_flag_t) 0);
+
+
+
+    if (conf->subrequest.len > 0 && conf->subrequest_index == NGX_CONF_UNSET) {
+
+        std::shared_ptr<hi::request> req(new hi::request);
+        SUBREQUEST_RESPONSE.push_back(std::move(req));
+
+        conf->subrequest_index = SUBREQUEST_RESPONSE.size() - 1;
+    }
+
+
 
     if (conf->need_cache == 1 && conf->cache_index == NGX_CONF_UNSET) {
         CACHE.push_back(std::move(std::make_shared<lru11::Cache<std::string, std::shared_ptr < hi::cache_t>>>(conf->cache_size)));
@@ -602,7 +615,7 @@ static void ngx_http_hi_exit_process(ngx_cycle_t * cycle) {
     if (cpu_count)munmap(cpu_count, sizeof (size_t));
     PLUGIN.clear();
     CACHE.clear();
-    SUB_REQUEST_RESPONSE.clear();
+    SUBREQUEST_RESPONSE.clear();
     if (LEVELDB) {
         delete LEVELDB;
     }
@@ -642,30 +655,22 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
     hi::request ngx_request;
     hi::response ngx_response;
-    bool subrequest_is_found = false;
+
     std::shared_ptr<std::string> cache_k = std::make_shared<std::string>();
     if (conf->subrequest.len > 0) {
-        std::string subrequest_key = std::move(subrequest_md5key(r, conf));
-        std::unordered_map<std::string, std::shared_ptr < hi::request>>::iterator subrequest_response_iter;
+        ngx_request = *SUBREQUEST_RESPONSE[conf->subrequest_index];
 
-        if ((subrequest_response_iter = SUB_REQUEST_RESPONSE.find(subrequest_key)) != SUB_REQUEST_RESPONSE.end()) {
-            ngx_request = *subrequest_response_iter->second;
-            subrequest_is_found = true;
-            cache_k->assign(std::move(subrequest_key));
-        } else {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to subrequest.");
-            return NGX_HTTP_INTERNAL_SERVER_ERROR;
-        }
     } else {
         ngx_request.uri.assign((char*) r->uri.data, r->uri.len);
-        cache_k->assign(ngx_request.uri);
-        if (r->args.len > 0) {
-            ngx_request.param.assign((char*) r->args.data, r->args.len);
-            cache_k->append("?").append(ngx_request.param);
-        }
-
-        cache_k->assign(std::move(hi::md5(*cache_k)));
     }
+
+    cache_k->assign(ngx_request.uri);
+    if (r->args.len > 0) {
+        ngx_request.param.assign((char*) r->args.data, r->args.len);
+        cache_k->append("?").append(ngx_request.param);
+    }
+
+    cache_k->assign(std::move(hi::md5(*cache_k)));
 
 
     std::string SESSION_ID_VALUE;
@@ -782,8 +787,8 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         default:break;
     }
 
-    if (conf->subrequest.len > 0 && subrequest_is_found) {
-        SUB_REQUEST_RESPONSE.erase(*cache_k);
+    if (conf->subrequest.len > 0) {
+        SUBREQUEST_RESPONSE[conf->subrequest_index].reset();
     }
 
     if (r->method == NGX_HTTP_GET && conf->need_cache == 1 && ngx_response.status == 200 && conf->cache_expires > 0) {
@@ -913,11 +918,14 @@ static ngx_int_t ngx_http_hi_subrequest_handler(ngx_http_request_t *r) {
     psr->handler = ngx_http_hi_subrequest_post_handler;
     psr->data = conf;
 
+
     ngx_http_request_t *sr;
     ngx_int_t rc = ngx_http_subrequest(r, &conf->subrequest, &r->args, &sr, psr, NGX_HTTP_SUBREQUEST_IN_MEMORY);
+
     if (rc != NGX_OK) {
         return NGX_ERROR;
     }
+
     return NGX_DONE;
 }
 
@@ -925,24 +933,21 @@ static ngx_int_t ngx_http_hi_subrequest_post_handler(ngx_http_request_t *r, void
     ngx_http_request_t *pr = r->parent;
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(pr, ngx_http_hi_module);
     pr->headers_out.status = r->headers_out.status;
-    std::string subrequest_key = std::move(subrequest_md5key(pr, conf));
-    std::shared_ptr<hi::request> req(new hi::request());
+    auto& req = SUBREQUEST_RESPONSE[conf->subrequest_index];
+    if (!req) {
+        SUBREQUEST_RESPONSE[conf->subrequest_index] = std::move(std::make_shared<hi::request>());
+    }
     req->form[SUBREQUEST_CONTENT_TYPE_NAME] = std::move(std::string((char*) r->headers_out.content_type.data, r->headers_out.content_type.len));
     req->form[SUBREQUEST_STATUS_NAME] = std::move(std::to_string(r->headers_out.status));
     ngx_buf_t *upstream_buffer = &r->upstream->buffer;
+    std::string& subrequest_body = req->form[SUBREQUEST_BODY_NAME];
     for (; upstream_buffer->pos != upstream_buffer->last; upstream_buffer->pos++) {
-        req->form[SUBREQUEST_BODY_NAME].push_back(*upstream_buffer->pos);
+        subrequest_body += *upstream_buffer->pos;
     }
     req->uri.assign((char*) r->uri.data, r->uri.len);
 
-    SUB_REQUEST_RESPONSE[subrequest_key] = std::move(req);
     pr->write_event_handler = ngx_http_hi_subrequest_callback_handler;
-
     return NGX_OK;
-
-
-
-
 }
 
 static void ngx_http_hi_subrequest_callback_handler(ngx_http_request_t *r) {
@@ -953,13 +958,4 @@ static void ngx_http_hi_subrequest_callback_handler(ngx_http_request_t *r) {
     }
     ngx_int_t ret = ngx_http_hi_normal_handler(r);
     ngx_http_finalize_request(r, ret);
-}
-
-static std::string subrequest_md5key(ngx_http_request_t *r, ngx_http_hi_loc_conf_t * conf) {
-    std::string key((char*) conf->subrequest.data, conf->subrequest.len);
-    if (r->args.len > 0) {
-        key.append("?").append((char*) r->args.data, r->args.len);
-    }
-    return hi::md5(key);
-
 }

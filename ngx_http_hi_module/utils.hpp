@@ -17,6 +17,7 @@ extern "C" {
 #include <ctime>
 #include <sstream>
 #include <fstream>
+#include <vector>
 #include <unordered_map>
 
 #include "include/request.hpp"
@@ -112,6 +113,26 @@ namespace hi {
 
     static void deserialize(const std::string& str, std::unordered_map<std::string, std::string>& m) {
         msgpack::unpack(str.c_str(), str.size()).get().convert(m);
+    }
+
+    void split(const std::string& s, const std::string& delim, std::vector<std::string>& v) {
+        size_t last = 0;
+        size_t index = s.find_first_of(delim, last);
+        std::string tmp;
+        while (index != std::string::npos) {
+            tmp = std::move(s.substr(last, index - last));
+            if (!tmp.empty()) {
+                v.push_back(std::move(tmp));
+            }
+            last = index + 1;
+            index = s.find_first_of(delim, last);
+        }
+        if (index - last > 0) {
+            tmp = std::move(s.substr(last, index - last));
+            if (!tmp.empty()) {
+                v.push_back(std::move(tmp));
+            }
+        }
     }
 }
 
