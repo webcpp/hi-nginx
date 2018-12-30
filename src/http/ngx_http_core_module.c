@@ -2298,7 +2298,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
     sr->stream = r->stream;
 #endif
 
-    sr->method = r->method;
+    sr->method = NGX_HTTP_GET;
     sr->http_version = r->http_version;
 
     sr->request_line = r->request_line;
@@ -2316,7 +2316,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
     sr->background = (flags & NGX_HTTP_SUBREQUEST_BACKGROUND) != 0;
 
     sr->unparsed_uri = r->unparsed_uri;
-    sr->method_name = r->method_name;
+    sr->method_name = ngx_http_core_get_method;
     sr->http_protocol = r->http_protocol;
     sr->schema = r->schema;
 
