@@ -23,7 +23,7 @@
 
 #include "cpp_handler.hpp"
 
-static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static ngx_int_t ngx_http_hi_init(ngx_conf_t *cf);
 static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* child);
 static void ngx_http_hi_exit_process(ngx_cycle_t* cycle);
@@ -31,6 +31,7 @@ static void ngx_http_hi_exit_master(ngx_cycle_t* cycle);
 static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r);
 static void ngx_http_hi_body_handler(ngx_http_request_t* r);
 static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_hi_process_init(ngx_cycle_t *cycle);
 
 static ngx_int_t ngx_http_hi_subrequest_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_hi_subrequest_post_handler(ngx_http_request_t *r, void *data, ngx_int_t rc);
@@ -39,7 +40,7 @@ static void ngx_http_hi_subrequest_callback_handler(ngx_http_request_t *r);
 
 ngx_http_module_t ngx_http_hi_module_ctx = {
     NULL, /* preconfiguration */
-    NULL, /* postconfiguration */
+    ngx_http_hi_init, /* postconfiguration */
     NULL, /* create main configuration */
     NULL, /* init main configuration */
 
@@ -54,7 +55,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, module_path),
         NULL
@@ -167,7 +168,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_python_script"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, python_script),
         NULL
@@ -175,7 +176,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_python_content"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, python_content),
         NULL
@@ -185,7 +186,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_lua_script"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, lua_script),
         NULL
@@ -193,7 +194,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_lua_content"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, lua_content),
         NULL
@@ -219,7 +220,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_duktape_script"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, duktape_script),
         NULL
@@ -227,7 +228,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_duktape_content"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, duktape_content),
         NULL
@@ -269,7 +270,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_java_servlet"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, java_servlet),
         NULL
@@ -301,7 +302,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_javascript_script"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, javascript_script),
         NULL
@@ -309,7 +310,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_javascript_content"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, javascript_content),
         NULL
@@ -317,7 +318,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_javascript_lang"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, javascript_lang),
         NULL
@@ -325,7 +326,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_javascript_extension"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, javascript_extension),
         NULL
@@ -343,7 +344,7 @@ ngx_command_t ngx_http_hi_commands[] = {
     {
         ngx_string("hi_php_script"),
         NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-        ngx_http_hi_conf_init,
+        ngx_conf_set_str_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, php_script),
         NULL
@@ -359,7 +360,7 @@ ngx_module_t ngx_http_hi_module = {
     NGX_HTTP_MODULE, /* module type */
     NULL, /* init master */
     NULL, /* init module */
-    NULL, /* init process */
+    ngx_http_hi_process_init, /* init process */
     NULL, /* init thread */
     NULL, /* exit thread */
     ngx_http_hi_exit_process, /* exit process */
@@ -367,7 +368,19 @@ ngx_module_t ngx_http_hi_module = {
     NGX_MODULE_V1_PADDING
 };
 
-static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+static ngx_int_t ngx_http_hi_init(ngx_conf_t *cf) {
+    ngx_http_handler_pt *h;
+    ngx_http_core_main_conf_t *cmcf;
+
+    cmcf = (ngx_http_core_main_conf_t *) ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
+
+    h = (ngx_http_handler_pt *) ngx_array_push(&cmcf->phases[NGX_HTTP_PRECONTENT_PHASE].handlers);
+    if (h == NULL) {
+        return NGX_ERROR;
+    }
+
+    *h = ngx_http_hi_handler;
+
     if (mtx == 0) {
         mtx = (pthread_mutex_t*) mmap(0, sizeof (pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (mtx != MAP_FAILED) {
@@ -391,11 +404,23 @@ static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *con
             }
         }
     }
-    ngx_http_core_loc_conf_t *clcf;
-    clcf = (ngx_http_core_loc_conf_t *) ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
-    clcf->handler = ngx_http_hi_handler;
-    ngx_conf_set_str_slot(cf, cmd, conf);
-    return NGX_CONF_OK;
+
+    return NGX_OK;
+}
+
+static ngx_int_t ngx_http_hi_process_init(ngx_cycle_t *cycle) {
+    if (!LEVELDB) {
+        LEVELDB_OPTIONS.create_if_missing = true;
+        std::string i;
+        pthread_mutex_lock(mtx);
+        if (*cpu_count > std::thread::hardware_concurrency() - 1) {
+            *cpu_count = 0;
+        }
+        i = std::move(std::to_string(*cpu_count));
+        *cpu_count = (*cpu_count) + 1;
+        pthread_mutex_unlock(mtx);
+        leveldb::DB::Open(LEVELDB_OPTIONS, LEVELDB_PATH + ("/" + i), &LEVELDB);
+    }
 }
 
 static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
@@ -873,20 +898,6 @@ static void ngx_http_hi_body_handler(ngx_http_request_t* r) {
 
 static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
     ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
-    if (!LEVELDB) {
-        LEVELDB_OPTIONS.create_if_missing = true;
-        std::string i;
-        pthread_mutex_lock(mtx);
-        if (*cpu_count > std::thread::hardware_concurrency() - 1) {
-            *cpu_count = 0;
-        }
-        i = std::move(std::to_string(*cpu_count));
-        *cpu_count = (*cpu_count) + 1;
-        pthread_mutex_unlock(mtx);
-        leveldb::DB::Open(LEVELDB_OPTIONS, LEVELDB_PATH + ("/" + i), &LEVELDB);
-    }
-
-
     if (r->headers_in.content_length_n > 0) {
         ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
         if (clcf->client_body_buffer_size < (size_t) clcf->client_max_body_size) {
@@ -924,6 +935,9 @@ static ngx_int_t ngx_http_hi_subrequest_handler(ngx_http_request_t *r) {
     if (rc != NGX_OK) {
         return NGX_ERROR;
     }
+
+    sr->method = r->method;
+    sr->method_name = r->method_name;
 
     return NGX_DONE;
 }
