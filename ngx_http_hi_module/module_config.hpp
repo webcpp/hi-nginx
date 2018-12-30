@@ -63,9 +63,9 @@ extern "C" {
 #include "application_t.hpp"
 #include "utils.hpp"
 
-pthread_mutex_t *mtx = 0;
-pthread_mutexattr_t *mtx_attr = 0;
-size_t *cpu_count = 0;
+static pthread_mutex_t *mtx = 0;
+static pthread_mutexattr_t *mtx_attr = 0;
+static size_t *cpu_count = 0;
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<lru11::Cache<std::string, std::shared_ptr<hi::cache_t>>>> CACHE;
 static leveldb::DB* LEVELDB = 0;
