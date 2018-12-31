@@ -321,6 +321,28 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_need_tokens,default: on
+
+    example:
+
+```nginx
+
+        hi_need_tokens on|off;
+
+```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - hi_cache_method,default: GET
+
+    example:
+
+```nginx
+
+        hi_cache_method GET|POST|PUT|HEAD;
+
+```
+
+- directives : content: http,srv,loc,if in loc ,if in srv
     - hi_need_cache,default: on
 
     example:
