@@ -10,8 +10,9 @@ extern "C" {
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "1.8.5"
-#define HI_NGINX_SERVER_NAME "hi-nginx"
+#define HI_NGINX_SERVER_VERSION "1.8.5.1"
+#define HI_NGINX_SERVER_NAME "hi-nginx/" HI_NGINX_SERVER_VERSION
+#define HI_NGINX_SERVER_HEAD "PoweredBy"
 #define SESSION_ID_NAME "SESSIONID"
 #define form_multipart_type "multipart/form-data"
 #define form_multipart_type_len (sizeof(form_multipart_type) - 1)
@@ -71,6 +72,13 @@ static std::vector<std::shared_ptr<lru11::Cache<std::string, std::shared_ptr<hi:
 static leveldb::DB* LEVELDB = 0;
 static leveldb::Options LEVELDB_OPTIONS;
 static std::vector<std::shared_ptr<hi::request>> SUBREQUEST_RESPONSE;
+static ngx_conf_enum_t cache_method_enums[] = {
+    { ngx_string("GET"), NGX_HTTP_GET},
+    { ngx_string("POST"), NGX_HTTP_POST},
+    { ngx_string("PUT"), NGX_HTTP_PUT},
+    { ngx_string("HEAD"), NGX_HTTP_HEAD},
+    { ngx_null_string, 0}
+};
 
 #ifdef HTTP_HI_PYTHON
 #include "lib/py_request.hpp"
@@ -158,8 +166,10 @@ typedef struct {
     , need_cache
     , need_cookies
     , need_session
-    , need_kvdb;
+    , need_kvdb
+    , need_tokens;
     application_t app_type;
+    ngx_uint_t cache_method;
 } ngx_http_hi_loc_conf_t;
 
 

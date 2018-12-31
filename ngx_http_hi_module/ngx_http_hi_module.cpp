@@ -70,6 +70,14 @@ ngx_command_t ngx_http_hi_commands[] = {
         NULL
     },
     {
+        ngx_string("hi_cache_method"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_enum_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, cache_method),
+        cache_method_enums
+    },
+    {
         ngx_string("hi_cache_size"),
         NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
         ngx_conf_set_num_slot,
@@ -131,6 +139,14 @@ ngx_command_t ngx_http_hi_commands[] = {
         ngx_conf_set_flag_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, need_cookies),
+        NULL
+    },
+    {
+        ngx_string("hi_need_tokens"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_flag_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, need_tokens),
         NULL
     },
     {
@@ -423,6 +439,7 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->cache_index = NGX_CONF_UNSET;
         conf->cache_size = NGX_CONF_UNSET_UINT;
         conf->cache_expires = NGX_CONF_UNSET;
+        conf->cache_method = NGX_CONF_UNSET_UINT;
 
 
         conf->session_expires = NGX_CONF_UNSET;
@@ -435,6 +452,7 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
         conf->need_cookies = NGX_CONF_UNSET;
         conf->need_session = NGX_CONF_UNSET;
         conf->need_kvdb = NGX_CONF_UNSET;
+        conf->need_tokens = NGX_CONF_UNSET;
 
         conf->app_type = application_t::__unkown__;
 #ifdef HTTP_HI_PYTHON
@@ -540,14 +558,24 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 
     ngx_conf_merge_uint_value(conf->cache_size, prev->cache_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->cache_expires, prev->cache_expires, (ngx_int_t) 300);
+    ngx_conf_merge_uint_value(conf->cache_method, prev->cache_method, (ngx_uint_t) NGX_HTTP_GET);
+
     ngx_conf_merge_uint_value(conf->kvdb_size, prev->kvdb_size, (size_t) 10);
     ngx_conf_merge_sec_value(conf->kvdb_expires, prev->kvdb_expires, (ngx_int_t) 300);
+
     ngx_conf_merge_sec_value(conf->session_expires, prev->session_expires, (ngx_int_t) 300);
+
     ngx_conf_merge_value(conf->need_headers, prev->need_headers, (ngx_flag_t) 0);
+
     ngx_conf_merge_value(conf->need_cache, prev->need_cache, (ngx_flag_t) 0);
+
     ngx_conf_merge_value(conf->need_kvdb, prev->need_kvdb, (ngx_flag_t) 0);
+
     ngx_conf_merge_value(conf->need_cookies, prev->need_cookies, (ngx_flag_t) 0);
+
     ngx_conf_merge_value(conf->need_session, prev->need_session, (ngx_flag_t) 0);
+
+    ngx_conf_merge_value(conf->need_tokens, prev->need_tokens, (ngx_flag_t) 0);
 
 
 
@@ -697,7 +725,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     std::unordered_map<std::string, std::string>::const_iterator iterator;
 
 
-    if (r->method == NGX_HTTP_GET && conf->need_cache == 1) {
+    if (r->method == conf->cache_method && conf->need_cache == 1) {
         auto lru_cache = CACHE[conf->cache_index];
         if (lru_cache->contains(*cache_k)) {
             auto cache_ele = lru_cache->get(*cache_k);
@@ -811,7 +839,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         SUBREQUEST_RESPONSE[conf->subrequest_index].reset();
     }
 
-    if (r->method == NGX_HTTP_GET && conf->need_cache == 1 && ngx_response.status == 200 && conf->cache_expires > 0) {
+    if (r->method == conf->cache_method && conf->need_cache == 1 && ngx_response.status == 200 && conf->cache_expires > 0) {
         std::shared_ptr<hi::cache_t> cache_v = std::make_shared<hi::cache_t>();
         cache_v->content = ngx_response.content;
         cache_v->content_type = ngx_response.headers.find("Content-Type")->second;
@@ -873,7 +901,7 @@ done:
     out.buf = buf;
     out.next = NULL;
 
-    ngx_response.headers.insert(std::make_pair(HI_NGINX_SERVER_NAME, HI_NGINX_SERVER_VERSION));
+    ngx_response.headers.insert(std::move(std::make_pair(HI_NGINX_SERVER_HEAD, (conf->need_tokens ? HI_NGINX_SERVER_NAME : "hi-nginx"))));
     hi::set_output_headers(r, ngx_response.headers);
     r->headers_out.status = ngx_response.status;
     r->headers_out.content_length_n = response.len;
@@ -888,7 +916,12 @@ done:
 }
 
 static void ngx_http_hi_body_handler(ngx_http_request_t* r) {
-    ngx_http_finalize_request(r, ngx_http_hi_normal_handler(r));
+    ngx_http_hi_loc_conf_t * conf = (ngx_http_hi_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_hi_module);
+    if (conf->subrequest.len > 0) {
+        ngx_http_hi_subrequest_handler(r);
+    } else {
+        ngx_http_finalize_request(r, ngx_http_hi_normal_handler(r));
+    }
 }
 
 static ngx_int_t ngx_http_hi_handler(ngx_http_request_t *r) {
