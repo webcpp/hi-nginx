@@ -50,6 +50,7 @@ if test $HTTP_HI_CPP = YES ; then
     if test $HTTP_HI_PHP = YES ; then
         CXXFLAGS="$CXXFLAGS -DHTTP_HI_PHP"
         CXXFLAGS="$CXXFLAGS `php-config --includes`"
+        CXXFLAGS="$CXXFLAGS -I`php-config --include-dir`"
         NGX_LD_OPT="$NGX_LD_OPT -lphp7"
         NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/php-x -type f -name '*.cc'`"
     fi

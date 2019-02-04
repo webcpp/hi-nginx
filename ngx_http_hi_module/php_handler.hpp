@@ -7,7 +7,7 @@
 
 namespace hi {
 
-    static void ngx_http_hi_php_handler(ngx_http_request_t *r,ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
+    static void ngx_http_hi_php_handler(ngx_http_request_t *r, ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
         if (!PHP) {
             int argc = 1;
             char* argv[2] = {"ngx_http_hi_php", NULL};
@@ -20,7 +20,7 @@ namespace hi {
         }
         if (is_file(script)) {
             zend_first_try{
-                PHP->include(script.c_str());
+                PHP->include(script);
                 const char *request = "\\hi\\request", *response = "\\hi\\response", *handler = "handler";
                 php::Object php_req = php::newObject(request), php_res = php::newObject(response);
                 if (!php_req.isNull() && !php_res.isNull()) {
