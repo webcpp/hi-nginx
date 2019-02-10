@@ -66,13 +66,13 @@ extern "C" {
 
 static pthread_mutex_t *ngx_http_hi_mtx = 0;
 static pthread_mutexattr_t *ngx_http_hi_mtx_attr = 0;
-static size_t *cpu_count = 0;
+static size_t *ngx_http_hi_cpu_count = 0;
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<lru11::Cache<std::string, std::shared_ptr<hi::cache_t>>>> CACHE;
 static leveldb::DB* LEVELDB = 0;
 static leveldb::Options LEVELDB_OPTIONS;
 static std::vector<std::shared_ptr<hi::request>> SUBREQUEST_RESPONSE;
-static ngx_conf_enum_t cache_method_enums[] = {
+static ngx_conf_enum_t ngx_http_hi_cache_method_enums[] = {
     { ngx_string("GET"), NGX_HTTP_GET},
     { ngx_string("POST"), NGX_HTTP_POST},
     { ngx_string("PUT"), NGX_HTTP_PUT},

@@ -75,7 +75,7 @@ ngx_command_t ngx_http_hi_commands[] = {
         ngx_conf_set_enum_slot,
         NGX_HTTP_LOC_CONF_OFFSET,
         offsetof(ngx_http_hi_loc_conf_t, cache_method),
-        cache_method_enums
+        ngx_http_hi_cache_method_enums
     },
     {
         ngx_string("hi_cache_size"),
@@ -396,11 +396,11 @@ static ngx_int_t ngx_http_hi_init(ngx_conf_t *cf) {
                     pthread_mutexattr_setpshared(ngx_http_hi_mtx_attr, PTHREAD_PROCESS_SHARED);
                     pthread_mutexattr_settype(ngx_http_hi_mtx_attr, PTHREAD_MUTEX_DEFAULT);
                     pthread_mutex_init(ngx_http_hi_mtx, ngx_http_hi_mtx_attr);
-                    if (cpu_count == 0) {
-                        cpu_count = (size_t*) mmap(0, sizeof (size_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-                        if (cpu_count != MAP_FAILED) {
+                    if (ngx_http_hi_cpu_count == 0) {
+                        ngx_http_hi_cpu_count = (size_t*) mmap(0, sizeof (size_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+                        if (ngx_http_hi_cpu_count != MAP_FAILED) {
                             pthread_mutex_lock(ngx_http_hi_mtx);
-                            *cpu_count = 0;
+                            *ngx_http_hi_cpu_count = 0;
                             pthread_mutex_unlock(ngx_http_hi_mtx);
                         }
                     }
@@ -645,11 +645,11 @@ static ngx_int_t ngx_http_hi_process_init(ngx_cycle_t *cycle) {
         LEVELDB_OPTIONS.create_if_missing = true;
         std::string i;
         pthread_mutex_lock(ngx_http_hi_mtx);
-        if (*cpu_count > std::thread::hardware_concurrency() - 1) {
-            *cpu_count = 0;
+        if (*ngx_http_hi_cpu_count > std::thread::hardware_concurrency() - 1) {
+            *ngx_http_hi_cpu_count = 0;
         }
-        i = std::move(std::to_string(*cpu_count));
-        *cpu_count = (*cpu_count) + 1;
+        i = std::move(std::to_string(*ngx_http_hi_cpu_count));
+        *ngx_http_hi_cpu_count = (*ngx_http_hi_cpu_count) + 1;
         pthread_mutex_unlock(ngx_http_hi_mtx);
         leveldb::DB::Open(LEVELDB_OPTIONS, LEVELDB_PATH + ("/" + i), &LEVELDB);
     }
@@ -660,7 +660,7 @@ static void ngx_http_hi_process_exit(ngx_cycle_t * cycle) {
     if (ngx_http_hi_mtx_attr)pthread_mutexattr_destroy(ngx_http_hi_mtx_attr);
     if (ngx_http_hi_mtx_attr)munmap(ngx_http_hi_mtx_attr, sizeof (pthread_mutexattr_t));
     if (ngx_http_hi_mtx)munmap(ngx_http_hi_mtx, sizeof (pthread_mutex_t));
-    if (cpu_count)munmap(cpu_count, sizeof (size_t));
+    if (ngx_http_hi_cpu_count)munmap(ngx_http_hi_cpu_count, sizeof (size_t));
     PLUGIN.clear();
     CACHE.clear();
     SUBREQUEST_RESPONSE.clear();
