@@ -386,22 +386,22 @@ ngx_module_t ngx_http_hi_module = {
 };
 
 static ngx_int_t ngx_http_hi_init(ngx_conf_t *cf) {
-    if (mtx == 0) {
-        mtx = (pthread_mutex_t*) mmap(0, sizeof (pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-        if (mtx != MAP_FAILED) {
-            if (mtx_attr == 0) {
-                mtx_attr = (pthread_mutexattr_t*) mmap(0, sizeof (pthread_mutexattr_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-                if (mtx_attr != MAP_FAILED) {
-                    pthread_mutexattr_init(mtx_attr);
-                    pthread_mutexattr_setpshared(mtx_attr, PTHREAD_PROCESS_SHARED);
-                    pthread_mutexattr_settype(mtx_attr, PTHREAD_MUTEX_DEFAULT);
-                    pthread_mutex_init(mtx, mtx_attr);
+    if (ngx_http_hi_mtx == 0) {
+        ngx_http_hi_mtx = (pthread_mutex_t*) mmap(0, sizeof (pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (ngx_http_hi_mtx != MAP_FAILED) {
+            if (ngx_http_hi_mtx_attr == 0) {
+                ngx_http_hi_mtx_attr = (pthread_mutexattr_t*) mmap(0, sizeof (pthread_mutexattr_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+                if (ngx_http_hi_mtx_attr != MAP_FAILED) {
+                    pthread_mutexattr_init(ngx_http_hi_mtx_attr);
+                    pthread_mutexattr_setpshared(ngx_http_hi_mtx_attr, PTHREAD_PROCESS_SHARED);
+                    pthread_mutexattr_settype(ngx_http_hi_mtx_attr, PTHREAD_MUTEX_DEFAULT);
+                    pthread_mutex_init(ngx_http_hi_mtx, ngx_http_hi_mtx_attr);
                     if (cpu_count == 0) {
                         cpu_count = (size_t*) mmap(0, sizeof (size_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
                         if (cpu_count != MAP_FAILED) {
-                            pthread_mutex_lock(mtx);
+                            pthread_mutex_lock(ngx_http_hi_mtx);
                             *cpu_count = 0;
-                            pthread_mutex_unlock(mtx);
+                            pthread_mutex_unlock(ngx_http_hi_mtx);
                         }
                     }
 
@@ -644,22 +644,22 @@ static ngx_int_t ngx_http_hi_process_init(ngx_cycle_t *cycle) {
     if (!LEVELDB) {
         LEVELDB_OPTIONS.create_if_missing = true;
         std::string i;
-        pthread_mutex_lock(mtx);
+        pthread_mutex_lock(ngx_http_hi_mtx);
         if (*cpu_count > std::thread::hardware_concurrency() - 1) {
             *cpu_count = 0;
         }
         i = std::move(std::to_string(*cpu_count));
         *cpu_count = (*cpu_count) + 1;
-        pthread_mutex_unlock(mtx);
+        pthread_mutex_unlock(ngx_http_hi_mtx);
         leveldb::DB::Open(LEVELDB_OPTIONS, LEVELDB_PATH + ("/" + i), &LEVELDB);
     }
 }
 
 static void ngx_http_hi_process_exit(ngx_cycle_t * cycle) {
-    if (mtx)pthread_mutex_destroy(mtx);
-    if (mtx_attr)pthread_mutexattr_destroy(mtx_attr);
-    if (mtx_attr)munmap(mtx_attr, sizeof (pthread_mutexattr_t));
-    if (mtx)munmap(mtx, sizeof (pthread_mutex_t));
+    if (ngx_http_hi_mtx)pthread_mutex_destroy(ngx_http_hi_mtx);
+    if (ngx_http_hi_mtx_attr)pthread_mutexattr_destroy(ngx_http_hi_mtx_attr);
+    if (ngx_http_hi_mtx_attr)munmap(ngx_http_hi_mtx_attr, sizeof (pthread_mutexattr_t));
+    if (ngx_http_hi_mtx)munmap(ngx_http_hi_mtx, sizeof (pthread_mutex_t));
     if (cpu_count)munmap(cpu_count, sizeof (size_t));
     PLUGIN.clear();
     CACHE.clear();
@@ -758,8 +758,8 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     }
     if (r->headers_in.content_length_n > 0) {
         ngx_str_t body = hi::get_input_body(r);
-        if (ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) form_multipart_type,
-                form_multipart_type_len) == 0) {
+        if (ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) FORM_MULTIPART_TYPE,
+                FORM_MULTIPART_TYPE_LEN) == 0) {
             ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *) ngx_http_get_module_loc_conf(r, ngx_http_core_module);
             std::string upload_err_msg;
             if (!hi::upload(ngx_request, &body, clcf, r, TEMP_DIRECTORY, upload_err_msg)) {
@@ -767,8 +767,8 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
                 ngx_response.status = 500;
                 goto done;
             }
-        } else if (ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) form_urlencoded_type,
-                form_urlencoded_type_len) == 0) {
+        } else if (ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *) FORM_URLENCODED_TYPE,
+                FORM_URLENCODED_TYPE_LEN) == 0) {
             hi::parser_param(std::string((char*) body.data, body.len), ngx_request.form);
         } else {
             ngx_request.form[REQUEST_BODY_NAME] = std::move(std::string((char*) body.data, body.len));

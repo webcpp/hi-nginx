@@ -14,10 +14,10 @@ extern "C" {
 #define HI_NGINX_SERVER_NAME "hi-nginx/" HI_NGINX_SERVER_VERSION
 #define HI_NGINX_SERVER_HEAD "PoweredBy"
 #define SESSION_ID_NAME "SESSIONID"
-#define form_multipart_type "multipart/form-data"
-#define form_multipart_type_len (sizeof(form_multipart_type) - 1)
-#define form_urlencoded_type "application/x-www-form-urlencoded"
-#define form_urlencoded_type_len (sizeof(form_urlencoded_type) - 1)
+#define FORM_MULTIPART_TYPE "multipart/form-data"
+#define FORM_MULTIPART_TYPE_LEN (sizeof(FORM_MULTIPART_TYPE) - 1)
+#define FORM_URLENCODED_TYPE "application/x-www-form-urlencoded"
+#define FORM_URLENCODED_TYPE_LEN (sizeof(FORM_URLENCODED_TYPE) - 1)
 #define TEMP_DIRECTORY "temp"
 #define LEVELDB_PATH "leveldb"
 
@@ -64,8 +64,8 @@ extern "C" {
 #include "application_t.hpp"
 #include "utils.hpp"
 
-static pthread_mutex_t *mtx = 0;
-static pthread_mutexattr_t *mtx_attr = 0;
+static pthread_mutex_t *ngx_http_hi_mtx = 0;
+static pthread_mutexattr_t *ngx_http_hi_mtx_attr = 0;
 static size_t *cpu_count = 0;
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<lru11::Cache<std::string, std::shared_ptr<hi::cache_t>>>> CACHE;
