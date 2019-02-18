@@ -4,6 +4,9 @@ if ! test -f Makefile;then
                 --with-cc=gcc                                       \
                 --with-http_ssl_module                              \
                 --with-http_v2_module                               \
+                --with-http_gzip_static_module                      \
+                --with-stream                                       \
+                --with-stream_ssl_module                            \
                 --prefix=/usr/local/nginx                           \
                 --enable-http-hi-cpp=YES                            \
                 --enable-http-hi-python=YES                         \

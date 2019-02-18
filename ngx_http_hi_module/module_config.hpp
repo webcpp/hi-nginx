@@ -10,7 +10,7 @@ extern "C" {
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "1.8.7"
+#define HI_NGINX_SERVER_VERSION "1.8.8"
 #define HI_NGINX_SERVER_NAME "hi-nginx/" HI_NGINX_SERVER_VERSION
 #define HI_NGINX_SERVER_HEAD "PoweredBy"
 #define SESSION_ID_NAME "SESSIONID"
@@ -59,14 +59,13 @@ extern "C" {
 #include "lib/MPFDParser/Parser.h"
 #include "lib/leveldb/db.h"
 #include "lib/msgpack/msgpack.hpp"
+#include "lib/shared_memory.hpp"
 
 #include "cache_t.hpp"
 #include "application_t.hpp"
 #include "utils.hpp"
 
-static pthread_mutex_t *ngx_http_hi_mtx = 0;
-static pthread_mutexattr_t *ngx_http_hi_mtx_attr = 0;
-static size_t *ngx_http_hi_cpu_count = 0;
+static std::shared_ptr<hi::shared_memory<size_t>> NGX_HTTP_HI_CPU_COUNT;
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<lru11::Cache<std::string, std::shared_ptr<hi::cache_t>>>> CACHE;
 static leveldb::DB* LEVELDB = 0;

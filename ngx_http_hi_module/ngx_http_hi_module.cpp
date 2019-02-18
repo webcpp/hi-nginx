@@ -386,29 +386,14 @@ ngx_module_t ngx_http_hi_module = {
 };
 
 static ngx_int_t ngx_http_hi_init(ngx_conf_t *cf) {
-    if (ngx_http_hi_mtx == 0) {
-        ngx_http_hi_mtx = (pthread_mutex_t*) mmap(0, sizeof (pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-        if (ngx_http_hi_mtx != MAP_FAILED) {
-            if (ngx_http_hi_mtx_attr == 0) {
-                ngx_http_hi_mtx_attr = (pthread_mutexattr_t*) mmap(0, sizeof (pthread_mutexattr_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-                if (ngx_http_hi_mtx_attr != MAP_FAILED) {
-                    pthread_mutexattr_init(ngx_http_hi_mtx_attr);
-                    pthread_mutexattr_setpshared(ngx_http_hi_mtx_attr, PTHREAD_PROCESS_SHARED);
-                    pthread_mutexattr_settype(ngx_http_hi_mtx_attr, PTHREAD_MUTEX_DEFAULT);
-                    pthread_mutex_init(ngx_http_hi_mtx, ngx_http_hi_mtx_attr);
-                    if (ngx_http_hi_cpu_count == 0) {
-                        ngx_http_hi_cpu_count = (size_t*) mmap(0, sizeof (size_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-                        if (ngx_http_hi_cpu_count != MAP_FAILED) {
-                            pthread_mutex_lock(ngx_http_hi_mtx);
-                            *ngx_http_hi_cpu_count = 0;
-                            pthread_mutex_unlock(ngx_http_hi_mtx);
-                        }
-                    }
-
-                }
-            }
-        }
+    NGX_HTTP_HI_CPU_COUNT = std::make_shared<hi::shared_memory < size_t >> ();
+    if (NGX_HTTP_HI_CPU_COUNT->is_ok()) {
+        NGX_HTTP_HI_CPU_COUNT->lock();
+        *NGX_HTTP_HI_CPU_COUNT->get() = 0;
+        NGX_HTTP_HI_CPU_COUNT->unlock();
+        return NGX_OK;
     }
+    return NGX_ERROR;
 }
 
 static char *ngx_http_hi_conf_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
@@ -644,23 +629,21 @@ static ngx_int_t ngx_http_hi_process_init(ngx_cycle_t *cycle) {
     if (!LEVELDB) {
         LEVELDB_OPTIONS.create_if_missing = true;
         std::string i;
-        pthread_mutex_lock(ngx_http_hi_mtx);
-        if (*ngx_http_hi_cpu_count > std::thread::hardware_concurrency() - 1) {
-            *ngx_http_hi_cpu_count = 0;
+        NGX_HTTP_HI_CPU_COUNT->lock();
+        if (*NGX_HTTP_HI_CPU_COUNT->get() > std::thread::hardware_concurrency() - 1) {
+            *NGX_HTTP_HI_CPU_COUNT->get() = 0;
         }
-        i = std::move(std::to_string(*ngx_http_hi_cpu_count));
-        *ngx_http_hi_cpu_count = (*ngx_http_hi_cpu_count) + 1;
-        pthread_mutex_unlock(ngx_http_hi_mtx);
+        i = std::move(std::to_string(*NGX_HTTP_HI_CPU_COUNT->get()));
+        *NGX_HTTP_HI_CPU_COUNT->get() = *NGX_HTTP_HI_CPU_COUNT->get() + 1;
+        NGX_HTTP_HI_CPU_COUNT->unlock();
         leveldb::DB::Open(LEVELDB_OPTIONS, LEVELDB_PATH + ("/" + i), &LEVELDB);
+        return NGX_OK;
     }
+    return NGX_ERROR;
 }
 
 static void ngx_http_hi_process_exit(ngx_cycle_t * cycle) {
-    if (ngx_http_hi_mtx)pthread_mutex_destroy(ngx_http_hi_mtx);
-    if (ngx_http_hi_mtx_attr)pthread_mutexattr_destroy(ngx_http_hi_mtx_attr);
-    if (ngx_http_hi_mtx_attr)munmap(ngx_http_hi_mtx_attr, sizeof (pthread_mutexattr_t));
-    if (ngx_http_hi_mtx)munmap(ngx_http_hi_mtx, sizeof (pthread_mutex_t));
-    if (ngx_http_hi_cpu_count)munmap(ngx_http_hi_cpu_count, sizeof (size_t));
+    NGX_HTTP_HI_CPU_COUNT.reset();
     PLUGIN.clear();
     CACHE.clear();
     SUBREQUEST_RESPONSE.clear();
