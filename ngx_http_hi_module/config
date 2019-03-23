@@ -11,7 +11,7 @@ if test $HTTP_HI_CPP = YES ; then
     fi
 
     CXXFLAGS="$CXXFLAGS -DHTTP_HI_CPP"
-    CXXFLAGS="$CXXFLAGS -O3 -std=c++11"
+    CXXFLAGS="$CXXFLAGS -O3 -std=c++11 -Wno-error=free-nonheap-object"
     CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir -I$ngx_addon_dir/include -I$ngx_addon_dir/include/dukglue"
     CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib"
     CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib/leveldb -DLEVELDB_PLATFORM_POSIX"

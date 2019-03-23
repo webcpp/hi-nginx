@@ -89,7 +89,7 @@ if [ "$NGX_SYSTEM" = "Darwin" ]; then
 fi
 
 # stop on warning
-CFLAGS="$CFLAGS -Werror"
+CFLAGS="$CFLAGS -Werror -Wno-error=free-nonheap-object"
 
 # debug
 CFLAGS="$CFLAGS -g"
