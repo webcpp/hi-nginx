@@ -49,7 +49,7 @@ ngx_int_t nchan_benchmark_init_module(ngx_cycle_t *cycle) {
 
 ngx_int_t nchan_benchmark_init_worker(ngx_cycle_t *cycle) {
   DBG("init worker");
-  bench_worker_number = ngx_atomic_fetch_add(worker_counter, 1);
+  bench_worker_number = ngx_atomic_fetch_add((ngx_atomic_uint_t *)worker_counter, 1);
   return NGX_OK;
 }
 
@@ -140,32 +140,59 @@ ngx_int_t nchan_benchmark_initialize(void) {
   int           c, i;
   subscriber_t **sub;
   ngx_str_t     channel_id;
-  ngx_int_t divided_subs = bench.config->subscribers_per_channel / nchan_worker_processes;
-  ngx_int_t leftover_subs = bench.config->subscribers_per_channel % nchan_worker_processes;
-  ngx_int_t subs_per_channel;
-  
+  ngx_int_t     subs_per_channel;
+      
   assert(bench.subs.array == NULL);
   assert(bench.subs.n == 0);
-  for(c=0; c<bench.config->channels; c++) {
-    bench.subs.n += divided_subs;
-    if (c%nchan_worker_processes == bench_worker_number) {
-      bench.subs.n += leftover_subs;
+  
+  if(bench.config->subscriber_distribution == NCHAN_BENCHMARK_SUBSCRIBER_DISTRIBUTION_RANDOM) {
+    ngx_int_t divided_subs = bench.config->subscribers_per_channel / nchan_worker_processes;
+    ngx_int_t leftover_subs = bench.config->subscribers_per_channel % nchan_worker_processes;
+    for(c=0; c<bench.config->channels; c++) {
+      bench.subs.n += divided_subs;
+      if (c%nchan_worker_processes == bench_worker_number) {
+        bench.subs.n += leftover_subs;
+      }
+    }
+    DBG("bench.subs.n = %d", bench.subs.n);
+    bench.subs.array = ngx_alloc(sizeof(subscriber_t *) * bench.subs.n, ngx_cycle->log);
+    sub = &bench.subs.array[0];
+    
+    for(c=0; c<bench.config->channels; c++) {
+      subs_per_channel = divided_subs + (((c % nchan_worker_processes) == bench_worker_number) ? leftover_subs : 0);
+      //DBG("worker number %d channel %d subs %d", bench_worker_number, c, subs_per_channel);
+      nchan_benchmark_channel_id(c, &channel_id);
+      for(i=0; i<subs_per_channel; i++) {
+        *sub = benchmark_subscriber_create(&bench);
+        if((*sub)->fn->subscribe(*sub, &channel_id) != NGX_OK) {
+          return NGX_ERROR;
+        }
+        sub++;
+      }
     }
   }
-  DBG("bench.subs.n = %d", bench.subs.n);
-  bench.subs.array = ngx_alloc(sizeof(subscriber_t *) * bench.subs.n, ngx_cycle->log);
-  sub = &bench.subs.array[0];
-  
-  for(c=0; c<bench.config->channels; c++) {
-    subs_per_channel = divided_subs + (((c % nchan_worker_processes) == bench_worker_number) ? leftover_subs : 0);
-    //DBG("worker number %d channel %d subs %d", bench_worker_number, c, subs_per_channel);
-    for(i=0; i<subs_per_channel; i++) {
+  else {
+    subs_per_channel = bench.config->subscribers_per_channel;
+    for(c=0; c<bench.config->channels; c++) {
       nchan_benchmark_channel_id(c, &channel_id);
-      *sub = benchmark_subscriber_create(&bench);
-      if((*sub)->fn->subscribe(*sub, &channel_id) != NGX_OK) {
-        return NGX_ERROR;
+      if(memstore_channel_owner(&channel_id) == ngx_process_slot) {
+        bench.subs.n += subs_per_channel;
       }
-      sub++;
+    }
+    bench.subs.array = ngx_alloc(sizeof(subscriber_t *) * bench.subs.n, ngx_cycle->log);
+    sub = &bench.subs.array[0];
+    
+    for(c=0; c<bench.config->channels; c++) {
+      nchan_benchmark_channel_id(c, &channel_id);
+      if(memstore_channel_owner(&channel_id) == ngx_process_slot) {
+        for(i=0; i<subs_per_channel; i++) {
+          *sub = benchmark_subscriber_create(&bench);
+          if((*sub)->fn->subscribe(*sub, &channel_id) != NGX_OK) {
+            return NGX_ERROR;
+          }
+          sub++;
+        }
+      }
     }
   }
   
@@ -183,14 +210,29 @@ ngx_int_t nchan_benchmark_run(void) {
   ngx_memset(bench.msgbuf, 'z', msgbuf_maxlen);
   
   bench.base_msg_period = 1000.0/((double)bench.config->msgs_per_minute / 60.0);
-  bench.base_msg_period *= nchan_worker_processes;
-  DBG("ready to begin benchmark, msg period: %d msec", bench.base_msg_period);
   assert(bench.timer.publishers == NULL);
   bench.timer.publishers = ngx_alloc(sizeof(void *) * bench.config->channels, ngx_cycle->log);
-  for(i=0; i < bench.config->channels; i++) {
-    pubstart = (rand() / (RAND_MAX / bench.base_msg_period));
-    total_offset += pubstart;
-    bench.timer.publishers[i] = nchan_add_interval_timer(benchmark_publish_message_interval_timer, &bench.shared.channels[i], pubstart);
+  if(bench.config->publisher_distribution == NCHAN_BENCHMARK_PUBLISHER_DISTRIBUTION_RANDOM) {
+    bench.base_msg_period *= nchan_worker_processes;
+    for(i=0; i < bench.config->channels; i++) {
+      pubstart = (rand() / (RAND_MAX / bench.base_msg_period));
+      total_offset += pubstart;
+      bench.timer.publishers[i] = nchan_add_interval_timer(benchmark_publish_message_interval_timer, &bench.shared.channels[i], pubstart);
+    }
+  }
+  else if(bench.config->publisher_distribution == NCHAN_BENCHMARK_PUBLISHER_DISTRIBUTION_OPTIMAL) {
+    ngx_str_t channel_id;
+    for(i=0; i < bench.config->channels; i++) {
+      nchan_benchmark_channel_id(i, &channel_id);
+      if(memstore_channel_owner(&channel_id) == ngx_process_slot) {
+        pubstart = (rand() / (RAND_MAX / bench.base_msg_period));
+        total_offset += pubstart;
+        bench.timer.publishers[i] = nchan_add_interval_timer(benchmark_publish_message_interval_timer, &bench.shared.channels[i], pubstart);
+      }
+      else {
+        bench.timer.publishers[i] = NULL;
+      }
+    }
   }
   
   return NGX_OK;
@@ -642,7 +684,7 @@ void benchmark_controller(subscriber_t *sub, nchan_msg_t *msg) {
     int       i;
     ngx_int_t val;
     
-    if(!ngx_atomic_cmp_set(bench.state, NCHAN_BENCHMARK_INACTIVE, NCHAN_BENCHMARK_INITIALIZING)) {
+    if(!ngx_atomic_cmp_set((ngx_atomic_uint_t *)bench.state, NCHAN_BENCHMARK_INACTIVE, NCHAN_BENCHMARK_INITIALIZING)) {
       benchmark_client_respond("ERROR: a benchmark is already initialized");
       return;
     }
@@ -696,7 +738,7 @@ void benchmark_controller(subscriber_t *sub, nchan_msg_t *msg) {
     bench.timer.ready = nchan_add_interval_timer(benchmark_timer_ready_check, NULL, 250);
   }
   else if(nchan_strmatch(&cmd, 2, "run", "start")) {
-    if(!ngx_atomic_cmp_set(bench.state, NCHAN_BENCHMARK_READY, NCHAN_BENCHMARK_RUNNING)) {
+    if(!ngx_atomic_cmp_set((ngx_atomic_uint_t *)bench.state, NCHAN_BENCHMARK_READY, NCHAN_BENCHMARK_RUNNING)) {
       benchmark_client_respond(*bench.state < NCHAN_BENCHMARK_READY ? "ERROR: not ready" : "ERROR: already running");
       return;
     }

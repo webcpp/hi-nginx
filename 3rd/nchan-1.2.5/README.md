@@ -22,7 +22,7 @@ In a web browser, you can use Websocket or EventSource natively, or the [NchanSu
 
 ## Status and History
 
-The latest Nchan release is 1.2.3 (October 15, 2018) ([changelog](https://nchan.io/changelog)).
+The latest Nchan release is 1.2.5 (March 20, 2019) ([changelog](https://nchan.io/changelog)).
 
 The first iteration of Nchan was written in 2009-2010 as the [Nginx HTTP Push Module](https://pushmodule.slact.net), and was vastly refactored into its present state in 2014-2016.
 
@@ -1205,7 +1205,7 @@ Additionally, `nchan_stub_status` data is also exposed as variables. These are a
   arguments: 1  
   default: `$http_origin`  
   context: http, server, location, if  
-  > Set the [Cross-Origin Resource Sharing (CORS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS) `Access-Control-Allow-Origin` header to this value. If the incoming request's `Origin` header does not match this value, respond with a `403 Forbidden`.    
+  > Set the [Cross-Origin Resource Sharing (CORS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS) `Access-Control-Allow-Origin` header to this value. If the incoming request's `Origin` header does not match this value, respond with a `403 Forbidden`. Multiple origins can be provided in a single argument separated with a space.    
 
 - **nchan_authorize_request** `<url>`  
   arguments: 1  
@@ -1317,7 +1317,7 @@ Additionally, `nchan_stub_status` data is also exposed as variables. These are a
 
 - **nchan_redis_namespace** `<string>`  
   arguments: 1  
-  context: http, server, upstream  
+  context: http, server, upstream, location  
   > Prefix all Redis keys with this string. All Nchan-related keys in redis will be of the form "nchan_redis_namespace:*" . Default is empty.    
 
 - **nchan_redis_nostore_fastpublish** `[ on | off ]`  
@@ -1341,7 +1341,7 @@ Additionally, `nchan_stub_status` data is also exposed as variables. These are a
 - **nchan_redis_ping_interval**  
   arguments: 1  
   default: `4m`  
-  context: http, server, location  
+  context: http, server, upstream, location  
   > Send a keepalive command to redis to keep the Nchan redis clients from disconnecting. Set to 0 to disable.    
 
 - **nchan_redis_server** `<redis-url>`  

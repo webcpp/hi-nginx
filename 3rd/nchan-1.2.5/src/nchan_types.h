@@ -278,6 +278,7 @@ typedef struct {
       ngx_int_t                     master_weight;
       ngx_int_t                     slave_weight;
   }                               redis;
+  nchan_loc_conf_t                *upstream_nchan_loc_conf;
 } nchan_srv_conf_t;
 
 typedef struct {
@@ -286,6 +287,16 @@ typedef struct {
   ngx_int_t                       msg_padding;
   ngx_int_t                       channels;
   ngx_int_t                       subscribers_per_channel;
+  enum {
+    NCHAN_BENCHMARK_SUBSCRIBER_DISTRIBUTION_UNSET = -1,
+    NCHAN_BENCHMARK_SUBSCRIBER_DISTRIBUTION_RANDOM = 1,
+    NCHAN_BENCHMARK_SUBSCRIBER_DISTRIBUTION_OPTIMAL = 2
+  }                               subscriber_distribution;
+  enum {
+    NCHAN_BENCHMARK_PUBLISHER_DISTRIBUTION_UNSET = -1,
+    NCHAN_BENCHMARK_PUBLISHER_DISTRIBUTION_RANDOM = 1,
+    NCHAN_BENCHMARK_PUBLISHER_DISTRIBUTION_OPTIMAL = 2
+  }                               publisher_distribution;
 } nchan_benchmark_conf_t;
 
 struct nchan_loc_conf_s { //nchan_loc_conf_t

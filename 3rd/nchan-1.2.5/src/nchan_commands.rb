@@ -423,7 +423,7 @@ CfCmd.new do
       info: "Use of this command is discouraged in favor of (`nchan_redis_pass`)[#nchan_redis_pass]. Use Redis for message storage at this location.",
       uri: "#connecting-to-a-redis-server"
   
-  nchan_redis_ping_interval [:main, :srv, :loc],
+  nchan_redis_ping_interval [:main, :srv, :upstream, :loc],
       :ngx_conf_set_sec_slot,
       [:loc_conf, :"redis.ping_interval"],
       
@@ -470,10 +470,11 @@ CfCmd.new do
       default: "cpu",
       info: "This tweaks whether [effect replication](https://redis.io/commands/eval#replicating-commands-instead-of-scripts) is enabled. Optimizing for CPU usage enables effect replication, costing additional bandwidth (between 1.2 and 2 times more) between all master->slave links. Optimizing for bandwidth increases CPU load on slaves, but keeps outgoing bandwidth used for replication the same as the incoming bandwidth on Master."
   
-  nchan_redis_namespace [:main, :srv, :upstream], 
-      :ngx_conf_set_redis_namespace_slot,
+  nchan_redis_namespace [:main, :srv, :upstream, :loc], 
+      :ngx_conf_set_str_slot,
       [:loc_conf, :"redis.namespace"],
       args: 1,
+      post_handler: "ngx_conf_process_redis_namespace_slot",
       
       group: "storage",
       value: "<string>",
@@ -541,7 +542,7 @@ CfCmd.new do
       value: "<string>",
       tags: ['publisher', 'subscriber'],
       default: "$http_origin",
-      info: "Set the [Cross-Origin Resource Sharing (CORS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS) `Access-Control-Allow-Origin` header to this value. If the incoming request's `Origin` header does not match this value, respond with a `403 Forbidden`."
+      info: "Set the [Cross-Origin Resource Sharing (CORS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS) `Access-Control-Allow-Origin` header to this value. If the incoming request's `Origin` header does not match this value, respond with a `403 Forbidden`. Multiple origins can be provided in a single argument separated with a space."
 
   nchan_access_control_allow_credentials [:main, :srv, :loc, :if], 
       :ngx_conf_set_flag_slot,
@@ -733,6 +734,16 @@ CfCmd.new do
   nchan_benchmark_subscribers_per_channel [:loc],
       :ngx_conf_set_num_slot,
       [:loc_conf, "benchmark.subscribers_per_channel"],
+      group: "development",
+      undocumented: true
+    nchan_benchmark_subscriber_distribution [:loc],
+      :nchan_benchmark_subscriber_distribution_directive,
+      [:loc_conf, "benchmark.subscriber_distribution"],
+      group: "development",
+      undocumented: true
+    nchan_benchmark_publisher_distribution [:loc],
+      :nchan_benchmark_publisher_distribution_directive,
+      [:loc_conf, "benchmark.publisher_distribution"],
       group: "development",
       undocumented: true
 
