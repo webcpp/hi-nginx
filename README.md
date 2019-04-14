@@ -26,7 +26,8 @@
                 --enable-http-hi-php=NO                            \
                 --with-http-hi-python-version=python3               \
                 --with-http-hi-lua-version=lua5.3                   \
-                --add-module=ngx_http_hi_module                     
+                --add-module=ngx_http_hi_module                     \
+                --add-module=ngx_autoblacklist_module               
 
 ```
 
@@ -738,7 +739,21 @@ or
 #  curl -i http://localhost/sub?list=sh601006
 
 ```
+- directives : content: http,srv,loc,if in loc ,if in srv
+    - autoblacklist , default : "off"
+    - autoblacklist_size , default : 1024
+    - autoblacklist_limit , default : 30
+    - autoblacklist_expires , default : 86400s 
+    example:
 
+```nginx
+
+	autoblacklist on|off;
+	autoblacklist_size 1024;
+	autoblacklist_expires 86400s;
+	autoblacklist_limit 30;
+
+```
 
 ## nginx.conf
 
