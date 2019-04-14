@@ -1,0 +1,15 @@
+ngx_addon_name=ngx_http_autoblacklist_module
+HTTP_MODULES="$HTTP_MODULES ngx_http_autoblacklist_module"
+    
+
+if test $CC = gcc || test $CC = cc ; then
+    CXX=g++
+fi
+if test $CC = clang ; then
+    CXX=clang++
+fi
+
+CXXFLAGS="$CXXFLAGS -O3 -std=c++11 -Wno-error=free-nonheap-object"
+CORE_LIBS="$CORE_LIBS -lm -lstdc++"
+
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_autoblacklist_module.cpp"
