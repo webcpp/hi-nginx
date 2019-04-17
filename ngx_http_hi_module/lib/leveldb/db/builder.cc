@@ -41,14 +41,10 @@ Status BuildTable(const std::string& dbname,
     }
 
     // Finish and check for builder errors
+    s = builder->Finish();
     if (s.ok()) {
-      s = builder->Finish();
-      if (s.ok()) {
-        meta->file_size = builder->FileSize();
-        assert(meta->file_size > 0);
-      }
-    } else {
-      builder->Abandon();
+      meta->file_size = builder->FileSize();
+      assert(meta->file_size > 0);
     }
     delete builder;
 
@@ -60,7 +56,7 @@ Status BuildTable(const std::string& dbname,
       s = file->Close();
     }
     delete file;
-    file = NULL;
+    file = nullptr;
 
     if (s.ok()) {
       // Verify that the table is usable

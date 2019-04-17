@@ -39,6 +39,10 @@ void WriteBatch::Clear() {
   rep_.resize(kHeader);
 }
 
+size_t WriteBatch::ApproximateSize() const {
+  return rep_.size();
+}
+
 Status WriteBatch::Iterate(Handler* handler) const {
   Slice input(rep_);
   if (input.size() < kHeader) {
@@ -106,6 +110,10 @@ void WriteBatch::Delete(const Slice& key) {
   WriteBatchInternal::SetCount(this, WriteBatchInternal::Count(this) + 1);
   rep_.push_back(static_cast<char>(kTypeDeletion));
   PutLengthPrefixedSlice(&rep_, key);
+}
+
+void WriteBatch::Append(const WriteBatch &source) {
+  WriteBatchInternal::Append(this, &source);
 }
 
 namespace {
