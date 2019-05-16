@@ -10,7 +10,7 @@
 - lua-devel(lua5.x),if `--enable-http-hi-lua=YES`  and `--with-http-hi-lua-version=lua5.x`
 - luajit-devel,if `--enable-http-hi-lua=YES` and `--with-http-hi-lua-version=luajit`
 - jdk 1.8,9,10,if `--enable-http-hi-java=YES`
-- PHP 7.0,7.1, 7.2(--enable-embed=shared),if `--enable-http-hi-php=YES`
+- PHP 7.0,7.1, 7.2,7.3(--enable-embed=shared),if `--enable-http-hi-php=YES`
 
 
 
