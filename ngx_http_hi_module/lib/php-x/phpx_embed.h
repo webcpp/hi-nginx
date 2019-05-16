@@ -14,84 +14,56 @@
   +----------------------------------------------------------------------+
   | Author: Tianfeng Han  <mikan.tenny@gmail.com>                        |
   +----------------------------------------------------------------------+
- */
+*/
 
 #pragma once
 
-extern "C" {
+extern "C"
+{
 #include "sapi/embed/php_embed.h"
 }
 
 #include "phpx.h"
 
-namespace php {
-
-    class VM {
-    public:
-
-        VM(int argc, char ** argv) {
-            php_embed_init(argc, argv);
-            exit_status = 0;
-            program_name = argv[0];
+namespace php
+{
+class VM
+{
+public:
+    VM(int argc, char ** argv)
+    {
+        php_embed_init(argc, argv);
+        exit_status = 0;
+        program_name = argv[0];
+    }
+    ~VM()
+    {
+        php_embed_shutdown();
+    }
+    void eval(const char *script)
+    {
+        std::string s(script);
+        eval(s);
+    }
+    void eval(std::string &script)
+    {
+        zend_first_try
+        {
+            zend_eval_stringl((char *) script.c_str(), script.length(), NULL, (char *) program_name.c_str());
         }
-
-        ~VM() {
-            php_embed_shutdown();
+        zend_catch
+        {
+            exit_status = EG(exit_status);
         }
-
-        void eval(const char *script) {
-            std::string s(script);
-            eval(s);
-        }
-
-        void eval(std::string &script) {
-            zend_first_try
-                    {
-                zend_eval_stringl((char *) script.c_str(), script.length(), NULL, (char *) program_name.c_str());}
-            zend_catch
-                    {
-                exit_status = EG(exit_status);}
-            zend_end_try();
-        }
-
-        inline Variant include(std::string file) {
-            zend_file_handle file_handle;
-            int ret = php_stream_open_for_zend_ex(file.c_str(), &file_handle, USE_PATH | STREAM_OPEN_FOR_INCLUDE);
-            if (ret != SUCCESS) {
-                return false;
-            }
-
-            zend_string *opened_path;
-            if (!file_handle.opened_path) {
-                file_handle.opened_path = zend_string_init(file.c_str(), file.length(), 0);
-            }
-            opened_path = zend_string_copy(file_handle.opened_path);
-            zval dummy;
-            Variant retval = false;
-            zend_op_array *new_op_array;
-            ZVAL_NULL(&dummy);
-            if (zend_hash_add(&EG(included_files), opened_path, &dummy)) {
-                new_op_array = zend_compile_file(&file_handle, ZEND_REQUIRE);
-                zend_destroy_file_handle(&file_handle);
-            } else {
-                new_op_array = NULL;
-                zend_file_handle_dtor(&file_handle);
-            }
-            zend_string_release(opened_path);
-            if (!new_op_array) {
-                return false;
-            }
-
-            ZVAL_UNDEF(retval.ptr());
-            zend_execute(new_op_array, retval.ptr());
-
-            destroy_op_array(new_op_array);
-            efree(new_op_array);
-            return retval;
-        }
-        int exit_status;
-    private:
-        std::string program_name;
-    };
+        zend_end_try();
+    }
+    inline Variant include(std::string file)
+    {
+        return include(file);
+    }
+    int exit_status;
+private:
+    std::string program_name;
+};
 }
 
