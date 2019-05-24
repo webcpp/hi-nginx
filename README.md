@@ -18,16 +18,16 @@
 `./configure --help` or see `install_demo.sh` or 
 
 ```shell
-                --enable-http-hi-cpp=YES                            \
+                --enable-http-hi-cpp=YES                           \
                 --enable-http-hi-python=NO                         \
                 --enable-http-hi-lua=NO                            \
-                --enable-http-hi-duktape=NO                            \
+                --enable-http-hi-duktape=NO                        \
                 --enable-http-hi-java=NO                           \
                 --enable-http-hi-php=NO                            \
-                --with-http-hi-python-version=python3               \
-                --with-http-hi-lua-version=lua5.3                   \
-                --add-module=ngx_http_hi_module                     \
-                --add-module=ngx_autoblacklist_module               
+                --with-http-hi-python-version=python3              \
+                --with-http-hi-lua-version=lua5.3                  \
+                --add-module=module/ngx_http_hi_module             \
+                --add-module=module/ngx_autoblacklist_module               
 
 ```
 
