@@ -42,7 +42,7 @@ public:
         std::string s(script);
         eval(s);
     }
-    void eval(std::string& script)
+    void eval(const std::string& script)
     {
         zend_first_try
         {
@@ -54,7 +54,7 @@ public:
         }
         zend_end_try();
     }
-    inline Variant include(std::string file)
+    inline Variant include(const std::string& file)
     {
         zend_file_handle file_handle;
         int ret = php_stream_open_for_zend_ex(file.c_str(), &file_handle, USE_PATH | STREAM_OPEN_FOR_INCLUDE);

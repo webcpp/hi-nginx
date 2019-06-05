@@ -137,7 +137,7 @@ void Extension::registerConstant(const char *name, float v)
     zend_register_double_constant(name, strlen(name), v, CONST_CS | CONST_PERSISTENT, module.module_number);
 }
 
-void Extension::registerConstant(const char *name, string &v)
+void Extension::registerConstant(const char *name, const string &v)
 {
     zend_register_stringl_constant(name, strlen(name), (char *) v.c_str(), v.length(), CONST_CS | CONST_PERSISTENT, module.module_number);
 }

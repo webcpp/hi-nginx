@@ -472,7 +472,7 @@ Variant _call(zval *object, zval *func)
     }
 }
 
-Variant include(string file)
+Variant include(const string& file)
 {
     zend_file_handle file_handle;
     int ret = php_stream_open_for_zend_ex(file.c_str(), &file_handle, USE_PATH | STREAM_OPEN_FOR_INCLUDE);
