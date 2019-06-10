@@ -187,6 +187,14 @@ namespace hi {
                 case 10:this->args.version = JNI_VERSION_10;
                     break;
 #endif
+#ifdef JNI_VERSION_11
+                case 11:this->args.version = JNI_VERSION_11;
+                    break;
+#endif
+#ifdef JNI_VERSION_12
+                case 12:this->args.version = JNI_VERSION_12;
+                    break;
+#endif
                 default:this->args.version = JNI_VERSION_1_8;
                     break;
 
