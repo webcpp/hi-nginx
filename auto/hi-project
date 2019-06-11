@@ -254,7 +254,7 @@ java_makefile_tpl(){
 
 cat << END                                                     > $PROJECT/Makefile
 
-SRC=\$(shell find . -type f | egrep *.java\$\$\)
+SRC=\$(shell find . -type f | egrep *.java\$\$)
 OBJ=\$(patsubst %.java,%.class,\$(SRC))
 
 ifndef NGINX_INSTALL_DIR
