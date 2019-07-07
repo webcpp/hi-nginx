@@ -740,7 +740,7 @@ or
 
 ```
 
-# ngx_http_autoblacklist_module_ directives
+# ngx_http_autoblacklist_module directives
 
 - directives : content: http,srv,loc,if in loc ,if in srv
     - autoblacklist , default : "off"
