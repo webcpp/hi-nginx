@@ -739,6 +739,9 @@ or
 #  curl -i http://localhost/sub?list=sh601006
 
 ```
+
+# ngx_http_autoblacklist_module_ directives
+
 - directives : content: http,srv,loc,if in loc ,if in srv
     - autoblacklist , default : "off"
     - autoblacklist_size , default : 1024
