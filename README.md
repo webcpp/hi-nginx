@@ -722,6 +722,7 @@ or
 
 - directives : content: loc if in loc
     - hi_subrequest , default : ""
+
     example:
 
 ```nginx
@@ -747,7 +748,7 @@ or
     - autoblacklist_size , default : 1024
     - autoblacklist_limit , default : 30
     - autoblacklist_expires , default : 86400s 
-    
+
     example:
 
 ```nginx
