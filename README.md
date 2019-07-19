@@ -217,7 +217,7 @@ hi_res.status(200)
 # ngx_http_hi_module directives
 
 - directives : content: loc,if in loc
-    - hi,default: ""
+    - **hi**,default: ""
 
     example:
     
@@ -230,7 +230,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_need_tokens,default: on
+    - **hi_need_tokens**,default: on
 
     example:
 
@@ -241,7 +241,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_cache_method,default: GET
+    - **hi_cache_method**,default: GET
 
     example:
 
@@ -252,7 +252,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_need_cache,default: on
+    - **hi_need_cache**,default: on
 
     example:
 
@@ -263,7 +263,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_cache_size,default: 10
+    - **hi_cache_size**,default: 10
 
     example:
 
@@ -274,7 +274,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_cache_expires,default: 300s
+    - **hi_cache_expires**,default: 300s
 
     example:
 
@@ -285,7 +285,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_need_kvdb,default: off
+    - **hi_need_kvdb**,default: off
 
     example:
 
@@ -296,7 +296,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_kvdb_size,default: 10
+    - **hi_kvdb_size**,default: 10
 
     example:
 
@@ -307,7 +307,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_kvdb_expires,default: 300s
+    - **hi_kvdb_expires**,default: 300s
 
     example:
 
@@ -320,7 +320,7 @@ hi_res.status(200)
 
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_need_headers,default: off
+    - **hi_need_headers**,default: off
 
         example:
 
@@ -331,7 +331,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_need_cookies,default: off
+    - **hi_need_cookies**,default: off
 
         example:
 
@@ -342,7 +342,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_need_session,default: off
+    - **hi_need_session**,default: off
 
         example:
 
@@ -353,7 +353,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_session_expires,default: 300s
+    - **hi_session_expires**,default: 300s
 
     example:
 
@@ -365,7 +365,7 @@ hi_res.status(200)
      
 
 - directives : content: http,srv ,if in srv
-    - hi_redis_host,default: ""
+    - **hi_redis_host**,default: ""
 
     example:
 
@@ -376,7 +376,7 @@ hi_res.status(200)
 ```
 
 - directives : content: http,srv,if in srv
-    - hi_redis_port,default: 0
+    - **hi_redis_port**,default: 0
 
     example:
 
@@ -388,7 +388,7 @@ hi_res.status(200)
 
 
 - directives : content: loc,if in loc
-    - hi_python_content,default: ""
+    - **hi_python_content**,default: ""
 
     example:
     
@@ -401,7 +401,7 @@ hi_res.status(200)
 ```
 
 - directives : content: loc,if in loc
-    - hi_python_script,default: ""
+    - **hi_python_script**,default: ""
 
     example:
     
@@ -425,7 +425,7 @@ or
 
 
 - directives : content:  http,srv,if in srv
-    - hi_lua_package_path,default: ""
+    - **hi_lua_package_path**,default: ""
 
     example:
     
@@ -438,7 +438,7 @@ or
 ```
 
 - directives : content:  http,srv,if in srv
-    - hi_lua_package_cpath,default: ""
+    - **hi_lua_package_cpath**,default: ""
 
     example:
     
@@ -453,7 +453,7 @@ or
 
 
 - directives : content: loc,if in loc
-    - hi_lua_content,default: ""
+    - **hi_lua_content**,default: ""
 
     example:
     
@@ -466,7 +466,7 @@ or
 ```
 
 - directives : content: loc,if in loc
-    - hi_lua_script,default: ""
+    - **hi_lua_script**,default: ""
 
     example:
     
@@ -490,7 +490,7 @@ or
 
 
 - directives : content:  http,srv,if in srv
-    - hi_duktape_package_path,default: ""
+    - **hi_duktape_package_path**,default: ""
 
     example:
     
@@ -503,7 +503,7 @@ or
 ```
 
 - directives : content:  http,srv,if in srv
-    - hi_duktape_package_cpath,default: ""
+    - **hi_duktape_package_cpath**,default: ""
 
     example:
     
@@ -518,7 +518,7 @@ or
 
 
 - directives : content: loc,if in loc
-    - hi_duktape_content,default: ""
+    - **hi_duktape_content**,default: ""
 
     example:
     
@@ -531,7 +531,7 @@ or
 ```
 
 - directives : content: loc,if in loc
-    - hi_duktape_script,default: ""
+    - **hi_duktape_script**,default: ""
 
     example:
     
@@ -556,7 +556,7 @@ or
 
 
 - directives : content: http,srv,if in srv
-    - hi_java_classpath,default:"-Djava.class.path=."
+    - **hi_java_classpath**,default:"-Djava.class.path=."
 
     example:
 
@@ -568,7 +568,7 @@ hi_java_classpath "-Djava.class.path=.:/usr/local/nginx/java:/usr/local/nginx/ja
 ```
 
 - directives : content: http,srv,if in srv
-    - hi_java_options,default:"-server -d64 -Xmx1G -Xms1G -Xmn256m"
+    - **hi_java_options**,default:"-server -d64 -Xmx1G -Xms1G -Xmn256m"
 
     example:
 
@@ -580,7 +580,7 @@ hi_java_options "-server -d64 -Xmx3G -Xms3G -Xmn768m -XX:+DisableExplicitGC -XX:
 ```
 
 - directives : content: loc,if in loc
-    - hi_java_servlet,default:""
+    - **hi_java_servlet**,default:""
 
     example:
 
@@ -593,7 +593,7 @@ hi_java_servlet hi/jhello;
 ```
 
 - directives : content : http,srv,loc,if in loc ,if in srv
-    - hi_java_servlet_cache_expires,default:300s
+    - **hi_java_servlet_cache_expires**,default:300s
 
     example:
 
@@ -605,7 +605,7 @@ hi_java_servlet_cache_expires 300s;
 ```
 
 - directives : content : http,srv,loc,if in loc ,if in srv
-    - hi_java_servlet_cache_size,default:10
+    - **hi_java_servlet_cache_size**,default:10
 
     example:
 
@@ -630,7 +630,7 @@ hi_java_version 8;
 
 
 - directives : content: loc,if in loc
-    - hi_javascript_lang,default:javascript
+    - **hi_javascript_lang**,default:javascript
 
     example:
 
@@ -643,7 +643,7 @@ hi_javascript_lang javascript;
 
 
 - directives : content: loc,if in loc
-    - hi_javascript_extension,default:js
+    - **hi_javascript_extension**,default:js
 
     example:
 
@@ -657,7 +657,7 @@ hi_javascript_extension js;
 
 
 - directives : content: loc,if in loc
-    - hi_javascript_content,default:""
+    - **hi_javascript_content**,default:""
 
     example:
 
@@ -669,7 +669,7 @@ hi_javascript_content "hi_res.content='hello,world';hi_res.status=200;";
 ```
 
 - directives : content: loc,if in loc
-    - hi_javascript_script,default:""
+    - **hi_javascript_script**,default:""
 
     example:
 
@@ -691,7 +691,7 @@ hi_javascript_script javascript;
 ```
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - hi_javascript_compiledscript_expires,default:300s
+    - **hi_javascript_compiledscript_expires**,default:300s
 
     example:
 
@@ -702,7 +702,7 @@ hi_javascript_compiledscript_expires 300s;
 ```
 
 - directives : content: loc,if in loc
-    - hi_php_script,default: ""
+    - **hi_php_script**,default: ""
 
     example:
     
@@ -721,7 +721,7 @@ or
 ```
 
 - directives : content: loc if in loc
-    - hi_subrequest , default : ""
+    - **hi_subrequest**, default : ""
 
     example:
 
@@ -744,10 +744,10 @@ or
 # ngx_http_autoblacklist_module directives
 
 - directives : content: http,srv,loc,if in loc ,if in srv
-    - autoblacklist , default : "off"
-    - autoblacklist_size , default : 1024
-    - autoblacklist_limit , default : 30
-    - autoblacklist_expires , default : 86400s 
+    - **autoblacklist**, default : "off"
+    - **autoblacklist_size**, default : 1024
+    - **autoblacklist_limit**, default : 30
+    - **autoblacklist_expires**, default : 86400s 
 
     example:
 
