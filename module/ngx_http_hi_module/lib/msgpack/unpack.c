@@ -18,7 +18,7 @@
 
 
 typedef struct {
-    msgpack_zone* z;
+    msgpack_zone** z;
     bool referenced;
 } unpack_user;
 
@@ -189,15 +189,30 @@ static inline int template_callback_false(unpack_user* u, msgpack_object* o)
 
 static inline int template_callback_array(unpack_user* u, unsigned int n, msgpack_object* o)
 {
-    unsigned int size;
+    size_t size;
+    // Let's leverage the fact that sizeof(msgpack_object) is a compile time constant
+    // to check for int overflows.
+    // Note - while n is constrained to 32-bit, the product of n * sizeof(msgpack_object)
+    // might not be constrained to 4GB on 64-bit systems
+#if SIZE_MAX == UINT_MAX
+    if (n > SIZE_MAX/sizeof(msgpack_object))
+        return MSGPACK_UNPACK_NOMEM_ERROR;
+#endif
+
     o->type = MSGPACK_OBJECT_ARRAY;
     o->via.array.size = 0;
-    size = n*sizeof(msgpack_object);
-    if (size / sizeof(msgpack_object) != n) {
-        // integer overflow
-        return MSGPACK_UNPACK_NOMEM_ERROR;
+
+    size = n * sizeof(msgpack_object);
+
+    if (*u->z == NULL) {
+        *u->z = msgpack_zone_new(MSGPACK_ZONE_CHUNK_SIZE);
+        if(*u->z == NULL) {
+            return MSGPACK_UNPACK_NOMEM_ERROR;
+        }
     }
-    o->via.array.ptr = (msgpack_object*)msgpack_zone_malloc(u->z, size);
+
+    // Unsure whether size = 0 should be an error, and if so, what to return
+    o->via.array.ptr = (msgpack_object*)msgpack_zone_malloc(*u->z, size);
     if(o->via.array.ptr == NULL) { return MSGPACK_UNPACK_NOMEM_ERROR; }
     return 0;
 }
@@ -216,15 +231,32 @@ static inline int template_callback_array_item(unpack_user* u, msgpack_object* c
 
 static inline int template_callback_map(unpack_user* u, unsigned int n, msgpack_object* o)
 {
-    unsigned int size;
+    size_t size;
+    // Let's leverage the fact that sizeof(msgpack_object_kv) is a compile time constant
+    // to check for int overflows
+    // Note - while n is constrained to 32-bit, the product of n * sizeof(msgpack_object)
+    // might not be constrained to 4GB on 64-bit systems
+
+    // Note - this will always be false on 64-bit systems
+#if SIZE_MAX == UINT_MAX
+    if (n > SIZE_MAX/sizeof(msgpack_object_kv))
+        return MSGPACK_UNPACK_NOMEM_ERROR;
+#endif
+
     o->type = MSGPACK_OBJECT_MAP;
     o->via.map.size = 0;
-    size = n*sizeof(msgpack_object_kv);
-    if (size / sizeof(msgpack_object_kv) != n) {
-        // integer overflow
-        return MSGPACK_UNPACK_NOMEM_ERROR;
+
+    size = n * sizeof(msgpack_object_kv);
+
+    if (*u->z == NULL) {
+        *u->z = msgpack_zone_new(MSGPACK_ZONE_CHUNK_SIZE);
+        if(*u->z == NULL) {
+            return MSGPACK_UNPACK_NOMEM_ERROR;
+        }
     }
-    o->via.map.ptr = (msgpack_object_kv*)msgpack_zone_malloc(u->z, size);
+
+    // Should size = 0 be an error? If so, what error to return?
+    o->via.map.ptr = (msgpack_object_kv*)msgpack_zone_malloc(*u->z, size);
     if(o->via.map.ptr == NULL) { return MSGPACK_UNPACK_NOMEM_ERROR; }
     return 0;
 }
@@ -245,8 +277,13 @@ static inline int template_callback_map_item(unpack_user* u, msgpack_object* c, 
 
 static inline int template_callback_str(unpack_user* u, const char* b, const char* p, unsigned int l, msgpack_object* o)
 {
-    MSGPACK_UNUSED(u);
     MSGPACK_UNUSED(b);
+    if (*u->z == NULL) {
+        *u->z = msgpack_zone_new(MSGPACK_ZONE_CHUNK_SIZE);
+        if(*u->z == NULL) {
+            return MSGPACK_UNPACK_NOMEM_ERROR;
+        }
+    }
     o->type = MSGPACK_OBJECT_STR;
     o->via.str.ptr = p;
     o->via.str.size = l;
@@ -256,8 +293,13 @@ static inline int template_callback_str(unpack_user* u, const char* b, const cha
 
 static inline int template_callback_bin(unpack_user* u, const char* b, const char* p, unsigned int l, msgpack_object* o)
 {
-    MSGPACK_UNUSED(u);
     MSGPACK_UNUSED(b);
+    if (*u->z == NULL) {
+        *u->z = msgpack_zone_new(MSGPACK_ZONE_CHUNK_SIZE);
+        if(*u->z == NULL) {
+            return MSGPACK_UNPACK_NOMEM_ERROR;
+        }
+    }
     o->type = MSGPACK_OBJECT_BIN;
     o->via.bin.ptr = p;
     o->via.bin.size = l;
@@ -267,11 +309,16 @@ static inline int template_callback_bin(unpack_user* u, const char* b, const cha
 
 static inline int template_callback_ext(unpack_user* u, const char* b, const char* p, unsigned int l, msgpack_object* o)
 {
+    MSGPACK_UNUSED(b);
     if (l == 0) {
         return MSGPACK_UNPACK_PARSE_ERROR;
     }
-    MSGPACK_UNUSED(u);
-    MSGPACK_UNUSED(b);
+    if (*u->z == NULL) {
+        *u->z = msgpack_zone_new(MSGPACK_ZONE_CHUNK_SIZE);
+        if(*u->z == NULL) {
+            return MSGPACK_UNPACK_NOMEM_ERROR;
+        }
+    }
     o->type = MSGPACK_OBJECT_EXT;
     o->via.ext.type = *p;
     o->via.ext.ptr = p + 1;
@@ -317,7 +364,6 @@ bool msgpack_unpacker_init(msgpack_unpacker* mpac, size_t initial_buffer_size)
 {
     char* buffer;
     void* ctx;
-    msgpack_zone* z;
 
     if(initial_buffer_size < COUNTER_SIZE) {
         initial_buffer_size = COUNTER_SIZE;
@@ -334,26 +380,19 @@ bool msgpack_unpacker_init(msgpack_unpacker* mpac, size_t initial_buffer_size)
         return false;
     }
 
-    z = msgpack_zone_new(MSGPACK_ZONE_CHUNK_SIZE);
-    if(z == NULL) {
-        free(ctx);
-        free(buffer);
-        return false;
-    }
-
     mpac->buffer = buffer;
     mpac->used = COUNTER_SIZE;
     mpac->free = initial_buffer_size - mpac->used;
     mpac->off = COUNTER_SIZE;
     mpac->parsed = 0;
     mpac->initial_buffer_size = initial_buffer_size;
-    mpac->z = z;
+    mpac->z = NULL;
     mpac->ctx = ctx;
 
     init_count(mpac->buffer);
 
     template_init(CTX_CAST(mpac->ctx));
-    CTX_CAST(mpac->ctx)->user.z = mpac->z;
+    CTX_CAST(mpac->ctx)->user.z = &mpac->z;
     CTX_CAST(mpac->ctx)->user.referenced = false;
 
     return true;
@@ -480,21 +519,15 @@ msgpack_object msgpack_unpacker_data(msgpack_unpacker* mpac)
 
 msgpack_zone* msgpack_unpacker_release_zone(msgpack_unpacker* mpac)
 {
-    msgpack_zone* r;
-    msgpack_zone* old;
+    msgpack_zone* old = mpac->z;
 
+    if (old == NULL) return NULL;
     if(!msgpack_unpacker_flush_zone(mpac)) {
         return NULL;
     }
 
-    r = msgpack_zone_new(MSGPACK_ZONE_CHUNK_SIZE);
-    if(r == NULL) {
-        return NULL;
-    }
-
-    old = mpac->z;
-    mpac->z = r;
-    CTX_CAST(mpac->ctx)->user.z = mpac->z;
+    mpac->z = NULL;
+    CTX_CAST(mpac->ctx)->user.z = &mpac->z;
 
     return old;
 }
@@ -596,7 +629,7 @@ msgpack_unpack(const char* data, size_t len, size_t* off,
         template_context ctx;
         template_init(&ctx);
 
-        ctx.user.z = result_zone;
+        ctx.user.z = &result_zone;
         ctx.user.referenced = false;
 
         e = template_execute(&ctx, data, len, &noff);
@@ -633,19 +666,12 @@ msgpack_unpack_next(msgpack_unpacked* result,
         return MSGPACK_UNPACK_CONTINUE;
     }
 
-    if (!result->zone) {
-        result->zone = msgpack_zone_new(MSGPACK_ZONE_CHUNK_SIZE);
-    }
-
-    if (!result->zone) {
-        return MSGPACK_UNPACK_NOMEM_ERROR;
-    }
-    else {
+    {
         int e;
         template_context ctx;
         template_init(&ctx);
 
-        ctx.user.z = result->zone;
+        ctx.user.z = &result->zone;
         ctx.user.referenced = false;
 
         e = template_execute(&ctx, data, len, &noff);
