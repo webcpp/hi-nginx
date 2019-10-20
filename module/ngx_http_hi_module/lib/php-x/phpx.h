@@ -2,13 +2,11 @@
   +----------------------------------------------------------------------+
   | PHP-X                                                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2016-2017 The Swoole Group                             |
-  +----------------------------------------------------------------------+
-  | This source file is subject to version 3.0 of the GPL license,       |
+  | This source file is subject to version 2.0 of the Apache license,    |
   | that is bundled with this package in the file LICENSE, and is        |
   | available through the world-wide-web at the following url:           |
-  | http://www.gnu.org/licenses/                                         |
-  | If you did not receive a copy of the GPL3.0 license and are unable   |
+  | http://www.apache.org/licenses/LICENSE-2.0.html                      |
+  | If you did not receive a copy of the Apache2.0 license and are unable|
   | to obtain it through the world-wide-web, please send a note to       |
   | license@swoole.com so we can mail you a copy immediately.            |
   +----------------------------------------------------------------------+
@@ -109,7 +107,7 @@ public:
         init();
         ZVAL_STRINGL(&val, str, len);
     }
-    Variant(const std::string &str)
+    Variant(std::string &str)
     {
         init();
         ZVAL_STRINGL(&val, str.c_str(), str.length());
@@ -438,7 +436,7 @@ public:
         Variant _tmp(v);
         return equals(_tmp);
     }
-    bool operator ==(const std::string &v)
+    bool operator ==(std::string &v)
     {
         Variant _tmp(v);
         return equals(_tmp);
@@ -507,9 +505,9 @@ static inline bool is_callable(const Variant &fn)
     return zend_is_callable(const_cast<Variant &>(fn).ptr(), 0, nullptr);
 }
 
-Variant include(const std::string& file);
+Variant include(std::string file);
 
-static inline int version_compare(const std::string& s1, const std::string& s2)
+static inline int version_compare(std::string s1, std::string s2)
 {
 	return php_version_compare(s1.c_str(), s2.c_str());
 }
@@ -545,7 +543,7 @@ public:
     {
         value = zend_string_init(str, len, 0);
     }
-    String(const std::string& str)
+    String(std::string &str)
     {
         value = zend_string_init(str.c_str(), str.length(), 0);
     }
@@ -600,7 +598,7 @@ public:
     {
         return memcmp(str, value->val, value->len) == 0;
     }
-    inline bool equals(const std::string &str)
+    inline bool equals(std::string &str)
     {
         if (str.length() != value->len)
         {
@@ -651,7 +649,7 @@ public:
 				value->len, 0, flags, (char *) charset.c_str());
 	}
 
-	inline String unescape(int flags, const std::string& charset)
+	inline String unescape(int flags, std::string charset)
 	{
 #if PHP_VERSION_ID < 70200
 		return php_unescape_html_entities((unsigned char *) value->val,
@@ -860,7 +858,7 @@ public:
     {
         add_next_index_string(ptr(), str);
     }
-    void append(const std::string &str)
+    void append(std::string &str)
     {
         add_next_index_stringl(ptr(), str.c_str(), str.length());
     }
@@ -918,7 +916,7 @@ public:
     {
         add_assoc_string(ptr(), key, (char * )v);
     }
-    inline void set(const char *key, const std::string &v)
+    inline void set(const char *key, std::string &v)
     {
         add_assoc_stringl(ptr(), key, (char* )v.c_str(), v.length());
     }
@@ -998,7 +996,7 @@ public:
     {
         return zend_hash_str_exists(Z_ARRVAL_P(ptr()), key, strlen(key));
     }
-    inline bool exists(const std::string &key)
+    inline bool exists(std::string &key)
     {
         return zend_hash_str_exists(Z_ARRVAL_P(ptr()), key.c_str(), key.length());
     }
@@ -1413,14 +1411,14 @@ public:
     {
         zend_update_property(Z_OBJCE_P(ptr()), ptr(), name, strlen(name), v.ptr());
     }
-    inline void set(const char *name, const std::string &v)
+    inline void set(const char *name, std::string &v)
     {
         zend_update_property_stringl(Z_OBJCE_P(ptr()), ptr(), name, strlen(name), v.c_str(), v.length());
     }
-    // inline void set(const char *name, const std::string& v)
-    // {
-    //     zend_update_property_stringl(Z_OBJCE_P(ptr()), ptr(), name, strlen(name), v.c_str(), v.length());
-    // }
+    inline void set(const char *name, std::string v)
+    {
+        zend_update_property_stringl(Z_OBJCE_P(ptr()), ptr(), name, strlen(name), v.c_str(), v.length());
+    }
     inline void set(const char *name, const char *v)
     {
         zend_update_property_string(Z_OBJCE_P(ptr()), ptr(), name, strlen(name), v);
@@ -1639,7 +1637,7 @@ public:
     {
         return ce;
     }
-    Variant getStaticProperty(const std::string& p_name)
+    Variant getStaticProperty(std::string p_name)
     {
         if (!activated)
         {
@@ -1647,7 +1645,7 @@ public:
         }
         return Variant(zend_read_static_property(ce, p_name.c_str(), p_name.length(), 1));
     }
-    bool setStaticProperty(const std::string& p_name, Variant value)
+    bool setStaticProperty(std::string p_name, Variant value)
     {
         if (!activated)
         {
@@ -1656,7 +1654,7 @@ public:
         value.addRef();
         return zend_update_static_property(ce, p_name.c_str(), p_name.length(), value.ptr()) == SUCCESS;
     }
-    static Variant get(const char *name, const std::string& p_name)
+    static Variant get(const char *name, std::string p_name)
     {
         zend_class_entry *_tmp_ce = getClassEntry(name);
         if (!_tmp_ce)
@@ -1665,9 +1663,9 @@ public:
         }
         return Variant(zend_read_static_property(_tmp_ce, p_name.c_str(), p_name.length(), 1));
     }
-    static bool set(const char *name, const std::string& p_name, Variant value)
+    static bool set(const char *class_name, std::string p_name, Variant value)
     {
-        zend_class_entry *_tmp_ce = getClassEntry(name);
+        zend_class_entry *_tmp_ce = getClassEntry(class_name);
         if (!_tmp_ce)
         {
             return false;
@@ -1827,7 +1825,7 @@ public:
     void registerConstant(const char *name, float v);
     void registerConstant(const char *name, const char *v);
     void registerConstant(const char *name, const char *v, size_t len);
-    void registerConstant(const char *name, const std::string &v);
+    void registerConstant(const char *name, std::string &v);
 
     bool require(const char *name, const char *version = nullptr);
 
