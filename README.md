@@ -9,7 +9,7 @@
 - python3.x-devel if `--enable-http-hi-python=YES` and `with-http-hi-python-version=python3`
 - lua-devel(lua5.x),if `--enable-http-hi-lua=YES`  and `--with-http-hi-lua-version=lua5.x`
 - luajit-devel,if `--enable-http-hi-lua=YES` and `--with-http-hi-lua-version=luajit`
-- jdk 1.8,9,10,if `--enable-http-hi-java=YES`
+- jdk 1.8,9,10,11,12,if `--enable-http-hi-java=YES`
 - PHP 7.0,7.1, 7.2,7.3(--enable-embed=shared),if `--enable-http-hi-php=YES`
 
 
