@@ -27,15 +27,15 @@ var route = function () {
         this.add(['HEAD'], pattern, callback)
     }
 
-    this.run = function (req, res, param) {
+    this.run =async function (req, res, param) {
         var pattern = null
         for (pattern in this.map) {
             var reg = new RegExp(pattern, 'ig');
-            var param = reg.exec(req.uri())
+            var param =await reg.exec(req.uri())
             if (param != null) {
                 var ele = this.map[pattern]
                 if (ele.method.indexOf(req.method()) >= 0) {
-                    ele.callback(req, res, param)
+                    await ele.callback(req, res, param)
                     break
                 }
             }
