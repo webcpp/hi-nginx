@@ -1,7 +1,8 @@
 /*
  * Boost Software License - Version 1.0
  *
- * Copyright 2015-2018 Kevin Wojniak
+ * Mustache v4.0
+ * Copyright 2015-2019 Kevin Wojniak
  *
  * Permission is hereby granted, free of charge, to any person or organization
  * obtaining a copy of the software and accompanying documentation covered by
@@ -30,6 +31,7 @@
 #define KAINJOW_MUSTACHE_HPP
 
 #include <cassert>
+#include <cctype>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -43,11 +45,11 @@ namespace mustache {
 template <typename string_type>
 string_type trim(const string_type& s) {
     auto it = s.begin();
-    while (it != s.end() && isspace(*it)) {
+    while (it != s.end() && std::isspace(*it)) {
         it++;
     }
     auto rit = s.rbegin();
-    while (rit.base() != it && isspace(*rit)) {
+    while (rit.base() != it && std::isspace(*rit)) {
         rit++;
     }
     return {it, rit.base()};
@@ -423,6 +425,7 @@ const string_type delimiter_set<string_type>::default_end(2, '}');
 template <typename string_type>
 class basic_context {
 public:
+    virtual ~basic_context() = default;
     virtual void push(const basic_data<string_type>* data) = 0;
     virtual void pop() = 0;
 
@@ -447,7 +450,7 @@ public:
     virtual void pop() override {
         items_.erase(items_.begin());
     }
-    
+
     virtual const basic_data<string_type>* get(const string_type& name) const override {
         // process {{.}} name
         if (name.size() == 1 && name.at(0) == '.') {
@@ -498,11 +501,34 @@ private:
 };
 
 template <typename string_type>
+class line_buffer_state {
+public:
+    string_type data;
+    bool contained_section_tag = false;
+
+    bool is_empty_or_contains_only_whitespace() const {
+        for (const auto ch : data) {
+            // don't look at newlines
+            if (ch != ' ' && ch != '\t') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void clear() {
+        data.clear();
+        contained_section_tag = false;
+    }
+};
+
+template <typename string_type>
 class context_internal {
 public:
     basic_context<string_type>& ctx;
     delimiter_set<string_type> delim_set;
-    
+    line_buffer_state<string_type> line_buffer;
+
     context_internal(basic_context<string_type>& a_ctx)
         : ctx(a_ctx)
     {
@@ -570,19 +596,19 @@ public:
         skip,
     };
     using walk_callback = std::function<walk_control(component&)>;
-    
+
     component() {}
     component(const string_type& t, string_size_type p) : text(t), position(p) {}
-    
+
     bool is_text() const {
         return tag.type == tag_type::text;
     }
-    
+
     bool is_newline() const {
         return is_text() && ((text.size() == 2 && text[0] == '\r' && text[1] == '\n') ||
         (text.size() == 1 && (text[0] == '\n' || text[0] == '\r')));
     }
-    
+
     bool is_non_newline_whitespace() const {
         return is_text() && !is_newline() && text.size() == 1 && (text[0] == ' ' || text[0] == '\t');
     }
@@ -594,7 +620,7 @@ public:
             }
         }
     }
-    
+
 private:
     walk_control walk(const walk_callback& callback) {
         walk_control control{callback(*this)};
@@ -605,7 +631,9 @@ private:
         }
         for (auto& child : children) {
             control = child.walk(callback);
-            assert(control == walk_control::walk);
+            if (control == walk_control::stop) {
+                return control;
+            }
         }
         return control;
     }
@@ -623,19 +651,19 @@ private:
     void parse(const string_type& input, context_internal<string_type>& ctx, component<string_type>& root_component, string_type& error_message) const {
         using string_size_type = typename string_type::size_type;
         using streamstring = std::basic_ostringstream<typename string_type::value_type>;
-        
+
         const string_type brace_delimiter_end_unescaped(3, '}');
         const string_size_type input_size{input.size()};
 
         bool current_delimiter_is_brace{ctx.delim_set.is_default()};
-        
+
         std::vector<component<string_type>*> sections{&root_component};
         std::vector<string_size_type> section_starts;
         string_type current_text;
         string_size_type current_text_position = -1;
-        
+
         current_text.reserve(input_size);
-        
+
         const auto process_current_text = [&current_text, &current_text_position, &sections]() {
             if (!current_text.empty()) {
                 const component<string_type> comp{current_text, current_text_position};
@@ -644,7 +672,7 @@ private:
                 current_text_position = -1;
             }
         };
-        
+
         const std::vector<string_type> whitespace{
             string_type(1, '\r') + string_type(1, '\n'),
             string_type(1, '\n'),
@@ -652,10 +680,10 @@ private:
             string_type(1, ' '),
             string_type(1, '\t'),
         };
-        
+
         for (string_size_type input_position = 0; input_position != input_size;) {
             bool parse_tag = false;
-            
+
             if (input.compare(input_position, ctx.delim_set.begin.size(), ctx.delim_set.begin) == 0) {
                 process_current_text();
 
@@ -670,12 +698,12 @@ private:
                         const component<string_type> comp{whitespace_text, input_position};
                         sections.back()->children.push_back(comp);
                         input_position += whitespace_text.size();
-                        
+
                         parsed_whitespace = true;
                         break;
                     }
                 }
-                
+
                 if (!parsed_whitespace) {
                     if (current_text.empty()) {
                         current_text_position = input_position;
@@ -684,14 +712,14 @@ private:
                     input_position++;
                 }
             }
-            
+
             if (!parse_tag) {
                 continue;
             }
-            
+
             // Find the next tag start delimiter
             const string_size_type tag_location_start = input_position;
-            
+
             // Find the next tag end delimiter
             string_size_type tag_contents_location{tag_location_start + ctx.delim_set.begin.size()};
             const bool tag_is_unescaped_var{current_delimiter_is_brace && tag_location_start != (input_size - 2) && input.at(tag_contents_location) == ctx.delim_set.begin.at(0)};
@@ -707,7 +735,7 @@ private:
                 error_message.assign(ss.str());
                 return;
             }
-            
+
             // Parse tag
             const string_type tag_contents{trim(string_type{input, tag_contents_location, tag_location_end - tag_contents_location})};
             component<string_type> comp;
@@ -727,10 +755,10 @@ private:
             }
             comp.position = tag_location_start;
             sections.back()->children.push_back(comp);
-            
+
             // Start next search after this tag
             input_position = tag_location_end + current_tag_delimiter_end_size;
-            
+
             // Push or pop sections
             if (comp.tag.is_section_begin()) {
                 sections.push_back(&sections.back()->children.back());
@@ -747,9 +775,9 @@ private:
                 section_starts.pop_back();
             }
         }
-        
+
         process_current_text();
-        
+
         // Check for sections without an ending tag
         root_component.walk_children([&error_message](component<string_type>& comp) -> typename component<string_type>::walk_control {
             if (!comp.tag.is_section_begin()) {
@@ -768,17 +796,17 @@ private:
             return;
         }
     }
-    
+
     bool is_set_delimiter_valid(const string_type& delimiter) const {
         // "Custom delimiters may not contain whitespace or the equals sign."
         for (const auto ch : delimiter) {
-            if (ch == '=' || isspace(ch)) {
+            if (ch == '=' || std::isspace(ch)) {
                 return false;
             }
         }
         return true;
     }
-    
+
     bool parse_set_delimiter_tag(const string_type& contents, delimiter_set<string_type>& delimiter_set) const {
         // Smallest legal tag is "=X X="
         if (contents.size() < 5) {
@@ -803,7 +831,7 @@ private:
         delimiter_set.end = end;
         return true;
     }
-    
+
     void parse_tag_contents(bool is_unescaped_var, const string_type& contents, mstch_tag<string_type>& tag) const {
         if (is_unescaped_var) {
             tag.type = tag_type::unescaped_variable;
@@ -861,7 +889,7 @@ public:
     bool is_valid() const {
         return error_message_.empty();
     }
-    
+
     const string_type& error_message() const {
         return error_message_;
     }
@@ -878,7 +906,7 @@ public:
         });
         return stream;
     }
-    
+
     string_type render(const basic_data<string_type>& data) {
         std::basic_ostringstream<typename string_type::value_type> ss;
         return render(data, ss).str();
@@ -915,14 +943,10 @@ private:
         : escape_(html_escape<string_type>)
     {
     }
-    
+
     basic_mustache(const string_type& input, context_internal<string_type>& ctx)
         : basic_mustache() {
         parser<string_type> parser{input, ctx, root_component_, error_message_};
-    }
-    
-    void walk(const typename component<string_type>::walk_callback& callback) {
-        root_component_.walk_children(callback);
     }
 
     string_type render(context_internal<string_type>& ctx) {
@@ -933,18 +957,47 @@ private:
         return ss.str();
     }
 
-    void render(const render_handler& handler, context_internal<string_type>& ctx) {
-        walk([&handler, &ctx, this](component<string_type>& comp) -> typename component<string_type>::walk_control {
+    void render(const render_handler& handler, context_internal<string_type>& ctx, bool root_renderer = true) {
+        root_component_.walk_children([&handler, &ctx, this](component<string_type>& comp) -> typename component<string_type>::walk_control {
             return render_component(handler, ctx, comp);
         });
+        // process the last line, but only for the top-level renderer
+        if (root_renderer) {
+            render_current_line(handler, ctx, nullptr);
+        }
+    }
+
+    void render_current_line(const render_handler& handler, context_internal<string_type>& ctx, const component<string_type>* comp) const {
+        // We're at the end of a line, so check the line buffer state to see
+        // if the line had tags in it, and also if the line is now empty or
+        // contains whitespace only. if this situation is true, skip the line.
+        bool output = true;
+        if (ctx.line_buffer.contained_section_tag && ctx.line_buffer.is_empty_or_contains_only_whitespace()) {
+            output = false;
+        }
+        if (output) {
+            handler(ctx.line_buffer.data);
+            if (comp) {
+                handler(comp->text);
+            }
+        }
+        ctx.line_buffer.clear();
+    }
+
+    void render_result(context_internal<string_type>& ctx, const string_type& text) const {
+        ctx.line_buffer.data.append(text);
     }
 
     typename component<string_type>::walk_control render_component(const render_handler& handler, context_internal<string_type>& ctx, component<string_type>& comp) {
         if (comp.is_text()) {
-            handler(comp.text);
+            if (comp.is_newline()) {
+                render_current_line(handler, ctx, &comp);
+            } else {
+                render_result(ctx, comp.text);
+            }
             return component<string_type>::walk_control::walk;
         }
-        
+
         const mstch_tag<string_type>& tag{comp.tag};
         const basic_data<string_type>* var = nullptr;
         switch (tag.type) {
@@ -974,13 +1027,13 @@ private:
                 return component<string_type>::walk_control::skip;
             case tag_type::partial:
                 if ((var = ctx.ctx.get_partial(tag.name)) != nullptr && (var->is_partial() || var->is_string())) {
-                    const auto partial_result = var->is_partial() ? var->partial_value()() : var->string_value();
+                    const auto& partial_result = var->is_partial() ? var->partial_value()() : var->string_value();
                     basic_mustache tmpl{partial_result};
                     tmpl.set_custom_escape(escape_);
                     if (!tmpl.is_valid()) {
                         error_message_ = tmpl.error_message();
                     } else {
-                        tmpl.render(handler, ctx);
+                        tmpl.render(handler, ctx, false);
                         if (!tmpl.is_valid()) {
                             error_message_ = tmpl.error_message();
                         }
@@ -996,7 +1049,7 @@ private:
             default:
                 break;
         }
-        
+
         return component<string_type>::walk_control::walk;
     }
 
@@ -1005,7 +1058,7 @@ private:
         unescape,
         optional,
     };
-    
+
     bool render_lambda(const render_handler& handler, const basic_data<string_type>* var, context_internal<string_type>& ctx, render_lambda_escape escape, const string_type& text, bool parse_with_same_context) {
         const typename basic_renderer<string_type>::type2 render2 = [this, &ctx, parse_with_same_context, escape](const string_type& text, bool escaped) {
             const auto process_template = [this, &ctx, escape, escaped](basic_mustache& tmpl) -> string_type {
@@ -1046,17 +1099,18 @@ private:
         };
         if (var->is_lambda2()) {
             const basic_renderer<string_type> renderer{render, render2};
-            handler(var->lambda2_value()(text, renderer));
+            render_result(ctx, var->lambda2_value()(text, renderer));
         } else {
-            handler(render(var->lambda_value()(text)));
+            render_current_line(handler, ctx, nullptr);
+            render_result(ctx, render(var->lambda_value()(text)));
         }
         return error_message_.empty();
     }
-    
+
     bool render_variable(const render_handler& handler, const basic_data<string_type>* var, context_internal<string_type>& ctx, bool escaped) {
         if (var->is_string()) {
-            const auto varstr = var->string_value();
-            handler(escaped ? escape_(varstr) : varstr);
+            const auto& varstr = var->string_value();
+            render_result(ctx, escaped ? escape_(varstr) : varstr);
         } else if (var->is_lambda()) {
             const render_lambda_escape escape_opt = escaped ? render_lambda_escape::escape : render_lambda_escape::unescape;
             return render_lambda(handler, var, ctx, escape_opt, {}, false);
@@ -1076,14 +1130,32 @@ private:
         };
         if (var && var->is_non_empty_list()) {
             for (const auto& item : var->list_value()) {
+                // account for the section begin tag
+                ctx.line_buffer.contained_section_tag = true;
+
                 const context_pusher<string_type> ctxpusher{ctx, &item};
                 incomp.walk_children(callback);
+
+                // ctx may have been cleared. account for the section end tag
+                ctx.line_buffer.contained_section_tag = true;
             }
         } else if (var) {
+            // account for the section begin tag
+            ctx.line_buffer.contained_section_tag = true;
+
             const context_pusher<string_type> ctxpusher{ctx, var};
             incomp.walk_children(callback);
+
+            // ctx may have been cleared. account for the section end tag
+            ctx.line_buffer.contained_section_tag = true;
         } else {
+            // account for the section begin tag
+            ctx.line_buffer.contained_section_tag = true;
+
             incomp.walk_children(callback);
+
+            // ctx may have been cleared. account for the section end tag
+            ctx.line_buffer.contained_section_tag = true;
         }
     }
 
