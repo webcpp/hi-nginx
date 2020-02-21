@@ -46,8 +46,8 @@ var route = function () {
     this.run = function (m) {
         for (let [pattern, ele] of this.map.entries()) {
             if (ele.method.indexOf(m.method()) >= 0) {
-                var reg = new RegExp(pattern, 'ig');
-                var param = reg.exec(m.uri());
+                let reg = new RegExp(pattern, 'ig');
+                let param = reg.exec(m.uri());
                 if (param != null) {
                     ele.callback(m, param);
                     break;
