@@ -11,18 +11,16 @@ if test $HTTP_HI_CPP = YES ; then
     fi
 
     CXXFLAGS="$CXXFLAGS -DHTTP_HI_CPP"
-    CXXFLAGS="$CXXFLAGS -O3 -std=c++11 -Wno-error=free-nonheap-object"
-    CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir -I$ngx_addon_dir/include -I$ngx_addon_dir/include/dukglue"
-    CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib"
+    CXXFLAGS="$CXXFLAGS -O3 -std=c++11"
+    CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir -I$ngx_addon_dir/include -I$ngx_addon_dir/lib"
     CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib/leveldb -DLEVELDB_PLATFORM_POSIX -DLEVELDB_HAS_PORT_CONFIG_H"
     CXXFLAGS="$CXXFLAGS -I$ngx_addon_dir/lib/msgpack"
 
     CFLAGS="$CFLAGS -O3"
-    CFLAGS="$CFLAGS -I$ngx_addon_dir -I$ngx_addon_dir/include -I$ngx_addon_dir/include/dukglue"
-    CFLAGS="$CFLAGS -I$ngx_addon_dir/lib"
+    CFLAGS="$CFLAGS -I$ngx_addon_dir -I$ngx_addon_dir/include -I$ngx_addon_dir/lib"
     CFLAGS="$CFLAGS -I$ngx_addon_dir/lib/msgpack"
 
-    CORE_LIBS="$CORE_LIBS -lm -lstdc++"
+    CORE_LIBS="$CORE_LIBS -lpthread -ldl -lrt -lm -lstdc++"
 
     if test $HTTP_HI_PYTHON = YES ; then
         CXXFLAGS="$CXXFLAGS -DHTTP_HI_PYTHON"
@@ -55,9 +53,13 @@ if test $HTTP_HI_CPP = YES ; then
         NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/php-x -type f -name '*.cc'`"
     fi
 
-    if test $HTTP_HI_DUKTAPE = YES ; then
-        CXXFLAGS="$CXXFLAGS -DHTTP_HI_DUKTAPE"
-        NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/dukglue -type f -name '*.c'`"
+
+    if test $HTTP_HI_QJS = YES ; then
+        CFLAGS="$CFLAGS -D_GNU_SOURCE -DCONFIG_BIGNUM"
+        CXXFLAGS="$CXXFLAGS -DHTTP_HI_QJS"
+        CXXFLAGS="$CXXFLAGS -D_GNU_SOURCE -DCONFIG_BIGNUM"
+        NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/qjs -type f -name '*.c'`"
+        NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/qjs -type f -name '*.cpp'`"
     fi
 
     NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/MPFDParser -type f -name '*.cpp'`"

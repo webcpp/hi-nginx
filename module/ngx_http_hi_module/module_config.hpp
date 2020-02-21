@@ -10,7 +10,7 @@ extern "C" {
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "2.0.2"
+#define HI_NGINX_SERVER_VERSION "2.0.3"
 #define HI_NGINX_SERVER_NAME "hi-nginx/" HI_NGINX_SERVER_VERSION
 #define HI_NGINX_SERVER_HEAD "PoweredBy"
 #define SESSION_ID_NAME "SESSIONID"
@@ -32,7 +32,7 @@ extern "C" {
 //#define HTTP_HI_JAVA
 //#define HTTP_HI_PYTHON
 //#define HTTP_HI_PHP
-//#define HTTP_HI_DUKTAPE
+//#define HTTP_HI_QJS
 
 #ifndef HTTP_HI_CPP
 #define HTTP_HI_CPP
@@ -103,14 +103,13 @@ static std::shared_ptr<hi::cache::lru_cache<std::string, hi::java_servlet_t>> JA
 static std::shared_ptr<php::VM> PHP;
 #endif
 
-#ifdef HTTP_HI_DUKTAPE
-#include "lib/duktape.hpp"
-static std::shared_ptr<hi::duktape> DUKTAPE;
+#ifdef HTTP_HI_QJS
+#include "lib/qjs.hpp"
+static std::shared_ptr<hi::qjs> QJS;
 #endif
 
 typedef struct {
     ngx_str_t module_path
-    , redis_host
     , subrequest
 #ifdef HTTP_HI_PYTHON
     , python_script
@@ -134,16 +133,12 @@ typedef struct {
 #ifdef HTTP_HI_PHP
     , php_script
 #endif
-#ifdef HTTP_HI_DUKTAPE
-    , duktape_script
-    , duktape_content
-    , duktape_package_path
-    , duktape_package_cpath
+#ifdef HTTP_HI_QJS
+    , qjs_script
 #endif
     ;
     ngx_int_t module_index
     , subrequest_index
-    , redis_port
     , cache_expires
     , session_expires
     , cache_index

@@ -166,7 +166,7 @@ esac
 
 
 # stop on warning
-CFLAGS="$CFLAGS -Werror -Wno-error=free-nonheap-object"
+CFLAGS="$CFLAGS"
 
 # debug
 CFLAGS="$CFLAGS -g"

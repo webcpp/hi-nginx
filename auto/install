@@ -104,7 +104,7 @@ $NGX_OBJS/nginx.8:	$NGX_MAN $NGX_AUTO_CONFIG_H
 		-e "s|%%ERROR_LOG_PATH%%|${NGX_ERROR_LOG_PATH:-stderr}|" \\
 		< $NGX_MAN > \$@
 
-DIRS=cpp php python java javascript lua temp doc leveldb duktape
+DIRS=cpp php python java javascript lua temp doc leveldb qjs
 
 install:	build $NGX_INSTALL_PERL_MODULES
 	test -d '\$(DESTDIR)$NGX_PREFIX' || mkdir -p '\$(DESTDIR)$NGX_PREFIX'
@@ -165,8 +165,6 @@ install:	build $NGX_INSTALL_PERL_MODULES
 	cp -R module/ngx_http_hi_module/include '\$(DESTDIR)$NGX_PREFIX/'
 	cp auto/hi-project '\$(DESTDIR)`dirname "$NGX_SBIN_PATH"`'
 
-	install module/ngx_http_hi_module/lib/dukglue/libduktape.so '/usr/local/lib'
-	ldconfig
 END
 
 
@@ -211,8 +209,6 @@ cat << END >> Makefile
 
 build:
 	\$(MAKE) -f $NGX_MAKEFILE
-	\$(CC) -O3 -Wall -c -fPIC -Imodule/ngx_http_hi_module/include/dukglue -o  module/ngx_http_hi_module/lib/dukglue/duktape.o module/ngx_http_hi_module/lib/dukglue/duktape.c 
-	\$(CC) -shared -fPIC -o module/ngx_http_hi_module/lib/dukglue/libduktape.so module/ngx_http_hi_module/lib/dukglue/duktape.o
 
 install:
 	\$(MAKE) -f $NGX_MAKEFILE install
