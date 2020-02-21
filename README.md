@@ -21,7 +21,7 @@
                 --enable-http-hi-cpp=YES                           \
                 --enable-http-hi-python=NO                         \
                 --enable-http-hi-lua=NO                            \
-                --enable-http-hi-duktape=NO                        \
+                --enable-http-hi-qjs=NO                            \
                 --enable-http-hi-java=NO                           \
                 --enable-http-hi-php=NO                            \
                 --with-http-hi-python-version=python3              \
@@ -32,7 +32,7 @@
 ```
 
 
-# python, lua and duktape api
+# python, lua api
 ## hi_req
 - uri
 - method
@@ -55,6 +55,29 @@
 - header
 - session
 - cache
+
+# quickjs api
+- uri
+- method
+- client
+- param
+- user_agent
+- has_header
+- get_header
+- has_form
+- get_form
+- has_session
+- get_session
+- has_cookie
+- get_cookie
+- has_cache
+- get_cache
+- status
+- content
+- header
+- session
+- cache
+
 
 # hello,world
 
@@ -177,34 +200,13 @@ hi_res.status = 200;
 
 ```
 
-## duktape
+## quickjs
 
 ```javascript
-/*
-var loaded = hi_module.require('libadder','adder')
-hi_res.header('Content-Type','text/plain;charset=UTF-8')
-hi_res.content(loaded?adder(1,2).toString():'failed load c module.')
-hi_res.status(200)
-*/
-
-/*
-var echo = require('echo')
-var t = new echo()
-var route = require('route').get_instance()
-route.get('^\/(.*)$', function (req, res, param) {
-    res.header('Content-Type', 'text/plain;charset=UTF8')
-    res.content(req.method()+'\n'+req.uri() + '\n' + t.concat(param.toString()))
-    res.status(200)
-})
-
-route.run(hi_req, hi_res)
-*/
-
-///*
-hi_res.header('Content-Type','text/plain;charset=UTF-8')
-hi_res.content('hello,world')
-hi_res.status(200)
-//*/
+import * as hi from "hi";
+hi.header('Content-Type','text/plain;charset=UTF-8')
+hi.content('hello,world')
+hi.status(200)
 
 ```
 
@@ -364,29 +366,6 @@ hi_res.status(200)
 ```
      
 
-- directives : content: http,srv ,if in srv
-    - **hi_redis_host**,default: ""
-
-    example:
-
-```nginx
-
-        hi_redis_host 127.0.0.1;
-
-```
-
-- directives : content: http,srv,if in srv
-    - **hi_redis_port**,default: 0
-
-    example:
-
-```nginx
-
-        hi_redis_port 6379;
-
-```
-
-
 - directives : content: loc,if in loc
     - **hi_python_content**,default: ""
 
@@ -487,73 +466,6 @@ or
             }
 
 ```
-
-
-- directives : content:  http,srv,if in srv
-    - **hi_duktape_package_path**,default: ""
-
-    example:
-    
-```nginx
-
-
-            hi_duktape_package_path '/usr/local/nginx/duktape/package';
-
-
-```
-
-- directives : content:  http,srv,if in srv
-    - **hi_duktape_package_cpath**,default: ""
-
-    example:
-    
-```nginx
-
-
-            hi_duktape_package_cpath '/usr/local/nginx/duktape/package';
-
-
-```
-
-
-
-- directives : content: loc,if in loc
-    - **hi_duktape_content**,default: ""
-
-    example:
-    
-```nginx
-
-            location = /jsecho {
-                hi_duktape_content "hi_res.status(200);hi_res.content('hello,world')" ;
-            }
-
-```
-
-- directives : content: loc,if in loc
-    - **hi_duktape_script**,default: ""
-
-    example:
-    
-```nginx
-
-            location ~ \.js$  {
-                hi_duktape_script duktape;
-            }
-
-```
-
-or
-
-```nginx
-
-            location / {
-                hi_duktape_script duktape/index.js;
-            }
-
-```
-
-
 
 - directives : content: http,srv,if in srv
     - **hi_java_classpath**,default:"-Djava.class.path=."
