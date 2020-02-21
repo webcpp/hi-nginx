@@ -632,6 +632,24 @@ or
             }
 ```
 
+- directives : content: loc,if in loc
+    - **hi_qjs_script**,default: ""
+
+    example:
+    
+```nginx
+            location ~ \.js$  {
+                hi_qjs_script qjs;
+            }
+```
+or
+
+```nginx
+            location / {
+                hi_qjs_script qjs/index.js;
+            }
+```
+
 - directives : content: loc if in loc
     - **hi_subrequest**, default : ""
 
