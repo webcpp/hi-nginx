@@ -111,7 +111,7 @@ HTTP_HI_PYTHON=NO
 HTTP_HI_LUA=NO
 HTTP_HI_PHP=NO
 HTTP_HI_JAVA=NO
-HTTP_HI_QJS=NO
+HTTP_HI_QJS=YES
 
 HTTP_HI_PYTHON_VERSION=python3
 HTTP_HI_LUA_VERSION=lua5.3
@@ -605,7 +605,7 @@ cat << END
 
   --enable-http-hi-cpp=YES           enable hi cpp language support,YES or NO,default: YES
   --enable-http-hi-python=NO         enable hi python language support,YES or NO,default: NO
-  --enable-http-hi-qjs=NO            enable hi qjs language support,YES or NO,default: NO
+  --enable-http-hi-qjs=YES            enable hi qjs language support,YES or NO,default: YES
   --enable-http-hi-lua=NO            enable hi lua language support,YES or NO,default: NO
   --enable-http-hi-php=NO            enable hi php language support,YES or NO,default: NO
   --enable-http-hi-java=NO           enable hi java language support,YES or NO,default: NO
