@@ -155,6 +155,10 @@ typedef struct {
 #ifdef HTTP_HI_JAVA
     , java_servlet_cache_size
 #endif
+#ifdef HTTP_HI_QJS
+    , qjs_memory_limit
+    , qjs_ctx_called_limit
+#endif
     ;
     ngx_flag_t need_headers
     , need_cache

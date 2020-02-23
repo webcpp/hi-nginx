@@ -651,6 +651,34 @@ or
             }
 ```
 
+
+- directives : content:  http,srv,if in srv
+    - **hi_qjs_memory_limit** ,default: 1024m
+
+    example:
+    
+```nginx
+
+
+            hi_qjs_memory_limit 1024m;
+
+
+```
+
+
+- directives : content:  http,srv,if in srv
+    - **hi_qjs_ctx_called_limit**,default: 10240
+
+    example:
+    
+```nginx
+
+
+            hi_qjs_ctx_called_limit 10240;
+
+
+```
+
 - directives : content: loc if in loc
     - **hi_subrequest**, default : ""
 
