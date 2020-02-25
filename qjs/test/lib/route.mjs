@@ -8,6 +8,7 @@ class route {
             ele.method = typeof method == 'object' ? method : [method];
             ele.pattern = pattern;
             ele.callback = callback;
+            ele.regex = new RegExp(pattern, 'ig');
             this.map.set(pattern, ele);
         }
     }
@@ -47,8 +48,7 @@ class route {
     run(m) {
         for (let [pattern, ele] of this.map.entries()) {
             if (ele.method.indexOf(m.method()) >= 0) {
-                let reg = new RegExp(pattern, 'ig');
-                let param = reg.exec(m.uri());
+                let param = ele.regex.exec(m.uri());
                 if (param != null) {
                     ele.callback(m, param);
                     break;
