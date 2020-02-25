@@ -8,7 +8,7 @@ class route {
             ele.method = typeof method == 'object' ? method : [method];
             ele.pattern = pattern;
             ele.callback = callback;
-            ele.regex = new RegExp(pattern, 'ig');
+            ele.regex = new RegExp(pattern);
             this.map.set(pattern, ele);
         }
     }
