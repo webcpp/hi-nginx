@@ -5,6 +5,7 @@ if ! test -f Makefile;then
                 --with-http_ssl_module                              \
                 --with-http_v2_module                               \
                 --with-http_gzip_static_module                      \
+                --with-http_stub_status_module                      \
                 --with-stream                                       \
                 --with-stream_ssl_module                            \
                 --prefix=/usr/local/nginx                           \
@@ -19,7 +20,11 @@ if ! test -f Makefile;then
                 --add-module=module/ngx_http_hi_module              \
                 --add-module=module/ngx_http_autoblacklist_module   \
                 --add-module=3rd/nchan-1.2.6                        \
-                --add-module=3rd/nginx-rtmp-module-1.2.1            
+                --add-module=3rd/nginx-rtmp-module-1.2.1            \
+                --add-module=3rd/ngx_http_concat_module             \
+                --add-module=3rd/ngx_http_footer_filter_module      \
+                --add-module=3rd/ngx_http_trim_filter_module
+
 else
     echo ready.
 fi
