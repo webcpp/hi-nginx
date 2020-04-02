@@ -16,16 +16,11 @@ var tpl_test = function (m) {
     m.status(200);
     m.header('Content-Type', 'text/html;charset=utf-8');
     if (!tpl_map.has('base')) {
-        let path = root_path + 'base.tpl.html';
-        let f = std.open(path, 'r');
-        tpl_map.set('base', f.readAsString());
-        f.close();
+        tpl_map.set('base', std.loadFile(root_path + 'base.tpl.html'));
     }
     m.content(Mustache.render(tpl_map.get('base'), view, function (name) {
         if (!tpl_map.has(name)) {
-            let f = std.open(root_path + name + '.tpl.html', 'r');
-            tpl_map.set(name, f.readAsString());
-            f.close();
+            tpl_map.set(name, std.loadFile(root_path + name + '.tpl.html'));
         }
         return tpl_map.get(name);
     }));
