@@ -1,14 +1,37 @@
-#include "cutils.h"
+/*
+ * QuickJS: binary JSON module (test only)
+ * 
+ * Copyright (c) 2017-2019 Fabrice Bellard
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 #include "quickjs-libc.h"
+#include "cutils.h"
 
-static JSValue js_bjson_read(JSContext* ctx, JSValueConst this_val,
-    int argc, JSValueConst* argv)
+static JSValue js_bjson_read(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
 {
-    uint8_t* buf;
+    uint8_t *buf;
     uint64_t pos, len;
     JSValue obj;
     size_t size;
-
+    
     if (JS_ToIndex(ctx, &pos, argv[1]))
         return JS_EXCEPTION;
     if (JS_ToIndex(ctx, &len, argv[2]))
@@ -22,13 +45,13 @@ static JSValue js_bjson_read(JSContext* ctx, JSValueConst this_val,
     return obj;
 }
 
-static JSValue js_bjson_write(JSContext* ctx, JSValueConst this_val,
-    int argc, JSValueConst* argv)
+static JSValue js_bjson_write(JSContext *ctx, JSValueConst this_val,
+                              int argc, JSValueConst *argv)
 {
     size_t len;
-    uint8_t* buf;
+    uint8_t *buf;
     JSValue array;
-
+    
     buf = JS_WriteObject(ctx, &len, argv[0], 0);
     if (!buf)
         return JS_EXCEPTION;
@@ -38,19 +61,19 @@ static JSValue js_bjson_write(JSContext* ctx, JSValueConst this_val,
 }
 
 static const JSCFunctionListEntry js_bjson_funcs[] = {
-    JS_CFUNC_DEF("read", 3, js_bjson_read),
-    JS_CFUNC_DEF("write", 1, js_bjson_write),
+    JS_CFUNC_DEF("read", 3, js_bjson_read ),
+    JS_CFUNC_DEF("write", 1, js_bjson_write ),
 };
 
-static int js_bjson_init(JSContext* ctx, JSModuleDef* m)
+static int js_bjson_init(JSContext *ctx, JSModuleDef *m)
 {
     return JS_SetModuleExportList(ctx, m, js_bjson_funcs,
-        countof(js_bjson_funcs));
+                                  countof(js_bjson_funcs));
 }
 
-JSModuleDef* js_init_module_bjson(JSContext* ctx, const char* module_name)
+JSModuleDef *js_init_module_bjson(JSContext *ctx, const char *module_name)
 {
-    JSModuleDef* m;
+    JSModuleDef *m;
     m = JS_NewCModule(ctx, module_name, js_bjson_init);
     if (!m)
         return NULL;
