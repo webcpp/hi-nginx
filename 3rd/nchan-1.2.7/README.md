@@ -22,7 +22,7 @@ In a web browser, you can use Websocket or EventSource natively, or the [NchanSu
 
 ## Status and History
 
-The latest Nchan release is 1.2.6 (June 18, 2019) ([changelog](https://nchan.io/changelog)).
+The latest Nchan release is 1.2.7 (March 17, 2020) ([changelog](https://nchan.io/changelog)).
 
 The first iteration of Nchan was written in 2009-2010 as the [Nginx HTTP Push Module](https://pushmodule.slact.net), and was vastly refactored into its present state in 2014-2016.
 
@@ -700,7 +700,7 @@ http {
 <!-- commands: nchan_redis_server nchan_redis_pass -->
 
 ##### High Availability
-Redis Cluster connections are designed to be resilient and try to recover from errors. Interrupted connections will have their commands queued until reconnection, and Nchan will publish any messages it succesfully received while disconnected. Nchan is also adaptive to cluster modifications. It will add new nodes and remove them as needed.
+Redis Cluster connections are designed to be resilient and try to recover from errors. Interrupted connections will have their commands queued until reconnection, and Nchan will publish any messages it successfully received while disconnected. Nchan is also adaptive to cluster modifications. It will add new nodes and remove them as needed.
 
 All Nchan servers sharing a Redis server or cluster should have their times synchronized (via ntpd or your favorite ntp daemon). Failure to do so may result in missed or duplicate messages.
 
@@ -1057,6 +1057,30 @@ Additionally, `nchan_stub_status` data is also exposed as variables. These are a
   default: `(none)`  
   context: server, location, if  
   > Set the EventSource `event:` line to this value. When used in a publisher location, overrides the published message's `X-EventSource-Event` header and associates the message with the given value. When used in a subscriber location, overrides all messages' associated `event:` string with the given value.    
+
+- **nchan_eventsource_ping_comment**  
+  arguments: 1  
+  default: `(empty)`  
+  context: server, location, if  
+  > Set the EventSource comment `: ...` line for periodic pings from server to client. Newlines are not allowed. If empty, no comment is sent with the ping.    
+
+- **nchan_eventsource_ping_data**  
+  arguments: 1  
+  default: `(empty)`  
+  context: server, location, if  
+  > Set the EventSource `data:` line for periodic pings from server to client. Newlines are not allowed. If empty, no data is sent with the ping.    
+
+- **nchan_eventsource_ping_event**  
+  arguments: 1  
+  default: `ping`  
+  context: server, location, if  
+  > Set the EventSource `event:` line for periodic pings from server to client. Newlines are not allowed. If empty, no event type is sent with the ping.    
+
+- **nchan_eventsource_ping_interval** `<number> (seconds)`  
+  arguments: 1  
+  default: `0 (none)`  
+  context: server, location, if  
+  > Interval for sending ping messages to EventSource subscribers. Disabled by default.    
 
 - **nchan_longpoll_multipart_response** `[ off | on | raw ]`  
   arguments: 1  

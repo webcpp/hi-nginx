@@ -7,7 +7,7 @@
 #define NCHAN_DEFAULT_SUBSCRIBER_TIMEOUT 0  //default: never timeout
 #define NCHAN_DEFAULT_REDIS_NODE_CONNECT_TIMEOUT_MSEC 600
 //(liucougar: this is a bit confusing, but it is what's the default behavior before this option is introducecd)
-#define NCHAN_DEFAULT_WEBSOCKET_PING_INTERVAL 0
+#define NCHAN_DEFAULT_SUBSCRIBER_PING_INTERVAL 0
 
 #define NCHAN_DEFAULT_CHANNEL_TIMEOUT 5 //default: timeout in 5 seconds
 
@@ -82,6 +82,7 @@ extern const  ngx_str_t NCHAN_CACHE_CONTROL_VALUE;
 extern const  ngx_str_t NCHAN_HTTP_STATUS_101;
 extern const  ngx_str_t NCHAN_HTTP_STATUS_204;
 extern const  ngx_str_t NCHAN_HTTP_STATUS_304;
+extern const  ngx_str_t NCHAN_HTTP_STATUS_400;
 extern const  ngx_str_t NCHAN_HTTP_STATUS_408;
 extern const  ngx_str_t NCHAN_HTTP_STATUS_409;
 extern const  ngx_str_t NCHAN_HTTP_STATUS_410;
