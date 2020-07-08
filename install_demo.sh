@@ -20,11 +20,10 @@ if ! test -f Makefile;then
                 --with-http-hi-lua-version=lua5.3                   \
                 --add-module=module/ngx_http_hi_module              \
                 --add-module=module/ngx_http_autoblacklist_module   \
-                --add-module=3rd/nchan-1.2.7                        \
-                --add-module=3rd/nginx-rtmp-module-1.2.1            \
                 --add-module=3rd/ngx_http_concat_module             \
                 --add-module=3rd/ngx_http_footer_filter_module      \
-                --add-module=3rd/ngx_http_trim_filter_module
+                --add-module=3rd/ngx_http_trim_filter_module        \
+                --add-module=3rd/nginx-push-stream-module-0.5.4
 
 else
     echo ready.

@@ -1,0 +1,30 @@
+source "https://rubygems.org"
+
+ruby '2.3.0'
+
+gem 'rake'
+
+group :test do
+  gem 'rspec'
+  gem 'nginx_test_helper', '~> 0.4.0'
+  gem 'jshintrb'
+  gem 'therubyracer'
+  gem 'jasmine'
+  gem 'listen'
+  gem 'rb-inotify', require: RUBY_PLATFORM.include?('linux') && 'rb-inotify'
+  gem 'rb-fsevent', require: RUBY_PLATFORM.include?('darwin') && 'rb-fsevent'
+  gem 'json'
+  gem 'thin'
+  gem 'net-http-persistent', require: 'net/http/persistent'
+  gem 'websocket-eventmachine-client'
+  gem 'em-eventsource'
+
+  gem 'byebug'
+end
+
+group :docs do
+  gem 'github-markup', require: 'github/markup'
+  gem 'RedCloth'
+  gem 'nokogiri'
+  gem 'filewatcher'
+end

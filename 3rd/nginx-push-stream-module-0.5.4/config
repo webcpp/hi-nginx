@@ -1,0 +1,20 @@
+ngx_addon_name=ngx_http_push_stream_module
+CORE_INCS="$CORE_INCS ${ngx_addon_dir}/src ${ngx_addon_dir}/include"
+
+if test -n "$ngx_module_link"; then
+    ngx_module_type=HTTP
+    ngx_module_name=${ngx_addon_name}
+    ngx_module_srcs="${ngx_addon_dir}/src/${ngx_addon_name}.c"
+
+    . auto/module
+else
+    HTTP_MODULES="$HTTP_MODULES ${ngx_addon_name}"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS ${ngx_addon_dir}/src/${ngx_addon_name}.c"
+fi
+
+have=NGX_HTTP_HEADERS . auto/have
+. auto/feature
+
+#if not have sha1 or do not want to use WebSocket comment the lines bellow
+USE_SHA1=YES
+have=NGX_HAVE_SHA1 . auto/have
