@@ -8,6 +8,7 @@ if ! test -f Makefile;then
                 --with-http_stub_status_module                      \
                 --with-stream                                       \
                 --with-stream_ssl_module                            \
+                --with-http_realip_module                           \
                 --prefix=/usr/local/nginx                           \
                 --enable-http-hi-cpp=YES                            \
                 --enable-http-hi-python=YES                         \
