@@ -7,7 +7,7 @@ class index implements \hi\servlet {
 
     public function handler(\hi\request $req, \hi\response $res) {
         $app = \hi\route::get_instance();
-        $app->add('{^/$}', array('GET'), function ($rq, $rs, &$param) {
+        $app->add('{^/test$}', array('GET'), function ($rq, $rs, &$param) {
             $rs->content = 'hello,world';
             $rs->status = 200;
         });

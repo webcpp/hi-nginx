@@ -1,0 +1,6 @@
+{% extends 'a.html'  %}
+{% block body %}
+	{{ super()  }}
+	用 Jinja2 来处理非 Unicode 数据是不可能的。这是因为 Jinja2 已经在语言层 使用了 Unicode 。
+{{ name  }} is {{ age }} years old.
+{% endblock %}
