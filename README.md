@@ -211,11 +211,31 @@ hi.status(200)
 
 ```
 
+## python
+```python
+
+hi_res.status(200)
+hi_res.content("hello,world")
+
+```
+### example
+[pyexample](https://github.com/webcpp/pyexample)
+
+## lua
+```lua
+hi_res:status(200)
+hi_res:content("hello,world")
+
+```
 
 # 3rd party module
 
-  -  nginx-rtmp-module
-  -  nchan
+- nginx-push-stream-module
+- ngx_http_concat_module
+- ngx_http_footer_filter_module
+- ngx_http_trim_filter_module
+- ngx_slab_stat
+- [3rd](https://www.nginx.com/resources/wiki/modules/)
 
 # ngx_http_hi_module directives
 
