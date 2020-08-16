@@ -500,8 +500,8 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
     ngx_conf_merge_str_value(conf->javascript_lang, prev->javascript_lang, "javascript");
     ngx_conf_merge_str_value(conf->javascript_extension, prev->javascript_extension, "js");
     ngx_conf_merge_sec_value(conf->javascript_compiledscript_expires, prev->javascript_compiledscript_expires, (ngx_int_t) 300);
-#ifdef JNI_VERSION_9
-    ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t) 9);
+#ifdef JNI_VERSION_12
+    ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t) 12);
 #else
     ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t) 8);
 #endif
