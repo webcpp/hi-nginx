@@ -89,7 +89,7 @@ if [ "$NGX_SYSTEM" = "Darwin" ]; then
 fi
 
 # stop on warning
-CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Werror"
 
 # debug
 CFLAGS="$CFLAGS -g"
