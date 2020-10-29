@@ -193,7 +193,12 @@ namespace hi {
             while ((bool)JAVA->env->CallBooleanMethod(jterator, JAVA->hasnext)) {
                 jstring v = (jstring) JAVA->env->CallObjectMethod(jterator, JAVA->next);
                 const char* vstr = JAVA->env->GetStringUTFChars(v, NULL);
-                res.headers.insert(std::make_pair(kstr, vstr));
+                if(strcmp(kstr,"Content-Type")==0){
+                    res.headers.find(kstr)->second = vstr;
+                }else{
+                    res.headers.insert(std::make_pair(kstr, vstr));
+                }
+                
                 JAVA->env->ReleaseStringUTFChars(v, vstr);
                 JAVA->env->DeleteLocalRef(v);
             }
