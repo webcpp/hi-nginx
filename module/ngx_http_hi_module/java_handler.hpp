@@ -377,18 +377,9 @@ update_java_servlet:
                         } else {
 update_string_compiledscript_instance:
                             jstring script_content = NULL;
-                            if (LEVELDB) {
-                                std::string md5val;
-                                if (LEVELDB->Get(leveldb::ReadOptions(), md5key, &md5val).ok()) {
-                                    script_content = JAVA->env->NewStringUTF(md5val.c_str());
-                                } else {
-update_javascript_content:
-                                    std::string script_str = std::move(read_file(script_path));
-                                    script_content = JAVA->env->NewStringUTF(script_str.c_str());
-                                    LEVELDB->Put(leveldb::WriteOptions(), md5key, script_str);
-                                }
-                            } else {
-                                script_content = JAVA->env->NewStringUTF(read_file(script_path).c_str());
+                            std::pair<char*, struct stat> script_mmap;
+                            if(JAVA->script_mmap.get(script_path,script_mmap)){
+                                script_content = JAVA->env->NewStringUTF(script_mmap.first);
                             }
                             if (engine.second != NULL) {
                                 jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);

@@ -7,6 +7,7 @@
 #include <vector>
 #include <utility>
 #include <unordered_map>
+#include "file_mmap.hpp"
 
 namespace hi {
 
@@ -69,7 +70,7 @@ namespace hi {
         , client(0), user_agent(0), method(0), uri(0), param(0)
         , req_headers(0), form(0), cookies(0), req_session(0), req_cache(0)
         , res_headers(0), res_session(0), res_cache(0)
-        , engines(), compiledscript_instances() {
+        , engines(), compiledscript_instances(), script_mmap() {
             this->ok = this->create_vm(classpath, jvmoptions);
         }
 
@@ -164,6 +165,7 @@ namespace hi {
         , req_headers, form, cookies, req_session, req_cache, res_headers, res_session, res_cache;
         std::vector<std::pair<jobject, jobject>> engines;
         std::unordered_map<std::string, std::pair<time_t, jobject>> compiledscript_instances;
+        file_mmap script_mmap;
         static bool JAVA_IS_READY;
     private:
 
