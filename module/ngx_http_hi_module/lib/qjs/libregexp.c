@@ -75,7 +75,7 @@ typedef struct {
     int capture_count;
     int total_capture_count; /* -1 = not computed yet */
     int has_named_captures; /* -1 = don't know, 0 = no, 1 = yes */
-    void *mem_opaque;
+    void *opaque;
     DynBuf group_names;
     union {
         char error_msg[TMP_BUF_SIZE];
@@ -230,7 +230,7 @@ static int cr_init_char_range(REParseState *s, CharRange *cr, uint32_t c)
     invert = c & 1;
     c_pt = char_range_table[c >> 1];
     len = *c_pt++;
-    cr_init(cr, s->mem_opaque, lre_realloc);
+    cr_init(cr, s->opaque, lre_realloc);
     for(i = 0; i < len * 2; i++) {
         if (cr_add_point(cr, c_pt[i]))
             goto fail;
@@ -569,7 +569,8 @@ int lre_parse_escape(const uint8_t **pp, int allow_utf16)
             }
         }
         break;
-    case '0' ... '7':
+    case '0': case '1': case '2': case '3':
+    case '4': case '5': case '6': case '7':
         c -= '0';
         if (allow_utf16 == 2) {
             /* only accept \0 not followed by digit */
@@ -624,7 +625,7 @@ static int parse_unicode_property(REParseState *s, CharRange *cr,
     p++;
     q = name;
     while (is_unicode_char(*p)) {
-        if ((q - name) > sizeof(name) - 1)
+        if ((q - name) >= sizeof(name) - 1)
             goto unknown_property_name;
         *q++ = *p++;
     }
@@ -633,7 +634,7 @@ static int parse_unicode_property(REParseState *s, CharRange *cr,
     if (*p == '=') {
         p++;
         while (is_unicode_char(*p)) {
-            if ((q - value) > sizeof(value) - 1)
+            if ((q - value) >= sizeof(value) - 1)
                 return re_parse_error(s, "unknown unicode property value");
             *q++ = *p++;
         }
@@ -650,7 +651,7 @@ static int parse_unicode_property(REParseState *s, CharRange *cr,
     } else if (!strcmp(name, "Script_Extensions") || !strcmp(name, "scx")) {
         script_ext = TRUE;
     do_script:
-        cr_init(cr, s->mem_opaque, lre_realloc);
+        cr_init(cr, s->opaque, lre_realloc);
         ret = unicode_script(cr, value, script_ext);
         if (ret) {
             cr_free(cr);
@@ -660,7 +661,7 @@ static int parse_unicode_property(REParseState *s, CharRange *cr,
                 goto out_of_memory;
         }
     } else if (!strcmp(name, "General_Category") || !strcmp(name, "gc")) {
-        cr_init(cr, s->mem_opaque, lre_realloc);
+        cr_init(cr, s->opaque, lre_realloc);
         ret = unicode_general_category(cr, value);
         if (ret) {
             cr_free(cr);
@@ -670,7 +671,7 @@ static int parse_unicode_property(REParseState *s, CharRange *cr,
                 goto out_of_memory;
         }
     } else if (value[0] == '\0') {
-        cr_init(cr, s->mem_opaque, lre_realloc);
+        cr_init(cr, s->opaque, lre_realloc);
         ret = unicode_general_category(cr, name);
         if (ret == -1) {
             cr_free(cr);
@@ -863,7 +864,7 @@ static int re_parse_char_class(REParseState *s, const uint8_t **pp)
     CharRange cr1_s, *cr1 = &cr1_s;
     BOOL invert;
     
-    cr_init(cr, s->mem_opaque, lre_realloc);
+    cr_init(cr, s->opaque, lre_realloc);
     p = *pp;
     p++;    /* skip '[' */
     invert = FALSE;
@@ -1146,9 +1147,13 @@ static int re_parse_captures(REParseState *s, int *phas_named_captures,
                         }
                     }
                     capture_index++;
+                    if (capture_index >= CAPTURE_COUNT_MAX)
+                        goto done;
                 }
             } else {
                 capture_index++;
+                if (capture_index >= CAPTURE_COUNT_MAX)
+                    goto done;
             }
             break;
         case '\\':
@@ -1162,6 +1167,7 @@ static int re_parse_captures(REParseState *s, int *phas_named_captures,
             break;
         }
     }
+ done:
     if (capture_name)
         return -1;
     else
@@ -1410,7 +1416,9 @@ static int re_parse_term(REParseState *s, BOOL is_backward_dir)
                 }
             }
             goto normal_char;
-        case '1' ... '9':
+        case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8':
+        case '9': 
             {
                 const uint8_t *q = ++p;
                 
@@ -1434,7 +1442,7 @@ static int re_parse_term(REParseState *s, BOOL is_backward_dir)
                         }
                         goto normal_char;
                     }
-                    return re_parse_error(s, "back reference out of range in reguar expression");
+                    return re_parse_error(s, "back reference out of range in regular expression");
                 }
             emit_back_reference:
                 last_atom_start = s->byte_code.size;
@@ -1731,6 +1739,9 @@ static int re_parse_disjunction(REParseState *s, BOOL is_backward_dir)
 {
     int start, len, pos;
 
+    if (lre_check_stack_overflow(s->opaque, 0))
+        return re_parse_error(s, "stack overflow");
+    
     start = s->byte_code.size;
     if (re_parse_alternative(s, is_backward_dir))
         return -1;
@@ -1816,7 +1827,7 @@ uint8_t *lre_compile(int *plen, char *error_msg, int error_msg_size,
     BOOL is_sticky;
     
     memset(s, 0, sizeof(*s));
-    s->mem_opaque = opaque;
+    s->opaque = opaque;
     s->buf_ptr = (const uint8_t *)buf;
     s->buf_end = s->buf_ptr + buf_len;
     s->buf_start = s->buf_ptr;
@@ -2531,6 +2542,17 @@ int lre_get_capture_count(const uint8_t *bc_buf)
 int lre_get_flags(const uint8_t *bc_buf)
 {
     return bc_buf[RE_HEADER_FLAGS];
+}
+
+/* Return NULL if no group names. Otherwise, return a pointer to
+   'capture_count - 1' zero terminated UTF-8 strings. */
+const char *lre_get_groupnames(const uint8_t *bc_buf)
+{
+    uint32_t re_bytecode_len;
+    if ((lre_get_flags(bc_buf) & LRE_FLAG_NAMED_GROUPS) == 0)
+        return NULL;
+    re_bytecode_len = get_u32(bc_buf + 3);
+    return (const char *)(bc_buf + 7 + re_bytecode_len);
 }
 
 #ifdef TEST
