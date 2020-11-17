@@ -23,7 +23,8 @@ if ! test -f Makefile;then
                 --add-module=3rd/ngx_http_concat_module             \
                 --add-module=3rd/ngx_http_footer_filter_module      \
                 --add-module=3rd/ngx_http_trim_filter_module        \
-                --add-module=3rd/nginx-push-stream-module-0.5.4
+                --add-module=3rd/nginx-push-stream-module-0.5.4     \
+                --add-module=3rd/ngx_slab_stat
 
 else
     echo ready.
