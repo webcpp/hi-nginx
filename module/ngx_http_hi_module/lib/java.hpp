@@ -14,17 +14,18 @@ namespace hi {
     class java_servlet_t {
     public:
         jclass SERVLET;
-        jmethodID CTOR, HANDLER;
+        jmethodID CTOR, HANDLER,GET_INSTANCE;
         time_t t;
 
         java_servlet_t() :
-        SERVLET(0), CTOR(0), HANDLER(0), t(time(0)) {
+        SERVLET(0), CTOR(0), HANDLER(0),GET_INSTANCE(0), t(time(0)) {
         }
 
         java_servlet_t(const java_servlet_t& other) :
         SERVLET(other.SERVLET)
         , CTOR(other.CTOR)
         , HANDLER(other.HANDLER)
+        , GET_INSTANCE(other.GET_INSTANCE)
         , t(other.t) {
         }
 
@@ -35,6 +36,7 @@ namespace hi {
             this->SERVLET = right.SERVLET;
             this->CTOR = right.CTOR;
             this->HANDLER = right.HANDLER;
+            this->GET_INSTANCE = right.GET_INSTANCE;
             this->t = right.t;
             return *this;
         }
@@ -43,6 +45,7 @@ namespace hi {
             this->SERVLET = 0;
             this->CTOR = 0;
             this->HANDLER = 0;
+            this->GET_INSTANCE = 0;
         }
 
 

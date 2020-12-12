@@ -313,11 +313,17 @@ update_java_servlet:
 
                 if (jtmp.SERVLET == NULL)return;
                 jtmp.CTOR = JAVA->env->GetMethodID(jtmp.SERVLET, "<init>", "()V");
+                jtmp.GET_INSTANCE = JAVA->env->GetStaticMethodID(jtmp.SERVLET,"get_instance","()Lhi/servlet;");
                 jtmp.HANDLER = JAVA->env->GetMethodID(jtmp.SERVLET, "handler", "(Lhi/request;Lhi/response;)V");
                 jtmp.t = time(0);
                 JAVA_SERVLET_CACHE->put((const char*) conf->java_servlet.data, jtmp);
             }
-            jobject servlet_instance = JAVA->env->NewObject(jtmp.SERVLET, jtmp.CTOR);
+            jobject servlet_instance ;
+            if(jtmp.GET_INSTANCE == NULL){
+                servlet_instance = JAVA->env->NewObject(jtmp.SERVLET, jtmp.CTOR);
+            }else{
+                servlet_instance = JAVA->env->CallStaticObjectMethod(jtmp.SERVLET,jtmp.GET_INSTANCE);
+            }
             JAVA->env->CallVoidMethod(servlet_instance, jtmp.HANDLER, request_instance, response_instance);
             JAVA->env->DeleteLocalRef(servlet_instance);
 
