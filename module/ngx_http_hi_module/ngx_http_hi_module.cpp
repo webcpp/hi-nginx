@@ -668,7 +668,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     }
 
     cache_k->assign(std::move(hi::md5(*cache_k)));
-    std::string kvdb_cache_k = *cache_k + "kvdb";
+    std::string kvdb_cache_k = std::move(*cache_k + "kvdb");
 
 
     std::string SESSION_ID_VALUE;
