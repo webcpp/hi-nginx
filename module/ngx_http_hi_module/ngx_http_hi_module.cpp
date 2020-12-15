@@ -545,6 +545,11 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
         conf->cache_index = CACHE.size() - 1;
     }
 
+    if (conf->need_kvdb == 1 && conf->cache_index == NGX_CONF_UNSET) {
+        CACHE.push_back(std::move(std::make_shared<lru11::Cache<std::string, std::shared_ptr < hi::cache_t>>>(conf->cache_size)));
+        conf->cache_index = CACHE.size() - 1;
+    }
+
     if (conf->need_session == 1 && conf->need_cookies == 0) {
         conf->need_cookies = 1;
     }
