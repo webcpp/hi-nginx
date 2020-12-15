@@ -668,6 +668,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
     }
 
     cache_k->assign(std::move(hi::md5(*cache_k)));
+    std::string kvdb_cache_k = *cache_k + "kvdb";
 
 
     std::string SESSION_ID_VALUE;
@@ -675,9 +676,9 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
 
     if (r->method == conf->cache_method && conf->need_cache == 1) {
-        auto lru_cache = CACHE[conf->cache_index];
+        auto& lru_cache = CACHE[conf->cache_index];
         if (lru_cache->contains(*cache_k)) {
-            auto cache_ele = lru_cache->get(*cache_k);
+            auto& cache_ele = lru_cache->get(*cache_k);
             if (cache_ele->expired(conf->cache_expires)) {
                 lru_cache->remove(*cache_k);
             } else {
@@ -747,11 +748,20 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
 
     if (conf->need_kvdb == 1) {
         if (LEVELDB) {
-            std::string cache_v;
-            if (LEVELDB->Get(leveldb::ReadOptions(), *cache_k, &cache_v).ok()) {
-                hi::deserialize(cache_v, ngx_request.cache);
-            } else {
-                LEVELDB->Put(leveldb::WriteOptions(), *cache_k, hi::serialize(ngx_request.cache));
+            auto& lru_cache = CACHE[conf->cache_index];
+            if(lru_cache->contains(kvdb_cache_k)){
+                auto& cache_ele = lru_cache->get(kvdb_cache_k);
+                if (cache_ele->expired(conf->kvdb_expires)) {
+                    lru_cache->remove(kvdb_cache_k);
+                    LEVELDB->Delete(leveldb::WriteOptions(),kvdb_cache_k);
+                } else {
+                    std::string cache_v;
+                    if (LEVELDB->Get(leveldb::ReadOptions(), kvdb_cache_k, &cache_v).ok()) {
+                        hi::deserialize(cache_v, ngx_request.cache);
+                    } else {
+                        LEVELDB->Put(leveldb::WriteOptions(), kvdb_cache_k, hi::serialize(ngx_request.cache));
+                    }
+                }
             }
         }
     }
@@ -821,7 +831,10 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r) {
         } else {
             ptr = &ngx_response.cache;
         }
-        LEVELDB->Put(leveldb::WriteOptions(), *cache_k, hi::serialize(*ptr));
+        std::shared_ptr<hi::cache_t> cache_v = std::make_shared<hi::cache_t>();
+        cache_v->content = kvdb_cache_k;
+        CACHE[conf->cache_index]->insert(kvdb_cache_k, cache_v);
+        LEVELDB->Put(leveldb::WriteOptions(), kvdb_cache_k, hi::serialize(*ptr));
     }
 
 done:
