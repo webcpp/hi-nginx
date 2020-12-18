@@ -17,7 +17,7 @@ namespace hi {
         py_req.init(&req);
         py_res.init(&res);
         if (!QJS) {
-            QJS = std::move(std::make_shared<hi::qjs>(conf->qjs_memory_limit,conf->qjs_ctx_called_limit));
+            QJS = std::move(std::make_shared<hi::qjs>(conf->qjs_memory_limit,conf->qjs_stack_limit,conf->qjs_ctx_called_limit));
         }
         if (QJS) {
             QJS->set_req(&py_req);

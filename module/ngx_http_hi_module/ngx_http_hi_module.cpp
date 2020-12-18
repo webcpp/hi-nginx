@@ -202,6 +202,14 @@ ngx_command_t ngx_http_hi_commands[] = {
         NULL
     },
     {
+        ngx_string("hi_qjs_stack_limit"),
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_CONF_TAKE1,
+        ngx_conf_set_size_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_hi_loc_conf_t, qjs_stack_limit),
+        NULL
+    },
+    {
         ngx_string("hi_qjs_ctx_called_limit"),
         NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_CONF_TAKE1,
         ngx_conf_set_num_slot,
@@ -422,6 +430,7 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
 #ifdef HTTP_HI_QJS
         conf->qjs_script.len = 0;
         conf->qjs_script.data = NULL;
+        conf->qjs_stack_limit = NGX_CONF_UNSET_SIZE;
         conf->qjs_memory_limit = NGX_CONF_UNSET_SIZE;
         conf->qjs_ctx_called_limit = NGX_CONF_UNSET;
 #endif
@@ -477,6 +486,7 @@ static char * ngx_http_hi_merge_loc_conf(ngx_conf_t* cf, void* parent, void* chi
 #ifdef HTTP_HI_QJS
     ngx_conf_merge_str_value(conf->qjs_script, prev->qjs_script, "");
     ngx_conf_merge_size_value(conf->qjs_memory_limit,prev->qjs_memory_limit,(size_t)1048576 * 1024);
+    ngx_conf_merge_size_value(conf->qjs_stack_limit,prev->qjs_stack_limit,(size_t)1048576 * 8);
     ngx_conf_merge_value(conf->qjs_ctx_called_limit,prev->qjs_ctx_called_limit,(size_t)10240);
 #endif
 #ifdef HTTP_HI_LUA

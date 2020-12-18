@@ -687,6 +687,19 @@ or
 
 
 - directives : content:  http,srv,if in srv
+    - **hi_qjs_stack_limit** ,default: 8m
+
+    example:
+    
+```nginx
+
+
+            hi_qjs_stack_limit 8m;
+
+
+```
+
+- directives : content:  http,srv,if in srv
     - **hi_qjs_ctx_called_limit**,default: 10240
 
     example:

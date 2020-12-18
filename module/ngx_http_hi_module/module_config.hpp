@@ -157,6 +157,7 @@ typedef struct {
 #endif
 #ifdef HTTP_HI_QJS
     , qjs_memory_limit
+    , qjs_stack_limit
     , qjs_ctx_called_limit
 #endif
     ;

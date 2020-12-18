@@ -6,7 +6,7 @@ import route from "./lib/route.mjs"
 
 var r = route.get_instance();
 
-r.get('^/test$', function (m, param) {
+r.get('^/test/?$', function (m, param) {
   m.status(200);
   m.header('Content-Type', 'text/plain;charset=utf-8');
   m.content('hello,world\n');

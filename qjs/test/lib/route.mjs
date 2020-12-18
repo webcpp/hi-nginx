@@ -1,16 +1,14 @@
 class route {
     constructor() {
-        this.map = new Map();
+        this.route_list = new Array();
     }
     add(method, pattern, callback) {
-        if (!this.map.has(pattern)) {
-            var ele = {};
-            ele.method = typeof method == 'object' ? method : [method];
-            ele.pattern = pattern;
-            ele.callback = callback;
-            ele.regex = new RegExp(pattern);
-            this.map.set(pattern, ele);
-        }
+        this.route_list.push({
+            'method': method,
+            'pattern': pattern,
+            'callback': callback,
+            'regex': new RegExp(pattern)
+        });
     }
 
     get(pattern, callback) {
@@ -46,7 +44,8 @@ class route {
     }
 
     run(m) {
-        for (let [pattern, ele] of this.map.entries()) {
+        for (var index in this.route_list) {
+            let ele = this.route_list[index];
             if (ele.method.indexOf(m.method()) >= 0) {
                 let param = ele.regex.exec(m.uri());
                 if (param != null) {
