@@ -6,7 +6,7 @@
 - linux
 - gcc and g++(c++11) or clang and clang++
 - python-devel,if `--enable-http-hi-python=YES` and `with-http-hi-python-version=python2`
-- python3.x-devel if `--enable-http-hi-python=YES` and `with-http-hi-python-version=python3`
+- python3.x-devel if `--enable-http-hi-python=YES` and `with-http-hi-python-version=python3(or python3-embed)`
 - lua-devel(lua5.x),if `--enable-http-hi-lua=YES`  and `--with-http-hi-lua-version=lua5.x`
 - luajit-devel,if `--enable-http-hi-lua=YES` and `--with-http-hi-lua-version=luajit`
 - jdk 8+,if `--enable-http-hi-java=YES`
