@@ -11,12 +11,12 @@ if ! test -f Makefile;then
                 --with-http_realip_module                           \
                 --prefix=/usr/local/nginx                           \
                 --enable-http-hi-cpp=YES                            \
-                --enable-http-hi-python=YES                         \
+                --enable-http-hi-python=NO                         \
                 --enable-http-hi-qjs=YES                            \
-                --enable-http-hi-lua=YES                            \
+                --enable-http-hi-lua=NO                            \
                 --enable-http-hi-java=YES                           \
-                --enable-http-hi-php=YES                            \
-                --with-http-hi-python-version=python3-embed      \
+                --enable-http-hi-php=NO                            \
+                --with-http-hi-python-version=python-3.8-embed      \
                 --with-http-hi-lua-version=lua5.3                   \
                 --add-module=module/ngx_http_hi_module              \
                 --add-module=module/ngx_http_autoblacklist_module   \

@@ -451,6 +451,8 @@ static void * ngx_http_hi_create_loc_conf(ngx_conf_t *cf) {
 #ifdef HTTP_HI_JAVA
         conf->java_classpath.len = 0;
         conf->java_classpath.data = NULL;
+        conf->java_options.len = 0;
+        conf->java_options.data = NULL;
         conf->java_servlet.len = 0;
         conf->java_servlet.data = NULL;
         conf->java_servlet_cache_size = NGX_CONF_UNSET_UINT;
