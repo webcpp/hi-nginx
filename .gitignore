@@ -35,3 +35,6 @@
 /README
 /install_demo.sh
 /.vscode
+.settings/
+.project
+
