@@ -11,7 +11,7 @@ if ! test -f Makefile;then
                 --with-http_realip_module                           \
                 --prefix=/usr/local/nginx                           \
                 --enable-http-hi-cpp=YES                            \
-                --enable-http-hi-python=NO                         \
+                --enable-http-hi-python=YES                         \
                 --enable-http-hi-qjs=YES                            \
                 --enable-http-hi-lua=NO                            \
                 --enable-http-hi-java=YES                           \
