@@ -1,5 +1,4 @@
-# see https://github.com/webcpp/pyexample
+from python import main
 
-hi_res.header('Content-Type', 'text/plain;charset=UTF-8')
-hi_res.content('hello,world')
-hi_res.status(200)
+
+main(hi_req, hi_res)
