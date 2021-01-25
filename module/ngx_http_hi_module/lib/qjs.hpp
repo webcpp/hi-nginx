@@ -1,5 +1,4 @@
-#ifndef QJS_HPP
-#define QJS_HPP
+#pragma once
 
 extern "C"
 {
@@ -126,5 +125,3 @@ namespace hi
         }
     };
 } // namespace hi
-
-#endif

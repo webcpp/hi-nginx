@@ -1,19 +1,23 @@
-#ifndef JAVA_HANDLER_HPP
-#define JAVA_HANDLER_HPP
-
+#pragma once
 
 #include "module_config.hpp"
 #include "lib/java.hpp"
 
-namespace hi {
+namespace hi
+{
 
-    static bool java_init_handler(ngx_http_hi_loc_conf_t * conf) {
-        if (hi::java::JAVA_IS_READY)return hi::java::JAVA_IS_READY;
-        if (!JAVA) {
-            JAVA = std::make_shared<hi::java>((char*) conf->java_classpath.data, (char*) conf->java_options.data, conf->java_version);
-            if (JAVA->is_ok()) {
+    static bool java_init_handler(ngx_http_hi_loc_conf_t *conf)
+    {
+        if (hi::java::JAVA_IS_READY)
+            return hi::java::JAVA_IS_READY;
+        if (!JAVA)
+        {
+            JAVA = std::make_shared<hi::java>((char *)conf->java_classpath.data, (char *)conf->java_options.data, conf->java_version);
+            if (JAVA->is_ok())
+            {
                 JAVA->request = JAVA->env->FindClass("hi/request");
-                if (JAVA->request != NULL) {
+                if (JAVA->request != NULL)
+                {
                     JAVA->request_ctor = JAVA->env->GetMethodID(JAVA->request, "<init>", "()V");
                     JAVA->client = JAVA->env->GetFieldID(JAVA->request, "client", "Ljava/lang/String;");
                     JAVA->user_agent = JAVA->env->GetFieldID(JAVA->request, "user_agent", "Ljava/lang/String;");
@@ -26,9 +30,9 @@ namespace hi {
                     JAVA->req_session = JAVA->env->GetFieldID(JAVA->request, "session", "Ljava/util/HashMap;");
                     JAVA->req_cache = JAVA->env->GetFieldID(JAVA->request, "cache", "Ljava/util/HashMap;");
 
-
                     JAVA->response = JAVA->env->FindClass("hi/response");
-                    if (JAVA->response != NULL) {
+                    if (JAVA->response != NULL)
+                    {
 
                         JAVA->response_ctor = JAVA->env->GetMethodID(JAVA->response, "<init>", "()V");
                         JAVA->status = JAVA->env->GetFieldID(JAVA->response, "status", "I");
@@ -53,7 +57,6 @@ namespace hi {
 
                         JAVA->set = JAVA->env->FindClass("java/util/Set");
                         JAVA->set_iterator = JAVA->env->GetMethodID(JAVA->set, "iterator", "()Ljava/util/Iterator;");
-
 
                         JAVA->script_manager = JAVA->env->FindClass("javax/script/ScriptEngineManager");
                         JAVA->script_engine = JAVA->env->FindClass("javax/script/ScriptEngine");
@@ -84,7 +87,8 @@ namespace hi {
         return hi::java::JAVA_IS_READY;
     }
 
-    static void java_input_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance) {
+    static void java_input_handler(ngx_http_hi_loc_conf_t *conf, hi::request &req, hi::response &res, jobject request_instance, jobject response_instance)
+    {
         jstring client = JAVA->env->NewStringUTF(req.client.c_str());
         JAVA->env->SetObjectField(request_instance, JAVA->client, client);
         JAVA->env->ReleaseStringUTFChars(client, 0);
@@ -110,11 +114,12 @@ namespace hi {
         JAVA->env->ReleaseStringUTFChars(param, 0);
         JAVA->env->DeleteLocalRef(param);
 
-        if (conf->need_headers == 1) {
+        if (conf->need_headers == 1)
+        {
             jobject req_headers = JAVA->env->GetObjectField(request_instance, JAVA->req_headers);
-            for (auto& item : req.headers) {
-                jstring k = JAVA->env->NewStringUTF(item.first.c_str())
-                        , v = JAVA->env->NewStringUTF(item.second.c_str());
+            for (auto &item : req.headers)
+            {
+                jstring k = JAVA->env->NewStringUTF(item.first.c_str()), v = JAVA->env->NewStringUTF(item.second.c_str());
                 JAVA->env->CallObjectMethod(req_headers, JAVA->hashmap_put, k, v);
                 JAVA->env->ReleaseStringUTFChars(k, 0);
                 JAVA->env->ReleaseStringUTFChars(v, 0);
@@ -125,9 +130,9 @@ namespace hi {
         }
 
         jobject req_form = JAVA->env->GetObjectField(request_instance, JAVA->form);
-        for (auto& item : req.form) {
-            jstring k = JAVA->env->NewStringUTF(item.first.c_str())
-                    , v = JAVA->env->NewStringUTF(item.second.c_str());
+        for (auto &item : req.form)
+        {
+            jstring k = JAVA->env->NewStringUTF(item.first.c_str()), v = JAVA->env->NewStringUTF(item.second.c_str());
             JAVA->env->CallObjectMethod(req_form, JAVA->hashmap_put, k, v);
             JAVA->env->ReleaseStringUTFChars(k, 0);
             JAVA->env->ReleaseStringUTFChars(v, 0);
@@ -136,11 +141,12 @@ namespace hi {
         }
         JAVA->env->DeleteLocalRef(req_form);
 
-        if (conf->need_cookies == 1) {
+        if (conf->need_cookies == 1)
+        {
             jobject req_cookies = JAVA->env->GetObjectField(request_instance, JAVA->cookies);
-            for (auto& item : req.cookies) {
-                jstring k = JAVA->env->NewStringUTF(item.first.c_str())
-                        , v = JAVA->env->NewStringUTF(item.second.c_str());
+            for (auto &item : req.cookies)
+            {
+                jstring k = JAVA->env->NewStringUTF(item.first.c_str()), v = JAVA->env->NewStringUTF(item.second.c_str());
                 JAVA->env->CallObjectMethod(req_cookies, JAVA->hashmap_put, k, v);
                 JAVA->env->ReleaseStringUTFChars(k, 0);
                 JAVA->env->ReleaseStringUTFChars(v, 0);
@@ -150,11 +156,12 @@ namespace hi {
             JAVA->env->DeleteLocalRef(req_cookies);
         }
 
-        if (conf->need_session == 1) {
+        if (conf->need_session == 1)
+        {
             jobject req_session = JAVA->env->GetObjectField(request_instance, JAVA->req_session);
-            for (auto& item : req.session) {
-                jstring k = JAVA->env->NewStringUTF(item.first.c_str())
-                        , v = JAVA->env->NewStringUTF(item.second.c_str());
+            for (auto &item : req.session)
+            {
+                jstring k = JAVA->env->NewStringUTF(item.first.c_str()), v = JAVA->env->NewStringUTF(item.second.c_str());
                 JAVA->env->CallObjectMethod(req_session, JAVA->hashmap_put, k, v);
                 JAVA->env->ReleaseStringUTFChars(k, 0);
                 JAVA->env->ReleaseStringUTFChars(v, 0);
@@ -164,12 +171,13 @@ namespace hi {
             JAVA->env->DeleteLocalRef(req_session);
         }
 
-        if (conf->need_kvdb == 1) {
+        if (conf->need_kvdb == 1)
+        {
             jobject req_cache = JAVA->env->GetObjectField(request_instance, JAVA->req_cache);
-            for (auto& item : req.cache) {
+            for (auto &item : req.cache)
+            {
 
-                jstring k = JAVA->env->NewStringUTF(item.first.c_str())
-                        , v = JAVA->env->NewStringUTF(item.second.c_str());
+                jstring k = JAVA->env->NewStringUTF(item.first.c_str()), v = JAVA->env->NewStringUTF(item.second.c_str());
                 JAVA->env->CallObjectMethod(req_cache, JAVA->hashmap_put, k, v);
                 JAVA->env->ReleaseStringUTFChars(k, 0);
                 JAVA->env->ReleaseStringUTFChars(v, 0);
@@ -178,27 +186,32 @@ namespace hi {
             }
             JAVA->env->DeleteLocalRef(req_cache);
         }
-
     }
 
-    static void java_output_handler(ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res, jobject request_instance, jobject response_instance) {
+    static void java_output_handler(ngx_http_hi_loc_conf_t *conf, hi::request &req, hi::response &res, jobject request_instance, jobject response_instance)
+    {
         jobject res_headers = JAVA->env->GetObjectField(response_instance, JAVA->res_headers);
         jobject keyset = JAVA->env->CallObjectMethod(res_headers, JAVA->hashmap_keyset);
         jobject iterator = JAVA->env->CallObjectMethod(keyset, JAVA->set_iterator);
-        while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext)) {
-            jstring k = (jstring) JAVA->env->CallObjectMethod(iterator, JAVA->next);
+        while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext))
+        {
+            jstring k = (jstring)JAVA->env->CallObjectMethod(iterator, JAVA->next);
             jobject item = JAVA->env->CallObjectMethod(res_headers, JAVA->hashmap_get, k);
             jobject jterator = JAVA->env->CallObjectMethod(item, JAVA->arraylist_iterator);
-            const char * kstr = JAVA->env->GetStringUTFChars(k, NULL);
-            while ((bool)JAVA->env->CallBooleanMethod(jterator, JAVA->hasnext)) {
-                jstring v = (jstring) JAVA->env->CallObjectMethod(jterator, JAVA->next);
-                const char* vstr = JAVA->env->GetStringUTFChars(v, NULL);
-                if(strcmp(kstr,"Content-Type")==0){
+            const char *kstr = JAVA->env->GetStringUTFChars(k, NULL);
+            while ((bool)JAVA->env->CallBooleanMethod(jterator, JAVA->hasnext))
+            {
+                jstring v = (jstring)JAVA->env->CallObjectMethod(jterator, JAVA->next);
+                const char *vstr = JAVA->env->GetStringUTFChars(v, NULL);
+                if (strcmp(kstr, "Content-Type") == 0)
+                {
                     res.headers.find(kstr)->second = vstr;
-                }else{
+                }
+                else
+                {
                     res.headers.insert(std::make_pair(kstr, vstr));
                 }
-                
+
                 JAVA->env->ReleaseStringUTFChars(v, vstr);
                 JAVA->env->DeleteLocalRef(v);
             }
@@ -211,15 +224,17 @@ namespace hi {
         JAVA->env->DeleteLocalRef(keyset);
         JAVA->env->DeleteLocalRef(iterator);
 
-        if (conf->need_session == 1) {
+        if (conf->need_session == 1)
+        {
             jobject res_session = JAVA->env->GetObjectField(response_instance, JAVA->res_session);
             keyset = JAVA->env->CallObjectMethod(res_session, JAVA->hashmap_keyset);
             iterator = JAVA->env->CallObjectMethod(keyset, JAVA->set_iterator);
-            while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext)) {
-                jstring k = (jstring) JAVA->env->CallObjectMethod(iterator, JAVA->next);
-                jstring v = (jstring) JAVA->env->CallObjectMethod(res_session, JAVA->hashmap_get, k);
-                const char * kstr = JAVA->env->GetStringUTFChars(k, NULL),
-                        * vstr = JAVA->env->GetStringUTFChars(v, NULL);
+            while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext))
+            {
+                jstring k = (jstring)JAVA->env->CallObjectMethod(iterator, JAVA->next);
+                jstring v = (jstring)JAVA->env->CallObjectMethod(res_session, JAVA->hashmap_get, k);
+                const char *kstr = JAVA->env->GetStringUTFChars(k, NULL),
+                           *vstr = JAVA->env->GetStringUTFChars(v, NULL);
                 res.session[kstr] = vstr;
                 JAVA->env->ReleaseStringUTFChars(k, kstr);
                 JAVA->env->DeleteLocalRef(k);
@@ -231,16 +246,18 @@ namespace hi {
             JAVA->env->DeleteLocalRef(iterator);
         }
 
-        if (conf->need_kvdb == 1) {
+        if (conf->need_kvdb == 1)
+        {
             jobject res_cache = JAVA->env->GetObjectField(response_instance, JAVA->res_cache);
             keyset = JAVA->env->CallObjectMethod(res_cache, JAVA->hashmap_keyset);
             iterator = JAVA->env->CallObjectMethod(keyset, JAVA->set_iterator);
-            while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext)) {
+            while ((bool)JAVA->env->CallBooleanMethod(iterator, JAVA->hasnext))
+            {
 
-                jstring k = (jstring) JAVA->env->CallObjectMethod(iterator, JAVA->next);
-                jstring v = (jstring) JAVA->env->CallObjectMethod(res_cache, JAVA->hashmap_get, k);
-                const char * kstr = JAVA->env->GetStringUTFChars(k, NULL),
-                        * vstr = JAVA->env->GetStringUTFChars(v, NULL);
+                jstring k = (jstring)JAVA->env->CallObjectMethod(iterator, JAVA->next);
+                jstring v = (jstring)JAVA->env->CallObjectMethod(res_cache, JAVA->hashmap_get, k);
+                const char *kstr = JAVA->env->GetStringUTFChars(k, NULL),
+                           *vstr = JAVA->env->GetStringUTFChars(v, NULL);
                 res.cache[kstr] = vstr;
                 JAVA->env->ReleaseStringUTFChars(k, kstr);
                 JAVA->env->DeleteLocalRef(k);
@@ -252,96 +269,111 @@ namespace hi {
             JAVA->env->DeleteLocalRef(iterator);
         }
 
-
         res.status = JAVA->env->GetIntField(response_instance, JAVA->status);
-        jstring content = (jstring) JAVA->env->GetObjectField(response_instance, JAVA->content);
-        const char* contentstr = JAVA->env->GetStringUTFChars(content, NULL);
+        jstring content = (jstring)JAVA->env->GetObjectField(response_instance, JAVA->content);
+        const char *contentstr = JAVA->env->GetStringUTFChars(content, NULL);
         res.content = contentstr;
         JAVA->env->ReleaseStringUTFChars(content, contentstr);
         JAVA->env->DeleteLocalRef(content);
     }
 
-    static bool javascript_engine_init_handler(ngx_http_hi_loc_conf_t * conf) {
+    static bool javascript_engine_init_handler(ngx_http_hi_loc_conf_t *conf)
+    {
         bool result = false;
-        if (conf->javascript_engine_index == NGX_CONF_UNSET) {
+        if (conf->javascript_engine_index == NGX_CONF_UNSET)
+        {
             std::pair<jobject, jobject> engine{NULL, NULL};
-            jstring engine_name = JAVA->env->NewStringUTF((char*) conf->javascript_lang.data);
-            engine.first = (jobject) JAVA->env->CallObjectMethod(JAVA->script_manager_instance, JAVA->script_manager_get_engine_by_name, engine_name);
+            jstring engine_name = JAVA->env->NewStringUTF((char *)conf->javascript_lang.data);
+            engine.first = (jobject)JAVA->env->CallObjectMethod(JAVA->script_manager_instance, JAVA->script_manager_get_engine_by_name, engine_name);
             JAVA->env->ReleaseStringUTFChars(engine_name, 0);
             JAVA->env->DeleteLocalRef(engine_name);
-            if (engine.first != NULL) {
-                if (JAVA->env->IsInstanceOf(engine.first, JAVA->compilable) == JNI_TRUE) {
-                    engine.second = (jobject) engine.first;
-                } else {
+            if (engine.first != NULL)
+            {
+                if (JAVA->env->IsInstanceOf(engine.first, JAVA->compilable) == JNI_TRUE)
+                {
+                    engine.second = (jobject)engine.first;
+                }
+                else
+                {
                     engine.second = NULL;
                 }
                 JAVA->engines.push_back(engine);
                 conf->javascript_engine_index = JAVA->engines.size() - 1;
                 result = true;
             }
-        } else {
+        }
+        else
+        {
 
             result = true;
         }
         return result;
     }
 
-    static void ngx_http_hi_java_handler(ngx_http_request_t *r,ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-        if (java_init_handler(conf)) {
+    static void ngx_http_hi_java_handler(ngx_http_request_t *r, ngx_http_hi_loc_conf_t *conf, hi::request &req, hi::response &res)
+    {
+        if (java_init_handler(conf))
+        {
 
             jobject request_instance, response_instance;
-
 
             request_instance = JAVA->env->NewObject(JAVA->request, JAVA->request_ctor);
             response_instance = JAVA->env->NewObject(JAVA->response, JAVA->response_ctor);
 
             java_input_handler(conf, req, res, request_instance, response_instance);
 
-
-
             hi::java_servlet_t jtmp;
-            if (JAVA_SERVLET_CACHE->exists((const char*) conf->java_servlet.data)) {
-                jtmp = JAVA_SERVLET_CACHE->get((const char*) conf->java_servlet.data);
+            if (JAVA_SERVLET_CACHE->exists((const char *)conf->java_servlet.data))
+            {
+                jtmp = JAVA_SERVLET_CACHE->get((const char *)conf->java_servlet.data);
                 time_t now = time(0);
-                if (difftime(now, jtmp.t) > conf->java_servlet_cache_expires) {
-                    JAVA_SERVLET_CACHE->erase((const char*) conf->java_servlet.data);
+                if (difftime(now, jtmp.t) > conf->java_servlet_cache_expires)
+                {
+                    JAVA_SERVLET_CACHE->erase((const char *)conf->java_servlet.data);
                     goto update_java_servlet;
                 }
-            } else {
-update_java_servlet:
-                jtmp.SERVLET = JAVA->env->FindClass((const char*) conf->java_servlet.data);
+            }
+            else
+            {
+            update_java_servlet:
+                jtmp.SERVLET = JAVA->env->FindClass((const char *)conf->java_servlet.data);
 
-                if (jtmp.SERVLET == NULL)return;
+                if (jtmp.SERVLET == NULL)
+                    return;
                 jtmp.CTOR = JAVA->env->GetMethodID(jtmp.SERVLET, "<init>", "()V");
-                jtmp.GET_INSTANCE = JAVA->env->GetStaticMethodID(jtmp.SERVLET,"get_instance","()Lhi/servlet;");
+                jtmp.GET_INSTANCE = JAVA->env->GetStaticMethodID(jtmp.SERVLET, "get_instance", "()Lhi/servlet;");
                 jtmp.HANDLER = JAVA->env->GetMethodID(jtmp.SERVLET, "handler", "(Lhi/request;Lhi/response;)V");
                 jtmp.t = time(0);
-                JAVA_SERVLET_CACHE->put((const char*) conf->java_servlet.data, jtmp);
+                JAVA_SERVLET_CACHE->put((const char *)conf->java_servlet.data, jtmp);
             }
-            jobject servlet_instance ;
-            if(jtmp.GET_INSTANCE == NULL){
+            jobject servlet_instance;
+            if (jtmp.GET_INSTANCE == NULL)
+            {
                 servlet_instance = JAVA->env->NewObject(jtmp.SERVLET, jtmp.CTOR);
-            }else{
-                servlet_instance = JAVA->env->CallStaticObjectMethod(jtmp.SERVLET,jtmp.GET_INSTANCE);
+            }
+            else
+            {
+                servlet_instance = JAVA->env->CallStaticObjectMethod(jtmp.SERVLET, jtmp.GET_INSTANCE);
             }
             JAVA->env->CallVoidMethod(servlet_instance, jtmp.HANDLER, request_instance, response_instance);
             JAVA->env->DeleteLocalRef(servlet_instance);
 
-
             java_output_handler(conf, req, res, request_instance, response_instance);
-
 
             JAVA->env->DeleteLocalRef(request_instance);
             JAVA->env->DeleteLocalRef(response_instance);
         }
     }
 
-    static void ngx_http_hi_javascript_handler(ngx_http_request_t *r,ngx_http_hi_loc_conf_t * conf, hi::request& req, hi::response& res) {
-        if (java_init_handler(conf) && javascript_engine_init_handler(conf)) {
+    static void ngx_http_hi_javascript_handler(ngx_http_request_t *r, ngx_http_hi_loc_conf_t *conf, hi::request &req, hi::response &res)
+    {
+        if (java_init_handler(conf) && javascript_engine_init_handler(conf))
+        {
 
-            std::pair<jobject, jobject>& engine = JAVA->engines[conf->javascript_engine_index];
+            std::pair<jobject, jobject> &engine = JAVA->engines[conf->javascript_engine_index];
 
-            if (engine.first == NULL) {
+            if (engine.first == NULL)
+            {
                 return;
             }
 
@@ -355,78 +387,102 @@ update_java_servlet:
             jstring jhi_req = JAVA->env->NewStringUTF("hi_req");
             jstring jhi_res = JAVA->env->NewStringUTF("hi_res");
 
-
             JAVA->env->CallVoidMethod(engine.first, JAVA->script_engine_put, jhi_req, request_instance);
             JAVA->env->CallVoidMethod(engine.first, JAVA->script_engine_put, jhi_res, response_instance);
 
-            if (conf->javascript_script.len > 0) {
-                std::string script_path = std::move(std::string((char*) conf->javascript_script.data, conf->javascript_script.len));
+            if (conf->javascript_script.len > 0)
+            {
+                std::string script_path = std::move(std::string((char *)conf->javascript_script.data, conf->javascript_script.len));
                 auto c = script_path.find_last_of('.');
-                if (c == std::string::npos || script_path.substr(c + 1) != (char*) conf->javascript_extension.data) {
+                if (c == std::string::npos || script_path.substr(c + 1) != (char *)conf->javascript_extension.data)
+                {
                     script_path.append(req.uri);
                 }
 
-                if (is_file(script_path)) {
+                if (is_file(script_path))
+                {
                     std::string md5key = std::move(md5(script_path));
-                    if (conf->need_kvdb == 1) {
-                        if (JAVA->compiledscript_instances.find(md5key) != JAVA->compiledscript_instances.end()) {
+                    if (conf->need_kvdb == 1)
+                    {
+                        if (JAVA->compiledscript_instances.find(md5key) != JAVA->compiledscript_instances.end())
+                        {
                             time_t now(0);
-                            const std::pair<time_t, jobject>& compiledscript_pair = JAVA->compiledscript_instances[md5key];
-                            if (difftime(now, compiledscript_pair.first) > conf->javascript_compiledscript_expires) {
+                            const std::pair<time_t, jobject> &compiledscript_pair = JAVA->compiledscript_instances[md5key];
+                            if (difftime(now, compiledscript_pair.first) > conf->javascript_compiledscript_expires)
+                            {
                                 JAVA->env->DeleteLocalRef(compiledscript_pair.second);
                                 JAVA->compiledscript_instances.erase(md5key);
                                 goto update_string_compiledscript_instance;
                             }
-                            if (compiledscript_pair.second != NULL) {
+                            if (compiledscript_pair.second != NULL)
+                            {
                                 JAVA->env->CallObjectMethod(compiledscript_pair.second, JAVA->compiledscript_eval_void);
                             }
-                        } else {
-update_string_compiledscript_instance:
+                        }
+                        else
+                        {
+                        update_string_compiledscript_instance:
                             jstring script_content = NULL;
-                            std::pair<char*, struct stat> script_mmap;
-                            if(JAVA->script_mmap.get(script_path,script_mmap)){
+                            std::pair<char *, struct stat> script_mmap;
+                            if (JAVA->script_mmap.get(script_path, script_mmap))
+                            {
                                 script_content = JAVA->env->NewStringUTF(script_mmap.first);
                             }
-                            if (engine.second != NULL) {
-                                jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
-                                if (compiledscript_instance != NULL) {
+                            if (engine.second != NULL)
+                            {
+                                jobject compiledscript_instance = (jobject)JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
+                                if (compiledscript_instance != NULL)
+                                {
                                     JAVA->compiledscript_instances[md5key] = std::make_pair(time(0), compiledscript_instance);
                                     JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_string, script_content);
                             }
 
-                            if (script_content != NULL) {
+                            if (script_content != NULL)
+                            {
                                 JAVA->env->ReleaseStringUTFChars(script_content, 0);
                                 JAVA->env->DeleteLocalRef(script_content);
                             }
                         }
-
-                    } else {
-                        if (JAVA->compiledscript_instances.find(md5key) != JAVA->compiledscript_instances.end()) {
+                    }
+                    else
+                    {
+                        if (JAVA->compiledscript_instances.find(md5key) != JAVA->compiledscript_instances.end())
+                        {
                             time_t now(NULL);
-                            const std::pair<time_t, jobject>& compiledscript_pair = JAVA->compiledscript_instances[md5key];
-                            if (difftime(now, compiledscript_pair.first) > conf->javascript_compiledscript_expires) {
+                            const std::pair<time_t, jobject> &compiledscript_pair = JAVA->compiledscript_instances[md5key];
+                            if (difftime(now, compiledscript_pair.first) > conf->javascript_compiledscript_expires)
+                            {
                                 JAVA->env->DeleteLocalRef(compiledscript_pair.second);
                                 JAVA->compiledscript_instances.erase(md5key);
                                 goto update_file_compiledscript_instance;
                             }
-                            if (compiledscript_pair.second != NULL) {
+                            if (compiledscript_pair.second != NULL)
+                            {
                                 JAVA->env->CallObjectMethod(compiledscript_pair.second, JAVA->compiledscript_eval_void);
                             }
-                        } else {
-update_file_compiledscript_instance:
+                        }
+                        else
+                        {
+                        update_file_compiledscript_instance:
                             jstring javascript_path = JAVA->env->NewStringUTF(script_path.c_str());
-                            jobject filereader_instance = (jobject) JAVA->env->NewObject(JAVA->filereader, JAVA->filereader_ctor, javascript_path);
+                            jobject filereader_instance = (jobject)JAVA->env->NewObject(JAVA->filereader, JAVA->filereader_ctor, javascript_path);
 
-                            if (engine.second != NULL) {
-                                jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_filereader, filereader_instance);
-                                if (compiledscript_instance != NULL) {
+                            if (engine.second != NULL)
+                            {
+                                jobject compiledscript_instance = (jobject)JAVA->env->CallObjectMethod(engine.second, JAVA->compile_filereader, filereader_instance);
+                                if (compiledscript_instance != NULL)
+                                {
                                     JAVA->compiledscript_instances[md5key] = std::make_pair(time(0), compiledscript_instance);
                                     JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_filereader, filereader_instance);
                             }
                             JAVA->env->DeleteLocalRef(filereader_instance);
@@ -435,18 +491,23 @@ update_file_compiledscript_instance:
                         }
                     }
                 }
+            }
+            else if (conf->javascript_content.len > 0)
+            {
 
-            } else if (conf->javascript_content.len > 0) {
+                jstring script_content = JAVA->env->NewStringUTF((char *)conf->javascript_content.data);
 
-                jstring script_content = JAVA->env->NewStringUTF((char*) conf->javascript_content.data);
-
-                if (engine.second != NULL) {
-                    jobject compiledscript_instance = (jobject) JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
-                    if (compiledscript_instance != NULL) {
+                if (engine.second != NULL)
+                {
+                    jobject compiledscript_instance = (jobject)JAVA->env->CallObjectMethod(engine.second, JAVA->compile_string, script_content);
+                    if (compiledscript_instance != NULL)
+                    {
                         JAVA->env->CallObjectMethod(compiledscript_instance, JAVA->compiledscript_eval_void);
                         JAVA->env->DeleteLocalRef(compiledscript_instance);
                     }
-                } else {
+                }
+                else
+                {
 
                     JAVA->env->CallObjectMethod(engine.first, JAVA->script_engine_eval_string, script_content);
                 }
@@ -454,8 +515,6 @@ update_file_compiledscript_instance:
                 JAVA->env->ReleaseStringUTFChars(script_content, 0);
                 JAVA->env->DeleteLocalRef(script_content);
             }
-
-
 
             java_output_handler(conf, req, res, request_instance, response_instance);
 
@@ -468,8 +527,6 @@ update_file_compiledscript_instance:
             JAVA->env->DeleteLocalRef(jhi_res);
         }
     }
-}
+} // namespace hi
 
-
-#endif /* JAVA_HANDLER_HPP */
 

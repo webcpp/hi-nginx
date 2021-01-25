@@ -1,7 +1,7 @@
-#ifndef MODULE_CONFIG_HPP
-#define MODULE_CONFIG_HPP
+#pragma once
 
-extern "C" {
+extern "C"
+{
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
@@ -26,7 +26,7 @@ extern "C" {
 #define SUBREQUEST_STATUS_NAME "__subrequest_status__"
 #define SUBREQUEST_CONTENT_TYPE_NAME "__subrequest_content_type__"
 
-#define HTTP_TIME_SIZE (sizeof ("Mon, 28 Sep 1970 06:00:00 GMT")-1)
+#define HTTP_TIME_SIZE (sizeof("Mon, 28 Sep 1970 06:00:00 GMT") - 1)
 
 //#define HTTP_HI_LUA
 //#define HTTP_HI_JAVA
@@ -48,7 +48,6 @@ extern "C" {
 #include <exception>
 #include <queue>
 
-
 #include "include/request.hpp"
 #include "include/response.hpp"
 #include "include/servlet.hpp"
@@ -68,16 +67,15 @@ extern "C" {
 static std::shared_ptr<hi::shared_memory<size_t>> NGX_HTTP_HI_CPU_COUNT;
 static std::vector<std::shared_ptr<hi::module<hi::servlet>>> PLUGIN;
 static std::vector<std::shared_ptr<lru11::Cache<std::string, std::shared_ptr<hi::cache_t>>>> CACHE;
-static leveldb::DB* LEVELDB = 0;
+static leveldb::DB *LEVELDB = 0;
 static leveldb::Options LEVELDB_OPTIONS;
 static std::vector<std::shared_ptr<hi::request>> SUBREQUEST_RESPONSE;
 static ngx_conf_enum_t ngx_http_hi_cache_method_enums[] = {
-    { ngx_string("GET"), NGX_HTTP_GET},
-    { ngx_string("POST"), NGX_HTTP_POST},
-    { ngx_string("PUT"), NGX_HTTP_PUT},
-    { ngx_string("HEAD"), NGX_HTTP_HEAD},
-    { ngx_null_string, 0}
-};
+    {ngx_string("GET"), NGX_HTTP_GET},
+    {ngx_string("POST"), NGX_HTTP_POST},
+    {ngx_string("PUT"), NGX_HTTP_PUT},
+    {ngx_string("HEAD"), NGX_HTTP_HEAD},
+    {ngx_null_string, 0}};
 
 #ifdef HTTP_HI_PYTHON
 #include "lib/py_request.hpp"
@@ -108,69 +106,47 @@ static std::shared_ptr<php::VM> PHP;
 static std::shared_ptr<hi::qjs> QJS;
 #endif
 
-typedef struct {
-    ngx_str_t module_path
-    , subrequest
+typedef struct
+{
+    ngx_str_t module_path, subrequest
 #ifdef HTTP_HI_PYTHON
-    , python_script
-    , python_content
+        ,
+        python_script, python_content
 #endif
 #ifdef HTTP_HI_LUA
-    , lua_script
-    , lua_content
-    , lua_package_path
-    , lua_package_cpath
+        ,
+        lua_script, lua_content, lua_package_path, lua_package_cpath
 #endif
 #ifdef HTTP_HI_JAVA
-    , java_classpath
-    , java_options
-    , java_servlet
-    , javascript_script
-    , javascript_content
-    , javascript_lang
-    , javascript_extension
+        ,
+        java_classpath, java_options, java_servlet, javascript_script, javascript_content, javascript_lang, javascript_extension
 #endif
 #ifdef HTTP_HI_PHP
-    , php_script
+        ,
+        php_script
 #endif
 #ifdef HTTP_HI_QJS
-    , qjs_script
+        ,
+        qjs_script
 #endif
-    ;
-    ngx_int_t module_index
-    , subrequest_index
-    , cache_expires
-    , session_expires
-    , cache_index
-    , kvdb_expires
+        ;
+    ngx_int_t module_index, subrequest_index, cache_expires, session_expires, cache_index, kvdb_expires
 #ifdef HTTP_HI_JAVA
-    , java_servlet_cache_expires
-    , java_version
-    , javascript_engine_index
-    , javascript_compiledscript_expires
+        ,
+        java_servlet_cache_expires, java_version, javascript_engine_index, javascript_compiledscript_expires
 #endif
-    ;
-    size_t cache_size
-    , kvdb_size
+        ;
+    size_t cache_size, kvdb_size
 #ifdef HTTP_HI_JAVA
-    , java_servlet_cache_size
+        ,
+        java_servlet_cache_size
 #endif
 #ifdef HTTP_HI_QJS
-    , qjs_memory_limit
-    , qjs_stack_limit
-    , qjs_ctx_called_limit
+        ,
+        qjs_memory_limit, qjs_stack_limit, qjs_ctx_called_limit
 #endif
-    ;
-    ngx_flag_t need_headers
-    , need_cache
-    , need_cookies
-    , need_session
-    , need_kvdb
-    , need_tokens;
+        ;
+    ngx_flag_t need_headers, need_cache, need_cookies, need_session, need_kvdb, need_tokens;
     application_t app_type;
     ngx_uint_t cache_method;
 } ngx_http_hi_loc_conf_t;
-
-
-#endif /* MODULE_CONFIG_HPP */
-
