@@ -10,7 +10,7 @@ extern "C"
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "2.1.1"
+#define HI_NGINX_SERVER_VERSION "2.1.2"
 #define HI_NGINX_SERVER_NAME "hi-nginx/" HI_NGINX_SERVER_VERSION
 #define HI_NGINX_SERVER_HEAD "PoweredBy"
 #define SESSION_ID_NAME "SESSIONID"
@@ -108,45 +108,45 @@ static std::shared_ptr<hi::qjs> QJS;
 
 typedef struct
 {
-    ngx_str_t module_path, subrequest
+        ngx_str_t module_path, subrequest
 #ifdef HTTP_HI_PYTHON
-        ,
-        python_script, python_content
+            ,
+            python_script, python_content
 #endif
 #ifdef HTTP_HI_LUA
-        ,
-        lua_script, lua_content, lua_package_path, lua_package_cpath
+            ,
+            lua_script, lua_content, lua_package_path, lua_package_cpath
 #endif
 #ifdef HTTP_HI_JAVA
-        ,
-        java_classpath, java_options, java_servlet, javascript_script, javascript_content, javascript_lang, javascript_extension
+            ,
+            java_classpath, java_options, java_servlet
 #endif
 #ifdef HTTP_HI_PHP
-        ,
-        php_script
+            ,
+            php_script
 #endif
 #ifdef HTTP_HI_QJS
-        ,
-        qjs_script
+            ,
+            qjs_script
 #endif
-        ;
-    ngx_int_t module_index, subrequest_index, cache_expires, session_expires, cache_index, kvdb_expires
+            ;
+        ngx_int_t module_index, subrequest_index, cache_expires, session_expires, cache_index, kvdb_expires
 #ifdef HTTP_HI_JAVA
-        ,
-        java_servlet_cache_expires, java_version, javascript_engine_index, javascript_compiledscript_expires
+            ,
+            java_servlet_cache_expires, java_version
 #endif
-        ;
-    size_t cache_size, kvdb_size
+            ;
+        size_t cache_size, kvdb_size
 #ifdef HTTP_HI_JAVA
-        ,
-        java_servlet_cache_size
+            ,
+            java_servlet_cache_size
 #endif
 #ifdef HTTP_HI_QJS
-        ,
-        qjs_memory_limit, qjs_stack_limit, qjs_ctx_called_limit
+            ,
+            qjs_memory_limit, qjs_stack_limit, qjs_ctx_called_limit
 #endif
-        ;
-    ngx_flag_t need_headers, need_cache, need_cookies, need_session, need_kvdb, need_tokens;
-    application_t app_type;
-    ngx_uint_t cache_method;
+            ;
+        ngx_flag_t need_headers, need_cache, need_cookies, need_session, need_kvdb, need_tokens;
+        application_t app_type;
+        ngx_uint_t cache_method;
 } ngx_http_hi_loc_conf_t;

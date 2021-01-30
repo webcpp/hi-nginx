@@ -238,36 +238,6 @@ ngx_command_t ngx_http_hi_commands[] = {
      NGX_HTTP_LOC_CONF_OFFSET,
      offsetof(ngx_http_hi_loc_conf_t, java_version),
      NULL},
-    {ngx_string("hi_javascript_script"),
-     NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-     ngx_http_hi_conf_init,
-     NGX_HTTP_LOC_CONF_OFFSET,
-     offsetof(ngx_http_hi_loc_conf_t, javascript_script),
-     NULL},
-    {ngx_string("hi_javascript_content"),
-     NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-     ngx_http_hi_conf_init,
-     NGX_HTTP_LOC_CONF_OFFSET,
-     offsetof(ngx_http_hi_loc_conf_t, javascript_content),
-     NULL},
-    {ngx_string("hi_javascript_lang"),
-     NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-     ngx_http_hi_conf_init,
-     NGX_HTTP_LOC_CONF_OFFSET,
-     offsetof(ngx_http_hi_loc_conf_t, javascript_lang),
-     NULL},
-    {ngx_string("hi_javascript_extension"),
-     NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-     ngx_http_hi_conf_init,
-     NGX_HTTP_LOC_CONF_OFFSET,
-     offsetof(ngx_http_hi_loc_conf_t, javascript_extension),
-     NULL},
-    {ngx_string("hi_javascript_compiledscript_expires"),
-     NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-     ngx_conf_set_sec_slot,
-     NGX_HTTP_LOC_CONF_OFFSET,
-     offsetof(ngx_http_hi_loc_conf_t, javascript_compiledscript_expires),
-     NULL},
 #endif
 #ifdef HTTP_HI_PHP
     {ngx_string("hi_php_script"),
@@ -383,16 +353,6 @@ static void *ngx_http_hi_create_loc_conf(ngx_conf_t *cf)
         conf->java_servlet_cache_size = NGX_CONF_UNSET_UINT;
         conf->java_servlet_cache_expires = NGX_CONF_UNSET;
         conf->java_version = NGX_CONF_UNSET;
-        conf->javascript_content.data = NULL;
-        conf->javascript_content.len = 0;
-        conf->javascript_script.data = NULL;
-        conf->javascript_script.len = 0;
-        conf->javascript_lang.data = NULL;
-        conf->javascript_lang.len = 0;
-        conf->javascript_extension.data = NULL;
-        conf->javascript_extension.len = 0;
-        conf->javascript_engine_index = NGX_CONF_UNSET;
-        conf->javascript_compiledscript_expires = NGX_CONF_UNSET;
 #endif
         return conf;
     }
@@ -432,12 +392,6 @@ static char *ngx_http_hi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *chil
     ngx_conf_merge_str_value(conf->java_servlet, prev->java_servlet, "");
     ngx_conf_merge_uint_value(conf->java_servlet_cache_size, prev->java_servlet_cache_size, (size_t)10);
     ngx_conf_merge_sec_value(conf->java_servlet_cache_expires, prev->java_servlet_cache_expires, (ngx_int_t)300);
-
-    ngx_conf_merge_str_value(conf->javascript_script, prev->javascript_script, "");
-    ngx_conf_merge_str_value(conf->javascript_content, prev->javascript_content, "");
-    ngx_conf_merge_str_value(conf->javascript_lang, prev->javascript_lang, "javascript");
-    ngx_conf_merge_str_value(conf->javascript_extension, prev->javascript_extension, "js");
-    ngx_conf_merge_sec_value(conf->javascript_compiledscript_expires, prev->javascript_compiledscript_expires, (ngx_int_t)300);
 #ifdef JNI_VERSION_10
     ngx_conf_merge_value(conf->java_version, prev->java_version, (ngx_int_t)10);
 #else
@@ -530,12 +484,6 @@ static char *ngx_http_hi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *chil
             JAVA_SERVLET_CACHE = std::move(std::make_shared<hi::cache::lru_cache<std::string, hi::java_servlet_t>>(conf->java_servlet_cache_size));
         }
     }
-
-    if (conf->javascript_content.len > 0 || conf->javascript_script.len > 0)
-    {
-        conf->app_type = application_t::__javascript__;
-    }
-
 #endif
 
     return NGX_CONF_OK;
@@ -779,9 +727,6 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r)
     case application_t::__java__:
         hi::ngx_http_hi_java_handler(r, conf, ngx_request, ngx_response);
         break;
-    case application_t::__javascript__:
-        hi::ngx_http_hi_javascript_handler(r, conf, ngx_request, ngx_response);
-        break;
 #endif
 #ifdef HTTP_HI_PHP
     case application_t::__php__:
@@ -849,7 +794,7 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r)
 
 done:
     ngx_str_t response;
-    response.data = (u_char*) ngx_response.content.c_str();
+    response.data = (u_char *)ngx_response.content.c_str();
     response.len = ngx_response.content.size();
 
     if (response.len == 0)

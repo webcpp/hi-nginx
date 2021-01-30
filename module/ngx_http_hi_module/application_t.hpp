@@ -11,7 +11,6 @@ enum application_t
 #endif
 #ifdef HTTP_HI_JAVA
     __java__,
-    __javascript__,
 #endif
 #ifdef HTTP_HI_PHP
     __php__,

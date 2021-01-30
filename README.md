@@ -1,6 +1,6 @@
 # Features
 - All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
-- Web development using python, c++, lua, php7, java , javascript and jsr-223 JVM language
+- Web development using python, c++, lua, php7, java , quickjs
 
 # Dependency
 - linux
@@ -137,13 +137,6 @@ public class jhello implements hi.servlet {
 
 ```
 
-### java compile
-
-```
-${JAVA_HOME}/bin/javac -classpath .:${NGINX_INSTALL_DIR}/java/hi-nginx-java.jar hi/jhello.java
-
-```
-
 
 ## php servlet class
 
@@ -176,30 +169,7 @@ class index implements \hi\servlet {
 
 ```
 
-## javascript hello world
 
-```javascript
-
-if (typeof (Mustache) == 'undefined') {
-    load('https://cdn.bootcss.com/mustache.js/2.3.0/mustache.min.js')
-}
-
-
-var list = java.util.Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-var template = "{{#list}}* {{.}}\n{{/list}}"
-var key = 'test', output
-if (hi_req.cache.containsKey(key)) {
-    output = hi_req.cache.get(key)
-} else {
-    output = Mustache.render(template, {'list': JSON.parse(list.toString())})
-    hi_res.cache.put(key, output)
-}
-hi_res.headers.get('Content-Type').set(0, 'text/plain;charset=UTF-8')
-hi_res.content = output
-hi_res.status = 200;
-
-
-```
 
 ## quickjs
 
@@ -558,79 +528,6 @@ hi_java_servlet_cache_size 10;
 
 hi_java_version 8;
 
-
-```
-
-
-- directives : content: loc,if in loc
-    - **hi_javascript_lang**,default:javascript
-
-    example:
-
-```nginx
-
-hi_javascript_lang javascript;
-
-
-```
-
-
-- directives : content: loc,if in loc
-    - **hi_javascript_extension**,default:js
-
-    example:
-
-```nginx
-
-hi_javascript_extension js;
-
-
-```
-
-
-
-- directives : content: loc,if in loc
-    - **hi_javascript_content**,default:""
-
-    example:
-
-```nginx
-
-hi_javascript_content "hi_res.content='hello,world';hi_res.status=200;";
-
-
-```
-
-- directives : content: loc,if in loc
-    - **hi_javascript_script**,default:""
-
-    example:
-
-```nginx
-
-hi_javascript_script javascript/index.js;
-
-
-```
-
-or
-
-```nginx
-
-
-hi_javascript_script javascript;
-
-
-```
-
-- directives : content: http,srv,loc,if in loc ,if in srv
-    - **hi_javascript_compiledscript_expires**,default:300s
-
-    example:
-
-```nginx
-
-hi_javascript_compiledscript_expires 300s;
 
 ```
 

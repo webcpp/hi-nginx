@@ -59,6 +59,11 @@ if test $HTTP_HI_CPP = YES ; then
         else
             NGX_LD_OPT="$NGX_LD_OPT -L${JAVA_HOME}/lib/server/ -L${JAVA_HOME}/lib/amd64/server/ -ljvm"
         fi
+        if test -n ${CLASSPATH} ; then
+            CXXFLAGS="$CXXFLAGS -DCLASSPATH=\\\"${CLASSPATH}\\\""
+        else
+            CXXFLAGS="$CXXFLAGS -DCLASSPATH=\\\".\\\""
+        fi;
     fi
 
     if test $HTTP_HI_PHP = YES ; then
