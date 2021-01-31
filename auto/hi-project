@@ -2,7 +2,7 @@ if test -n "$1";then
     if test "$1" = "--help" || test "$1" = "-h" ;then
         echo \$1:project name.
         echo -e "\tdefault:demo"
-        echo \$2:type:cpp,python,lua ,php , java , javascript
+        echo \$2:type:cpp,python,lua ,php , java ,quickjs
         echo -e "\tdefault:cpp"
         echo \$3:hi\(nginx\) install directory.
         echo -e "\tdefault:/usr/local/nginx"
@@ -133,7 +133,7 @@ END
 }
 
 
-javascript_makefile_tpl(){
+quickjs_makefile_tpl(){
 
 cat << END                                                     > $PROJECT/Makefile
 
@@ -159,23 +159,11 @@ echo "create hi project $PROJECT demo source file."
 
 cat << END                                                     > $PROJECT/$PROJECT.js
 
-if (typeof (Mustache) == 'undefined') {
-    load('https://cdn.bootcss.com/mustache.js/2.3.0/mustache.min.js')
-}
 
-
-var list = java.util.Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-var template = "{{#list}} * {{.}}\\n  {{/list}}"
-var key = 'test', output
-if (hi_req.cache.containsKey(key)) {
-    output = hi_req.cache.get(key)
-} else {
-    output = Mustache.render(template, {'list': JSON.parse(list.toString())})
-    hi_res.cache.put(key, output)
-}
-hi_res.headers.get('Content-Type').set(0, 'text/plain;charset=UTF-8')
-hi_res.content = output
-hi_res.status = 200;
+import * as hi from "hi";
+hi.header('Content-Type','text/plain;charset=UTF-8')
+hi.content('hello,world\n')
+hi.status(200)  
 
 
 END
@@ -371,8 +359,8 @@ case $TYPE in
     lua) lua_makefile_tpl;;
     java) java_makefile_tpl;;
     php) php_makefile_tpl;;
-    javascript) javascript_makefile_tpl;;
-    *) echo 'Please set TYPE in (cpp,python,lua,php, java, javascript)';;
+    quickjs) quickjs_makefile_tpl;;
+    *) echo 'Please set TYPE in (cpp,python,lua,php, java, quickjs)';;
 esac
 
 if ! test -f Makefile ;
