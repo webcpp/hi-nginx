@@ -820,7 +820,7 @@ done:
     out.buf = buf;
     out.next = NULL;
 
-    ngx_response.headers.insert(std::move(std::make_pair(HI_NGINX_SERVER_HEAD, (conf->need_tokens ? HI_NGINX_SERVER_NAME : "hi-nginx"))));
+    ngx_response.headers.insert(std::move(std::make_pair(HI_NGINX_SERVER_HEAD, (conf->need_tokens ? HI_NGINX_SERVER_NAME : "HI-NGINX"))));
     hi::set_output_headers(r, ngx_response.headers);
     r->headers_out.status = ngx_response.status;
     r->headers_out.content_length_n = response.len;
