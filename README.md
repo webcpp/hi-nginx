@@ -122,6 +122,10 @@ install hello.so /usr/local/nginx/cpp
 ```java
 package hi;
 
+import hi.servlet;
+import hi.request;
+import hi.response;
+
 public class jhello implements hi.servlet {
 
     public jhello() {
