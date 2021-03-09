@@ -16,9 +16,6 @@
 #include "java_handler.hpp"
 #endif
 
-#ifdef HTTP_HI_PHP
-#include "php_handler.hpp"
-#endif
 
 #include "cpp_handler.hpp"
 
@@ -239,14 +236,6 @@ ngx_command_t ngx_http_hi_commands[] = {
      offsetof(ngx_http_hi_loc_conf_t, java_version),
      NULL},
 #endif
-#ifdef HTTP_HI_PHP
-    {ngx_string("hi_php_script"),
-     NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-     ngx_http_hi_conf_init,
-     NGX_HTTP_LOC_CONF_OFFSET,
-     offsetof(ngx_http_hi_loc_conf_t, php_script),
-     NULL},
-#endif
     ngx_null_command};
 
 ngx_module_t ngx_http_hi_module = {
@@ -339,10 +328,6 @@ static void *ngx_http_hi_create_loc_conf(ngx_conf_t *cf)
         conf->lua_package_cpath.len = 0;
         conf->lua_package_cpath.data = NULL;
 #endif
-#ifdef HTTP_HI_PHP
-        conf->php_script.len = 0;
-        conf->php_script.data = NULL;
-#endif
 #ifdef HTTP_HI_JAVA
         conf->java_classpath.len = 0;
         conf->java_classpath.data = NULL;
@@ -382,9 +367,6 @@ static char *ngx_http_hi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *chil
     ngx_conf_merge_str_value(conf->lua_content, prev->lua_content, "");
     ngx_conf_merge_str_value(conf->lua_package_path, prev->lua_package_path, "");
     ngx_conf_merge_str_value(conf->lua_package_cpath, prev->lua_package_cpath, "");
-#endif
-#ifdef HTTP_HI_PHP
-    ngx_conf_merge_str_value(conf->php_script, prev->php_script, "");
 #endif
 #ifdef HTTP_HI_JAVA
     ngx_conf_merge_str_value(conf->java_classpath, prev->java_classpath, "-Djava.class.path=.");
@@ -469,12 +451,6 @@ static char *ngx_http_hi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *chil
         conf->app_type = application_t::__lua__;
     }
 #endif
-#ifdef HTTP_HI_PHP
-    if (conf->php_script.len > 0)
-    {
-        conf->app_type = application_t::__php__;
-    }
-#endif
 #ifdef HTTP_HI_JAVA
     if (conf->java_servlet.len > 0)
     {
@@ -532,9 +508,6 @@ static void ngx_http_hi_process_exit(ngx_cycle_t *cycle)
     JAVA.reset();
     JAVA_SERVLET_CACHE.reset();
     hi::java::JAVA_IS_READY = false;
-#endif
-#ifdef HTTP_HI_PHP
-    PHP.reset();
 #endif
 }
 
@@ -726,11 +699,6 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r)
 #ifdef HTTP_HI_JAVA
     case application_t::__java__:
         hi::ngx_http_hi_java_handler(r, conf, ngx_request, ngx_response);
-        break;
-#endif
-#ifdef HTTP_HI_PHP
-    case application_t::__php__:
-        hi::ngx_http_hi_php_handler(r, conf, ngx_request, ngx_response);
         break;
 #endif
     default:

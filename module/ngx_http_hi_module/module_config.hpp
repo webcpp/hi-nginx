@@ -31,7 +31,6 @@ extern "C"
 //#define HTTP_HI_LUA
 //#define HTTP_HI_JAVA
 //#define HTTP_HI_PYTHON
-//#define HTTP_HI_PHP
 //#define HTTP_HI_QJS
 
 #ifndef HTTP_HI_CPP
@@ -95,11 +94,6 @@ static std::shared_ptr<hi::java> JAVA;
 static std::shared_ptr<hi::cache::lru_cache<std::string, hi::java_servlet_t>> JAVA_SERVLET_CACHE;
 #endif
 
-#ifdef HTTP_HI_PHP
-#include "lib/php-x/phpx.h"
-#include "lib/php-x/phpx_embed.h"
-static std::shared_ptr<php::VM> PHP;
-#endif
 
 #ifdef HTTP_HI_QJS
 #include "lib/qjs.hpp"
@@ -120,10 +114,6 @@ typedef struct
 #ifdef HTTP_HI_JAVA
             ,
             java_classpath, java_options, java_servlet
-#endif
-#ifdef HTTP_HI_PHP
-            ,
-            php_script
 #endif
 #ifdef HTTP_HI_QJS
             ,

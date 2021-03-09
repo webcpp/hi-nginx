@@ -1,6 +1,6 @@
 # Features
 - All features of nginx(latest release) are inherited, i.e., it is 100% compatible with nginx.
-- Web development using python, c++, lua, php7, java , quickjs
+- Web development using python, c++, lua, java , quickjs
 
 # Dependency
 - linux
@@ -10,7 +10,6 @@
 - lua-devel(lua5.x),if `--enable-http-hi-lua=YES`  and `--with-http-hi-lua-version=lua5.x`
 - luajit-devel,if `--enable-http-hi-lua=YES` and `--with-http-hi-lua-version=luajit`
 - jdk 8+,if `--enable-http-hi-java=YES`
-- PHP 7.0,7.1, 7.2,7.3(--enable-embed=shared),if `--enable-http-hi-php=YES`
 
 
 
@@ -21,9 +20,8 @@
                 --enable-http-hi-cpp=YES                           \
                 --enable-http-hi-python=NO                         \
                 --enable-http-hi-lua=NO                            \
-                --enable-http-hi-qjs=NO                            \
+                --enable-http-hi-qjs=YES                            \
                 --enable-http-hi-java=NO                           \
-                --enable-http-hi-php=NO                            \
                 --with-http-hi-python-version=python3              \
                 --with-http-hi-lua-version=lua5.3                  \
                 --add-module=module/ngx_http_hi_module             \
@@ -140,39 +138,6 @@ public class jhello implements hi.servlet {
 }
 
 ```
-
-
-## php servlet class
-
-see `php/hi/request.php`,`php/hi/response.php` and `php/hi/servlet.php`
-
-```php
-
-<?php
-
-require_once 'hi/servlet.php';
-require_once 'hi/route.php';
-
-class index implements \hi\servlet {
-
-    public function handler(\hi\request $req, \hi\response $res) {
-        $app = \hi\route::get_instance();
-        $app->add('{^/$}', array('GET'), function ($rq, $rs, &$param) {
-            $rs->content = 'hello,world';
-            $rs->status = 200;
-        });
-        
-        $app->add('{^/who/(?P<name>\w+)/?$}', array('GET'), function ($rq, $rs, &$param) {
-            $rs->content = 'hello,'.$param['name'];
-            $rs->status = 200;
-        });
-        $app->run($req, $res);
-    }
-
-}
-
-```
-
 
 
 ## quickjs
@@ -535,24 +500,6 @@ hi_java_version 8;
 
 ```
 
-- directives : content: loc,if in loc
-    - **hi_php_script**,default: ""
-
-    example:
-    
-```nginx
-            location ~ \.php$  {
-                hi_php_script php;
-            }
-```
-
-or
-
-```nginx
-            location / {
-                hi_php_script php/index.php;
-            }
-```
 
 - directives : content: loc,if in loc
     - **hi_qjs_script**,default: ""

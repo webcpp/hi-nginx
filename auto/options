@@ -109,7 +109,6 @@ HTTP_UPSTREAM_ZONE=YES
 HTTP_HI_CPP=YES
 HTTP_HI_PYTHON=NO
 HTTP_HI_LUA=NO
-HTTP_HI_PHP=NO
 HTTP_HI_JAVA=NO
 HTTP_HI_QJS=YES
 
@@ -414,7 +413,6 @@ $0: warning: the \"--with-sha1-asm\" option is deprecated"
         --enable-http-hi-python=*)              HTTP_HI_PYTHON="$value"                     ;;
         --enable-http-hi-qjs=*)                 HTTP_HI_QJS="$value"                        ;;
         --enable-http-hi-lua=*)                 HTTP_HI_LUA="$value"                        ;;
-        --enable-http-hi-php=*)                 HTTP_HI_PHP="$value"                        ;;
         --enable-http-hi-java=*)                HTTP_HI_JAVA="$value"                       ;;
         --with-http-hi-python-version=*)        HTTP_HI_PYTHON_VERSION="$value"               ;;
         --with-http-hi-lua-version=*)           HTTP_HI_LUA_VERSION="$value"                  ;;
@@ -612,7 +610,6 @@ cat << END
   --enable-http-hi-python=NO         enable hi python language support,YES or NO,default: NO
   --enable-http-hi-qjs=YES            enable hi qjs language support,YES or NO,default: YES
   --enable-http-hi-lua=NO            enable hi lua language support,YES or NO,default: NO
-  --enable-http-hi-php=NO            enable hi php language support,YES or NO,default: NO
   --enable-http-hi-java=NO           enable hi java language support,YES or NO,default: NO
   --with-http-hi-python-version      with python version,python2 or python3 ,default:python3
   --with-http-hi-lua-versioin        with lua version,lua,lua5.1,lua5.2,lua5.3 or luajit ,default:lua5.3

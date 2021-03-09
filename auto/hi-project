@@ -2,7 +2,7 @@ if test -n "$1";then
     if test "$1" = "--help" || test "$1" = "-h" ;then
         echo \$1:project name.
         echo -e "\tdefault:demo"
-        echo \$2:type:cpp,python,lua ,php , java ,quickjs
+        echo \$2:type:cpp,python,lua , java ,quickjs
         echo -e "\tdefault:cpp"
         echo \$3:hi\(nginx\) install directory.
         echo -e "\tdefault:/usr/local/nginx"
@@ -264,72 +264,6 @@ END
 
 }
 
-php_makefile_tpl(){
-
-cat << END                                                     > $PROJECT/Makefile
-
-SRC=\$(shell find . -type f | egrep *.php\$\$)
-
-ifndef NGINX_INSTALL_DIR
-NGINX_INSTALL_DIR=/usr/local/nginx
-endif
-
-
-all:
-	@echo 'ok'
-
-clean:
-	@echo 'ok'
-
-install:\${SRC}
-	for i in \${SRC};do test -d \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` || mkdir -p \$(NGINX_INSTALL_DIR)/$TYPE/\`dirname \$\$i\` && install \$\$i \$(NGINX_INSTALL_DIR)/$TYPE/\$\$i ;done
-
-
-END
-
-echo "create hi project $PROJECT demo source file."
-
-cat << END                                                     > $PROJECT/$PROJECT.php
-
-<?php
-
-require_once 'hi/servlet.php';
-require_once 'hi/route.php';
-
-class $PROJECT implements \hi\servlet {
-
-    public function handler(\hi\request \$req, \hi\response \$res) {
-        \$app = \hi\route::get_instance();
-        \$app->add('{^/\$}', array('GET'), function (\$rq, \$rs, &\$param) {
-            \$rs->content = 'hello,world';
-            \$rs->status = 200;
-        });
-
-        \$app->add('{^/who/(?P<name>\w+)/?\$}', array('GET'), function (\$rq, \$rs, &\$param) {
-            \$rs->content = 'hello,'.\$param['name'];
-            \$rs->status = 200;
-        });
-
-        \$app->add('{^/phpinfo/?\$}', array('GET'), function(\$rq, \$rs, &\$param) {
-            ob_start();
-            phpinfo();
-            \$rs->content = ob_get_contents();
-            \$rs->status = 200;
-            ob_end_clean();
-        });
-
-        \$app->run(\$req, \$res);
-    }
-
-}
-
-
-
-END
-
-}
-
-
 pre_makefile_tpl(){
 
 cat << END                                                     > Makefile
@@ -358,7 +292,6 @@ case $TYPE in
     python) python_makefile_tpl;;
     lua) lua_makefile_tpl;;
     java) java_makefile_tpl;;
-    php) php_makefile_tpl;;
     quickjs) quickjs_makefile_tpl;;
     *) echo 'Please set TYPE in (cpp,python,lua,php, java, quickjs)';;
 esac
