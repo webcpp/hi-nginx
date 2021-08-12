@@ -10,53 +10,60 @@
 
 #pragma once
 
-#if defined(__INTEL_COMPILER)
-#  pragma warning push
-#  pragma warning disable 68    // integer conversion resulted in a change of sign
-#  pragma warning disable 186   // pointless comparison of unsigned integer with zero
-#  pragma warning disable 878   // incompatible exception specifications
-#  pragma warning disable 1334  // the "template" keyword used for syntactic disambiguation may only be used within a template
-#  pragma warning disable 1682  // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
-#  pragma warning disable 1786  // function "strdup" was declared deprecated
-#  pragma warning disable 1875  // offsetof applied to non-POD (Plain Old Data) types is nonstandard
-#  pragma warning disable 2196  // warning #2196: routine is both "inline" and "noinline"
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(push)
 #  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#  pragma warning(disable: 4512) // warning C4512: Assignment operator was implicitly defined as deleted
-#  pragma warning(disable: 4800) // warning C4800: 'int': forcing value to bool 'true' or 'false' (performance warning)
-#  pragma warning(disable: 4996) // warning C4996: The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name
-#  pragma warning(disable: 4702) // warning C4702: unreachable code
-#  pragma warning(disable: 4522) // warning C4522: multiple assignment operators specified
-#  pragma warning(disable: 4505) // warning C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
-#elif defined(__GNUG__) && !defined(__clang__)
+#elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-#  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-#  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#  pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #  pragma GCC diagnostic ignored "-Wattributes"
-#  if __GNUC__ >= 7
-#    pragma GCC diagnostic ignored "-Wnoexcept-type"
-#  endif
 #endif
 
 #include "attr.h"
+#include "gil.h"
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"
 
 #include <memory>
+#include <new>
 #include <vector>
 #include <string>
 #include <utility>
 
+#include <string.h>
+
+#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
+#  define PYBIND11_STD_LAUNDER std::launder
+#  define PYBIND11_HAS_STD_LAUNDER 1
+#else
+#  define PYBIND11_STD_LAUNDER
+#  define PYBIND11_HAS_STD_LAUNDER 0
+#endif
 #if defined(__GNUG__) && !defined(__clang__)
 #  include <cxxabi.h>
 #endif
 
+/* https://stackoverflow.com/questions/46798456/handling-gccs-noexcept-type-warning
+   This warning is about ABI compatibility, not code health.
+   It is only actually needed in a couple places, but apparently GCC 7 "generates this warning if
+   and only if the first template instantiation ... involves noexcept" [stackoverflow], therefore
+   it could get triggered from seemingly random places, depending on user code.
+   No other GCC version generates this warning.
+ */
+#if defined(__GNUC__) && __GNUC__ == 7
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wnoexcept-type"
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+#if defined(_MSC_VER)
+#    define PYBIND11_COMPAT_STRDUP _strdup
+#else
+#    define PYBIND11_COMPAT_STRDUP strdup
+#endif
 
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
 class cpp_function : public function {
@@ -142,16 +149,29 @@ protected:
             /* Without these pragmas, GCC warns that there might not be
                enough space to use the placement new operator. However, the
                'if' statement above ensures that this is the case. */
-#if defined(__GNUG__) && !defined(__clang__) && __GNUC__ >= 6
+#if defined(__GNUG__) && __GNUC__ >= 6 && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wplacement-new"
 #endif
             new ((capture *) &rec->data) capture { std::forward<Func>(f) };
-#if defined(__GNUG__) && !defined(__clang__) && __GNUC__ >= 6
+#if defined(__GNUG__) && __GNUC__ >= 6 && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
+#if defined(__GNUG__) && !PYBIND11_HAS_STD_LAUNDER && !defined(__INTEL_COMPILER)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#endif
+            // UB without std::launder, but without breaking ABI and/or
+            // a significant refactoring it's "impossible" to solve.
             if (!std::is_trivially_destructible<Func>::value)
-                rec->free_data = [](function_record *r) { ((capture *) &r->data)->~capture(); };
+                rec->free_data = [](function_record *r) {
+                    auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
+                    (void) data;
+                    data->~capture();
+                };
+#if defined(__GNUG__) && !PYBIND11_HAS_STD_LAUNDER && !defined(__INTEL_COMPILER)
+#  pragma GCC diagnostic pop
+#endif
         } else {
             rec->data[0] = new capture { std::forward<Func>(f) };
             rec->free_data = [](function_record *r) { delete ((capture *) r->data[0]); };
@@ -242,7 +262,7 @@ protected:
                 std::free(s);
         }
         char *operator()(const char *s) {
-            auto t = strdup(s);
+            auto t = PYBIND11_COMPAT_STRDUP(s);
             strings.push_back(t);
             return t;
         }
@@ -280,7 +300,8 @@ protected:
                 a.descr = guarded_strdup(repr(a.value).cast<std::string>().c_str());
         }
 
-        rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
+        rec->is_constructor
+            = (strcmp(rec->name, "__init__") == 0) || (strcmp(rec->name, "__setstate__") == 0);
 
 #if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
         if (rec->is_constructor && !rec->is_new_style_constructor) {
@@ -394,7 +415,8 @@ protected:
             rec->def = new PyMethodDef();
             std::memset(rec->def, 0, sizeof(PyMethodDef));
             rec->def->ml_name = rec->name;
-            rec->def->ml_meth = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*) (void)>(*dispatcher));
+            rec->def->ml_meth
+                = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*)()>(dispatcher));
             rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
 
             capsule rec_capsule(unique_rec.release(), [](void *ptr) {
@@ -468,7 +490,7 @@ protected:
                 signatures += it->signature;
                 signatures += "\n";
             }
-            if (it->doc && strlen(it->doc) > 0 && options::show_user_defined_docstrings()) {
+            if (it->doc && it->doc[0] != '\0' && options::show_user_defined_docstrings()) {
                 // If we're appending another docstring, and aren't printing function signatures, we
                 // need to append a newline first:
                 if (!options::show_function_signatures()) {
@@ -485,7 +507,8 @@ protected:
         auto *func = (PyCFunctionObject *) m_ptr;
         std::free(const_cast<char *>(func->m_ml->ml_doc));
         // Install docstring if it's non-empty (when at least one option is enabled)
-        func->m_ml->ml_doc = signatures.empty() ? nullptr : strdup(signatures.c_str());
+        func->m_ml->ml_doc
+            = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
@@ -554,8 +577,8 @@ protected:
 
         auto self_value_and_holder = value_and_holder();
         if (overloads->is_constructor) {
-            if (!PyObject_TypeCheck(parent.ptr(), (PyTypeObject *) overloads->scope.ptr())) {
-                PyErr_SetString(PyExc_TypeError, "__init__(self, ...) called with invalid `self` argument");
+            if (!parent || !PyObject_TypeCheck(parent.ptr(), (PyTypeObject *) overloads->scope.ptr())) {
+                PyErr_SetString(PyExc_TypeError, "__init__(self, ...) called with invalid or missing `self` argument");
                 return nullptr;
             }
 
@@ -634,7 +657,7 @@ protected:
                 bool bad_arg = false;
                 for (; args_copied < args_to_copy; ++args_copied) {
                     const argument_record *arg_rec = args_copied < func.args.size() ? &func.args[args_copied] : nullptr;
-                    if (kwargs_in && arg_rec && arg_rec->name && PyDict_GetItemString(kwargs_in, arg_rec->name)) {
+                    if (kwargs_in && arg_rec && arg_rec->name && dict_getitemstring(kwargs_in, arg_rec->name)) {
                         bad_arg = true;
                         break;
                     }
@@ -682,7 +705,7 @@ protected:
 
                         handle value;
                         if (kwargs_in && arg_rec.name)
-                            value = PyDict_GetItemString(kwargs.ptr(), arg_rec.name);
+                            value = dict_getitemstring(kwargs.ptr(), arg_rec.name);
 
                         if (value) {
                             // Consume a kwargs value
@@ -690,7 +713,9 @@ protected:
                                 kwargs = reinterpret_steal<dict>(PyDict_Copy(kwargs.ptr()));
                                 copied_kwargs = true;
                             }
-                            PyDict_DelItemString(kwargs.ptr(), arg_rec.name);
+                            if (PyDict_DelItemString(kwargs.ptr(), arg_rec.name) == -1) {
+                                throw error_already_set();
+                            }
                         } else if (arg_rec.value) {
                             value = arg_rec.value;
                         }
@@ -920,20 +945,20 @@ protected:
             append_note_if_missing_header_is_suspected(msg);
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
-        } else if (!result) {
+        }
+        if (!result) {
             std::string msg = "Unable to convert function return value to a "
                               "Python type! The signature was\n\t";
             msg += it->signature;
             append_note_if_missing_header_is_suspected(msg);
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
-        } else {
-            if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
-                auto *pi = reinterpret_cast<instance *>(parent.ptr());
-                self_value_and_holder.type->init_instance(pi, nullptr);
-            }
-            return result.ptr();
         }
+        if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
+            auto *pi = reinterpret_cast<instance *>(parent.ptr());
+            self_value_and_holder.type->init_instance(pi, nullptr);
+        }
+        return result.ptr();
     }
 };
 
@@ -1085,7 +1110,8 @@ protected:
             pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec.name) +
                           "\": an object with that name is already defined");
 
-        if (rec.module_local ? get_local_type_info(*rec.type) : get_global_type_info(*rec.type))
+        if ((rec.module_local ? get_local_type_info(*rec.type) : get_global_type_info(*rec.type))
+            != nullptr)
             pybind11_fail("generic_type: type \"" + std::string(rec.name) +
                           "\" is already registered!");
 
@@ -1163,8 +1189,9 @@ protected:
     void def_property_static_impl(const char *name,
                                   handle fget, handle fset,
                                   detail::function_record *rec_func) {
-        const auto is_static = rec_func && !(rec_func->is_method && rec_func->scope);
-        const auto has_doc = rec_func && rec_func->doc && pybind11::options::show_user_defined_docstrings();
+        const auto is_static = (rec_func != nullptr) && !(rec_func->is_method && rec_func->scope);
+        const auto has_doc = (rec_func != nullptr) && (rec_func->doc != nullptr)
+                             && pybind11::options::show_user_defined_docstrings();
         auto property = handle((PyObject *) (is_static ? get_internals().static_property_type
                                                        : &PyProperty_Type));
         attr(name) = property(fget.ptr() ? fget : none(),
@@ -1411,15 +1438,15 @@ public:
 
     template <typename D, typename... Extra>
     class_ &def_readwrite_static(const char *name, D *pm, const Extra& ...extra) {
-        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this)),
-                     fset([pm](object, const D &value) { *pm = value; }, scope(*this));
+        cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this)),
+            fset([pm](const object &, const D &value) { *pm = value; }, scope(*this));
         def_property_static(name, fget, fset, return_value_policy::reference, extra...);
         return *this;
     }
 
     template <typename D, typename... Extra>
     class_ &def_readonly_static(const char *name, const D *pm, const Extra& ...extra) {
-        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this));
+        cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this));
         def_property_readonly_static(name, fget, return_value_policy::reference, extra...);
         return *this;
     }
@@ -1484,7 +1511,7 @@ public:
            detail::process_attributes<Extra...>::init(extra..., rec_fget);
            if (rec_fget->doc && rec_fget->doc != doc_prev) {
               free(doc_prev);
-              rec_fget->doc = strdup(rec_fget->doc);
+              rec_fget->doc = PYBIND11_COMPAT_STRDUP(rec_fget->doc);
            }
         }
         if (rec_fset) {
@@ -1492,7 +1519,7 @@ public:
             detail::process_attributes<Extra...>::init(extra..., rec_fset);
             if (rec_fset->doc && rec_fset->doc != doc_prev) {
                 free(doc_prev);
-                rec_fset->doc = strdup(rec_fset->doc);
+                rec_fset->doc = PYBIND11_COMPAT_STRDUP(rec_fset->doc);
             }
             if (! rec_active) rec_active = rec_fset;
         }
@@ -1505,14 +1532,13 @@ private:
     template <typename T>
     static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
             const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
-        try {
-            auto sh = std::dynamic_pointer_cast<typename holder_type::element_type>(
-                    v_h.value_ptr<type>()->shared_from_this());
-            if (sh) {
-                new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(sh));
-                v_h.set_holder_constructed();
-            }
-        } catch (const std::bad_weak_ptr &) {}
+
+        auto sh = std::dynamic_pointer_cast<typename holder_type::element_type>(
+                detail::try_get_shared_from_this(v_h.value_ptr<type>()));
+        if (sh) {
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(sh));
+            v_h.set_holder_constructed();
+        }
 
         if (!v_h.holder_constructed() && inst->owned) {
             new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
@@ -1628,12 +1654,13 @@ struct enum_base {
         auto static_property = handle((PyObject *) get_internals().static_property_type);
 
         m_base.attr("__repr__") = cpp_function(
-            [](object arg) -> str {
+            [](const object &arg) -> str {
                 handle type = type::handle_of(arg);
                 object type_name = type.attr("__name__");
                 return pybind11::str("<{}.{}: {}>").format(type_name, enum_name(arg), int_(arg));
-            }, name("__repr__"), is_method(m_base)
-        );
+            },
+            name("__repr__"),
+            is_method(m_base));
 
         m_base.attr("name") = property(cpp_function(&enum_name, name("name"), is_method(m_base)));
 
@@ -1671,30 +1698,36 @@ struct enum_base {
             }, name("__members__")), none(), none(), ""
         );
 
-        #define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                     \
-            m_base.attr(op) = cpp_function(                                            \
-                [](object a, object b) {                                               \
-                    if (!type::handle_of(a).is(type::handle_of(b)))                    \
-                        strict_behavior;                                               \
-                    return expr;                                                       \
-                },                                                                     \
-                name(op), is_method(m_base), arg("other"))
+#define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                                        \
+    m_base.attr(op) = cpp_function(                                                               \
+        [](const object &a, const object &b) {                                                    \
+            if (!type::handle_of(a).is(type::handle_of(b)))                                       \
+                strict_behavior;                                                                  \
+            return expr;                                                                          \
+        },                                                                                        \
+        name(op),                                                                                 \
+        is_method(m_base),                                                                        \
+        arg("other"))
 
-        #define PYBIND11_ENUM_OP_CONV(op, expr)                                        \
-            m_base.attr(op) = cpp_function(                                            \
-                [](object a_, object b_) {                                             \
-                    int_ a(a_), b(b_);                                                 \
-                    return expr;                                                       \
-                },                                                                     \
-                name(op), is_method(m_base), arg("other"))
+#define PYBIND11_ENUM_OP_CONV(op, expr)                                                           \
+    m_base.attr(op) = cpp_function(                                                               \
+        [](const object &a_, const object &b_) {                                                  \
+            int_ a(a_), b(b_);                                                                    \
+            return expr;                                                                          \
+        },                                                                                        \
+        name(op),                                                                                 \
+        is_method(m_base),                                                                        \
+        arg("other"))
 
-        #define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                    \
-            m_base.attr(op) = cpp_function(                                            \
-                [](object a_, object b) {                                              \
-                    int_ a(a_);                                                        \
-                    return expr;                                                       \
-                },                                                                     \
-                name(op), is_method(m_base), arg("other"))
+#define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                                       \
+    m_base.attr(op) = cpp_function(                                                               \
+        [](const object &a_, const object &b) {                                                   \
+            int_ a(a_);                                                                           \
+            return expr;                                                                          \
+        },                                                                                        \
+        name(op),                                                                                 \
+        is_method(m_base),                                                                        \
+        arg("other"))
 
         if (is_convertible) {
             PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() &&  a.equal(b));
@@ -1711,8 +1744,10 @@ struct enum_base {
                 PYBIND11_ENUM_OP_CONV("__ror__",  a |  b);
                 PYBIND11_ENUM_OP_CONV("__xor__",  a ^  b);
                 PYBIND11_ENUM_OP_CONV("__rxor__", a ^  b);
-                m_base.attr("__invert__") = cpp_function(
-                    [](object arg) { return ~(int_(arg)); }, name("__invert__"), is_method(m_base));
+                m_base.attr("__invert__")
+                    = cpp_function([](const object &arg) { return ~(int_(arg)); },
+                                   name("__invert__"),
+                                   is_method(m_base));
             }
         } else {
             PYBIND11_ENUM_OP_STRICT("__eq__",  int_(a).equal(int_(b)), return false);
@@ -1733,10 +1768,10 @@ struct enum_base {
         #undef PYBIND11_ENUM_OP_STRICT
 
         m_base.attr("__getstate__") = cpp_function(
-            [](object arg) { return int_(arg); }, name("__getstate__"), is_method(m_base));
+            [](const object &arg) { return int_(arg); }, name("__getstate__"), is_method(m_base));
 
         m_base.attr("__hash__") = cpp_function(
-            [](object arg) { return int_(arg); }, name("__hash__"), is_method(m_base));
+            [](const object &arg) { return int_(arg); }, name("__hash__"), is_method(m_base));
     }
 
     PYBIND11_NOINLINE void value(char const* name_, object value, const char *doc = nullptr) {
@@ -1848,9 +1883,9 @@ PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, func
     auto get_arg = [&](size_t n) {
         if (n == 0)
             return ret;
-        else if (n == 1 && call.init_self)
+        if (n == 1 && call.init_self)
             return call.init_self;
-        else if (n <= call.args.size())
+        if (n <= call.args.size())
             return call.args[n - 1];
         return handle();
     };
@@ -1890,7 +1925,9 @@ PYBIND11_NAMESPACE_END(detail)
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
+#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
           typename ValueType = decltype(*std::declval<Iterator>()),
+#endif
           typename... Extra>
 iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     using state = detail::iterator_state<Iterator, Sentinel, false, Policy>;
@@ -1919,7 +1956,9 @@ iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
+#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
           typename KeyType = decltype((*std::declval<Iterator>()).first),
+#endif
           typename... Extra>
 iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     using state = detail::iterator_state<Iterator, Sentinel, true, Policy>;
@@ -2050,7 +2089,7 @@ exception<CppException> &register_exception(handle scope,
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
+PYBIND11_NOINLINE inline void print(const tuple &args, const dict &kwargs) {
     auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
         strings[i] = str(args[i]);
@@ -2088,173 +2127,6 @@ void print(Args &&...args) {
     detail::print(c.args(), c.kwargs());
 }
 
-#if defined(WITH_THREAD) && !defined(PYPY_VERSION)
-
-/* The functions below essentially reproduce the PyGILState_* API using a RAII
- * pattern, but there are a few important differences:
- *
- * 1. When acquiring the GIL from an non-main thread during the finalization
- *    phase, the GILState API blindly terminates the calling thread, which
- *    is often not what is wanted. This API does not do this.
- *
- * 2. The gil_scoped_release function can optionally cut the relationship
- *    of a PyThreadState and its associated thread, which allows moving it to
- *    another thread (this is a fairly rare/advanced use case).
- *
- * 3. The reference count of an acquired thread state can be controlled. This
- *    can be handy to prevent cases where callbacks issued from an external
- *    thread would otherwise constantly construct and destroy thread state data
- *    structures.
- *
- * See the Python bindings of NanoGUI (http://github.com/wjakob/nanogui) for an
- * example which uses features 2 and 3 to migrate the Python thread of
- * execution to another thread (to run the event loop on the original thread,
- * in this case).
- */
-
-class gil_scoped_acquire {
-public:
-    PYBIND11_NOINLINE gil_scoped_acquire() {
-        auto const &internals = detail::get_internals();
-        tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE(internals.tstate);
-
-        if (!tstate) {
-            /* Check if the GIL was acquired using the PyGILState_* API instead (e.g. if
-               calling from a Python thread). Since we use a different key, this ensures
-               we don't create a new thread state and deadlock in PyEval_AcquireThread
-               below. Note we don't save this state with internals.tstate, since we don't
-               create it we would fail to clear it (its reference count should be > 0). */
-            tstate = PyGILState_GetThisThreadState();
-        }
-
-        if (!tstate) {
-            tstate = PyThreadState_New(internals.istate);
-            #if !defined(NDEBUG)
-                if (!tstate)
-                    pybind11_fail("scoped_acquire: could not create thread state!");
-            #endif
-            tstate->gilstate_counter = 0;
-            PYBIND11_TLS_REPLACE_VALUE(internals.tstate, tstate);
-        } else {
-            release = detail::get_thread_state_unchecked() != tstate;
-        }
-
-        if (release) {
-            PyEval_AcquireThread(tstate);
-        }
-
-        inc_ref();
-    }
-
-    void inc_ref() {
-        ++tstate->gilstate_counter;
-    }
-
-    PYBIND11_NOINLINE void dec_ref() {
-        --tstate->gilstate_counter;
-        #if !defined(NDEBUG)
-            if (detail::get_thread_state_unchecked() != tstate)
-                pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
-            if (tstate->gilstate_counter < 0)
-                pybind11_fail("scoped_acquire::dec_ref(): reference count underflow!");
-        #endif
-        if (tstate->gilstate_counter == 0) {
-            #if !defined(NDEBUG)
-                if (!release)
-                    pybind11_fail("scoped_acquire::dec_ref(): internal error!");
-            #endif
-            PyThreadState_Clear(tstate);
-            if (active)
-                PyThreadState_DeleteCurrent();
-            PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
-            release = false;
-        }
-    }
-
-    /// This method will disable the PyThreadState_DeleteCurrent call and the
-    /// GIL won't be acquired. This method should be used if the interpreter
-    /// could be shutting down when this is called, as thread deletion is not
-    /// allowed during shutdown. Check _Py_IsFinalizing() on Python 3.7+, and
-    /// protect subsequent code.
-    PYBIND11_NOINLINE void disarm() {
-        active = false;
-    }
-
-    PYBIND11_NOINLINE ~gil_scoped_acquire() {
-        dec_ref();
-        if (release)
-           PyEval_SaveThread();
-    }
-private:
-    PyThreadState *tstate = nullptr;
-    bool release = true;
-    bool active = true;
-};
-
-class gil_scoped_release {
-public:
-    explicit gil_scoped_release(bool disassoc = false) : disassoc(disassoc) {
-        // `get_internals()` must be called here unconditionally in order to initialize
-        // `internals.tstate` for subsequent `gil_scoped_acquire` calls. Otherwise, an
-        // initialization race could occur as multiple threads try `gil_scoped_acquire`.
-        const auto &internals = detail::get_internals();
-        tstate = PyEval_SaveThread();
-        if (disassoc) {
-            auto key = internals.tstate;
-            PYBIND11_TLS_DELETE_VALUE(key);
-        }
-    }
-
-    /// This method will disable the PyThreadState_DeleteCurrent call and the
-    /// GIL won't be acquired. This method should be used if the interpreter
-    /// could be shutting down when this is called, as thread deletion is not
-    /// allowed during shutdown. Check _Py_IsFinalizing() on Python 3.7+, and
-    /// protect subsequent code.
-    PYBIND11_NOINLINE void disarm() {
-        active = false;
-    }
-
-    ~gil_scoped_release() {
-        if (!tstate)
-            return;
-        // `PyEval_RestoreThread()` should not be called if runtime is finalizing
-        if (active)
-            PyEval_RestoreThread(tstate);
-        if (disassoc) {
-            auto key = detail::get_internals().tstate;
-            PYBIND11_TLS_REPLACE_VALUE(key, tstate);
-        }
-    }
-private:
-    PyThreadState *tstate;
-    bool disassoc;
-    bool active = true;
-};
-#elif defined(PYPY_VERSION)
-class gil_scoped_acquire {
-    PyGILState_STATE state;
-public:
-    gil_scoped_acquire() { state = PyGILState_Ensure(); }
-    ~gil_scoped_acquire() { PyGILState_Release(state); }
-    void disarm() {}
-};
-
-class gil_scoped_release {
-    PyThreadState *state;
-public:
-    gil_scoped_release() { state = PyEval_SaveThread(); }
-    ~gil_scoped_release() { PyEval_RestoreThread(state); }
-    void disarm() {}
-};
-#else
-class gil_scoped_acquire {
-    void disarm() {}
-};
-class gil_scoped_release {
-    void disarm() {}
-};
-#endif
-
 error_already_set::~error_already_set() {
     if (m_type) {
         gil_scoped_acquire gil;
@@ -2289,10 +2161,10 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
        Unfortunately this doesn't work on PyPy. */
 #if !defined(PYPY_VERSION)
     PyFrameObject *frame = PyThreadState_Get()->frame;
-    if (frame && (std::string) str(frame->f_code->co_name) == name &&
-        frame->f_code->co_argcount > 0) {
+    if (frame != nullptr && (std::string) str(frame->f_code->co_name) == name
+        && frame->f_code->co_argcount > 0) {
         PyFrame_FastToLocals(frame);
-        PyObject *self_caller = PyDict_GetItem(
+        PyObject *self_caller = dict_getitem(
             frame->f_locals, PyTuple_GET_ITEM(frame->f_code->co_varnames, 0));
         if (self_caller == self.ptr())
             return function();
@@ -2337,18 +2209,19 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
     return tinfo ? detail::get_type_override(this_ptr, tinfo, name) : function();
 }
 
-#define PYBIND11_OVERRIDE_IMPL(ret_type, cname, name, ...) \
-    do { \
-        pybind11::gil_scoped_acquire gil; \
-        pybind11::function override = pybind11::get_override(static_cast<const cname *>(this), name); \
-        if (override) { \
-            auto o = override(__VA_ARGS__); \
-            if (pybind11::detail::cast_is_temporary_value_reference<ret_type>::value) { \
-                static pybind11::detail::override_caster_t<ret_type> caster; \
-                return pybind11::detail::cast_ref<ret_type>(std::move(o), caster); \
-            } \
-            else return pybind11::detail::cast_safe<ret_type>(std::move(o)); \
-        } \
+#define PYBIND11_OVERRIDE_IMPL(ret_type, cname, name, ...)                                        \
+    do {                                                                                          \
+        pybind11::gil_scoped_acquire gil;                                                         \
+        pybind11::function override                                                               \
+            = pybind11::get_override(static_cast<const cname *>(this), name);                     \
+        if (override) {                                                                           \
+            auto o = override(__VA_ARGS__);                                                       \
+            if (pybind11::detail::cast_is_temporary_value_reference<ret_type>::value) {           \
+                static pybind11::detail::override_caster_t<ret_type> caster;                      \
+                return pybind11::detail::cast_ref<ret_type>(std::move(o), caster);                \
+            }                                                                                     \
+            return pybind11::detail::cast_safe<ret_type>(std::move(o));                           \
+        }                                                                                         \
     } while (false)
 
 /** \rst
@@ -2444,8 +2317,12 @@ inline function get_overload(const T *this_ptr, const char *name) {
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
+#if defined(__GNUC__) && __GNUC__ == 7
+#    pragma GCC diagnostic pop // -Wnoexcept-type
+#endif
+
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(pop)
-#elif defined(__GNUG__) && !defined(__clang__)
+#elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
