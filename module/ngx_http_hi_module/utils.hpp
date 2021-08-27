@@ -24,7 +24,7 @@ extern "C"
 
 #include "include/request.hpp"
 #include "lib/MPFDParser/Parser.h"
-#include "lib/msgpack/msgpack.hpp"
+#include "lib/jsoncons/json.hpp"
 
 namespace hi
 {
@@ -266,14 +266,13 @@ namespace hi
 
     static std::string serialize(const std::unordered_map<std::string, std::string> &m)
     {
-        std::stringstream ss;
-        msgpack::pack(ss, m);
-        ss.seekg(0);
-        return ss.str();
+        jsoncons::json j(m);
+        return j.as_string();
     }
 
     static void deserialize(const std::string &str, std::unordered_map<std::string, std::string> &m)
     {
-        msgpack::unpack(str.c_str(), str.size()).get().convert(m);
+        jsoncons::json j(str);
+        m = std::move(j.as<std::unordered_map<std::string,std::string>>());
     }
 } // namespace hi

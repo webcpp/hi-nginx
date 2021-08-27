@@ -56,7 +56,6 @@ extern "C"
 #include "lib/param.hpp"
 #include "lib/MPFDParser/Parser.h"
 #include "lib/leveldb/db.h"
-#include "lib/msgpack/msgpack.hpp"
 #include "lib/shared_memory.hpp"
 
 #include "cache_t.hpp"
