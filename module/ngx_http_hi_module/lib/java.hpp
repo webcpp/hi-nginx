@@ -188,7 +188,17 @@ namespace hi
                 break;
             }
             this->args.nOptions = 2;
-            this->options[0].optionString = const_cast<char *>(classpath.c_str());
+            char *env = std::getenv("CLASSPATH");
+            std::string clspath("-Djava.class.path=");
+            if (env)
+            {
+                clspath.append(env).append(":").append(classpath.substr(18));
+                this->options[0].optionString = const_cast<char *>(clspath.c_str());
+            }
+            else
+            {
+                this->options[0].optionString = const_cast<char *>(classpath.c_str());
+            }
             this->options[1].optionString = const_cast<char *>(jvmoptions.c_str());
 
             this->args.options = this->options;
