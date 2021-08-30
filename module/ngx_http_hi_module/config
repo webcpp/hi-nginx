@@ -77,7 +77,6 @@ if test $HTTP_HI_CPP = YES ; then
 
     NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/MPFDParser -type f -name '*.cpp'`"
     NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/leveldb -type f -name '*.cc'`"
-    NGX_ADDON_SRCS="$NGX_ADDON_SRCS `find $ngx_addon_dir/lib/msgpack -type f -name '*.c'`"
     NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/lib/file_mmap.cpp"
     NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_hi_module.cpp"
 fi
