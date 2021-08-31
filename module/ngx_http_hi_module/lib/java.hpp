@@ -189,10 +189,20 @@ namespace hi
             }
             this->args.nOptions = 2;
             char *env = std::getenv("CLASSPATH");
-            std::string clspath("-Djava.class.path=");
+            std::string pre("-Djava.class.path=");
+            std::string clspath(pre);
             if (env)
             {
-                clspath.append(env).append(":").append(classpath.substr(18));
+                clspath.append(env).append(":");
+                size_t p = classpath.find(pre);
+                if (p == std::string::npos)
+                {
+                    clspath.append(classpath);
+                }
+                else
+                {
+                    clspath.append(classpath.substr(p + pre.size()));
+                }
                 this->options[0].optionString = const_cast<char *>(clspath.c_str());
             }
             else
