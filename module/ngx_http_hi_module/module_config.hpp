@@ -10,7 +10,7 @@ extern "C"
 #include <ngx_http_variables.h>
 }
 
-#define HI_NGINX_SERVER_VERSION "2.1.2"
+#define HI_NGINX_SERVER_VERSION "2.1.3"
 #define HI_NGINX_SERVER_NAME "HI-NGINX/" HI_NGINX_SERVER_VERSION
 #define HI_NGINX_SERVER_HEAD "PoweredBy"
 #define SESSION_ID_NAME "SESSIONID"
