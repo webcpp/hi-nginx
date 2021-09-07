@@ -119,7 +119,7 @@ typedef struct
             qjs_script
 #endif
             ;
-        ngx_int_t module_index, subrequest_index, cache_expires, session_expires, cache_index, kvdb_expires
+        ngx_int_t module_index, subrequest_index, cache_expires, cache_index, kvdb_expires
 #ifdef HTTP_HI_JAVA
             ,
             java_servlet_cache_expires, java_version

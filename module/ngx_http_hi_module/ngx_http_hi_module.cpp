@@ -126,12 +126,6 @@ ngx_command_t ngx_http_hi_commands[] = {
      NGX_HTTP_LOC_CONF_OFFSET,
      offsetof(ngx_http_hi_loc_conf_t, need_session),
      NULL},
-    {ngx_string("hi_session_expires"),
-     NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_SIF_CONF | NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
-     ngx_conf_set_sec_slot,
-     NGX_HTTP_LOC_CONF_OFFSET,
-     offsetof(ngx_http_hi_loc_conf_t, session_expires),
-     NULL},
 #ifdef HTTP_HI_PYTHON
     {ngx_string("hi_python_script"),
      NGX_HTTP_LOC_CONF | NGX_HTTP_LIF_CONF | NGX_CONF_TAKE1,
@@ -292,7 +286,6 @@ static void *ngx_http_hi_create_loc_conf(ngx_conf_t *cf)
         conf->cache_expires = NGX_CONF_UNSET;
         conf->cache_method = NGX_CONF_UNSET_UINT;
 
-        conf->session_expires = NGX_CONF_UNSET;
 
         conf->kvdb_size = NGX_CONF_UNSET_UINT;
         conf->kvdb_expires = NGX_CONF_UNSET;
@@ -387,8 +380,6 @@ static char *ngx_http_hi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *chil
 
     ngx_conf_merge_uint_value(conf->kvdb_size, prev->kvdb_size, (size_t)10);
     ngx_conf_merge_sec_value(conf->kvdb_expires, prev->kvdb_expires, (ngx_int_t)300);
-
-    ngx_conf_merge_sec_value(conf->session_expires, prev->session_expires, (ngx_int_t)300);
 
     ngx_conf_merge_value(conf->need_headers, prev->need_headers, (ngx_flag_t)0);
 
