@@ -187,6 +187,7 @@ namespace hi
 #endif
                 break;
             }
+            JNI_GetDefaultJavaVMInitArgs(&this->args);
             this->args.nOptions = 2;
             char *env_clspath = std::getenv("CLASSPATH");
             std::string pre("-Djava.class.path=");
