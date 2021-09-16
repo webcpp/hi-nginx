@@ -188,12 +188,12 @@ namespace hi
                 break;
             }
             this->args.nOptions = 2;
-            char *env = std::getenv("CLASSPATH");
+            char *env_clspath = std::getenv("CLASSPATH");
             std::string pre("-Djava.class.path=");
             std::string clspath(pre);
-            if (env)
+            if (env_clspath)
             {
-                clspath.append(env).append(":");
+                clspath.append(env_clspath).append(":");
                 size_t p = classpath.find(pre);
                 if (p == std::string::npos)
                 {
@@ -209,7 +209,16 @@ namespace hi
             {
                 this->options[0].optionString = const_cast<char *>(classpath.c_str());
             }
-            this->options[1].optionString = const_cast<char *>(jvmoptions.c_str());
+
+            char *env_opt = std::getenv("JVMOPTIONS");
+            if (env_opt)
+            {
+                this->options[1].optionString = const_cast<char *>((jvmoptions + " " + env_opt).c_str());
+            }
+            else
+            {
+                this->options[1].optionString = const_cast<char *>(jvmoptions.c_str());
+            }
 
             this->args.options = this->options;
             this->args.ignoreUnrecognized = JNI_TRUE;
