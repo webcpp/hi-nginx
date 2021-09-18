@@ -50,7 +50,7 @@ namespace hi
     static std::string get_input_body(ngx_http_request_t *r)
     {
         size_t len;
-        ngx_buf_t *buf, *next;
+        ngx_buf_t *buf;
         ngx_chain_t *cl;
         std::string body;
 
@@ -74,8 +74,6 @@ namespace hi
             hi::file_mmap fm;
             auto ret = fm.get((char *)r->request_body->temp_file->file.name.data);
             body.append(ret.first, ret.second.st_size);
-
-            return body;
         }
 
         return body;
