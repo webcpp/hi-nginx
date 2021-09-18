@@ -220,7 +220,7 @@ namespace hi
         return std::string((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
     }
 
-    static bool upload(hi::request &req, ngx_str_t *body, ngx_http_core_loc_conf_t *clcf, ngx_http_request_t *r, const std::string &temp_dir, std::string &err_msg)
+    static bool upload(hi::request &req, const std::string& body, ngx_http_core_loc_conf_t *clcf, ngx_http_request_t *r, const std::string &temp_dir, std::string &err_msg)
     {
         bool result = false;
         try
@@ -232,7 +232,7 @@ namespace hi
                 POSTParser->SetUploadedFilesStorage(MPFD::Parser::StoreUploadedFilesInFilesystem);
                 POSTParser->SetMaxCollectedDataLength(clcf->client_max_body_size);
                 POSTParser->SetContentType((char *)r->headers_in.content_type->value.data);
-                POSTParser->AcceptSomeData((char *)body->data, body->len);
+                POSTParser->AcceptSomeData(body.c_str(), body.size());
                 auto fields = POSTParser->GetFieldsMap();
 
                 for (auto &item : fields)

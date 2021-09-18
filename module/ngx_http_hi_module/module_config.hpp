@@ -57,6 +57,7 @@ extern "C"
 #include "lib/MPFDParser/Parser.h"
 #include "lib/leveldb/db.h"
 #include "lib/shared_memory.hpp"
+#include "lib/file_mmap.hpp"
 
 #include "cache_t.hpp"
 #include "application_t.hpp"

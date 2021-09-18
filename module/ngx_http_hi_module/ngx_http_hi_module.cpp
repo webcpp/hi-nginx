@@ -16,7 +16,6 @@
 #include "java_handler.hpp"
 #endif
 
-
 #include "cpp_handler.hpp"
 
 static ngx_int_t ngx_http_hi_init(ngx_conf_t *cf);
@@ -285,7 +284,6 @@ static void *ngx_http_hi_create_loc_conf(ngx_conf_t *cf)
         conf->cache_size = NGX_CONF_UNSET_UINT;
         conf->cache_expires = NGX_CONF_UNSET;
         conf->cache_method = NGX_CONF_UNSET_UINT;
-
 
         conf->kvdb_size = NGX_CONF_UNSET_UINT;
         conf->kvdb_expires = NGX_CONF_UNSET;
@@ -586,13 +584,16 @@ static ngx_int_t ngx_http_hi_normal_handler(ngx_http_request_t *r)
     }
     if (r->headers_in.content_length_n > 0)
     {
-        ngx_str_t body = hi::get_input_body(r);
+        std::string input_body = std::move(hi::get_input_body(r));
+        ngx_str_t body = ngx_null_string;
+        body.data = (u_char *)input_body.c_str();
+        body.len = input_body.size();
         if (ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *)FORM_MULTIPART_TYPE,
                             FORM_MULTIPART_TYPE_LEN) == 0)
         {
             ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *)ngx_http_get_module_loc_conf(r, ngx_http_core_module);
             std::string upload_err_msg;
-            if (!hi::upload(ngx_request, &body, clcf, r, TEMP_DIRECTORY, upload_err_msg))
+            if (!hi::upload(ngx_request, input_body, clcf, r, TEMP_DIRECTORY, upload_err_msg))
             {
                 ngx_response.content = std::move(upload_err_msg);
                 ngx_response.status = 500;
