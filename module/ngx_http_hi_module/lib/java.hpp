@@ -53,7 +53,7 @@ namespace hi
     {
     public:
         java(const std::string &classpath, const std::string &jvmoptions, int v)
-            : jvm(0), args(), options(), ok(false), env(0), version(v), script_manager_instance(0), request(0), response(0), hashmap(0), arraylist(0), iterator(0), set(0), script_manager(0), script_engine(0), compilable(0), compiledscript(0), filereader(0), request_ctor(0), response_ctor(0), hashmap_put(0), hashmap_get(0), hashmap_keyset(0), arraylist_get(0), arraylist_size(0), arraylist_iterator(0), hasnext(0), next(0), set_iterator(0), script_manager_ctor(0), script_manager_get_engine_by_name(0), script_engine_put(0), script_engine_eval_filereader(0), script_engine_eval_string(0), compile_string(0), compile_filereader(0), compiledscript_eval_void(0), filereader_ctor(0), status(0), content(0), client(0), user_agent(0), method(0), uri(0), param(0), req_headers(0), form(0), cookies(0), req_session(0), req_cache(0), res_headers(0), res_session(0), res_cache(0), engines(), compiledscript_instances(), script_mmap()
+            : jvm(0), args(), options(), ok(false), env(0), version(v), request(0), response(0), hashmap(0), arraylist(0), iterator(0), set(0), request_ctor(0), response_ctor(0), hashmap_put(0), hashmap_get(0), hashmap_keyset(0), arraylist_get(0), arraylist_size(0), arraylist_iterator(0), hasnext(0), next(0), set_iterator(0), status(0), content(0), client(0), user_agent(0), method(0), uri(0), param(0), req_headers(0), form(0), cookies(0), req_session(0), req_cache(0), res_headers(0), res_session(0), res_cache(0)
         {
             this->ok = this->create_vm(classpath, jvmoptions);
         }
@@ -62,38 +62,16 @@ namespace hi
         {
             if (this->ok)
             {
-                for (auto &i : compiledscript_instances)
-                {
-                    if (i.second.second != NULL)
-                    {
-                        this->env->DeleteLocalRef(i.second.second);
-                    }
-                }
-                for (auto &i : this->engines)
-                {
-                    if (i.first != NULL)
-                        this->env->DeleteLocalRef(i.first);
-                    if (i.second != NULL)
-                        this->env->DeleteLocalRef(i.second);
-                }
-                if (this->script_manager_instance != 0)
-                {
-                    this->env->DeleteLocalRef(this->script_manager_instance);
-                }
                 this->free_vm();
             }
-            this->script_manager_instance = 0;
+
             this->request = 0;
             this->response = 0;
             this->hashmap = 0;
             this->arraylist = 0;
             this->iterator = 0;
             this->set = 0;
-            this->script_manager = 0;
-            this->script_engine = 0;
-            this->compilable = 0;
-            this->compiledscript = 0;
-            this->filereader = 0;
+
             this->request_ctor = 0;
             this->response_ctor = 0;
             this->hashmap_get = 0;
@@ -105,15 +83,6 @@ namespace hi
             this->hasnext = 0;
             this->next = 0;
             this->set_iterator = 0;
-            this->script_manager_ctor = 0;
-            this->script_manager_get_engine_by_name = 0;
-            this->script_engine_put = 0;
-            this->script_engine_eval_filereader = 0;
-            this->script_engine_eval_string = 0;
-            this->compile_string = 0;
-            this->compile_filereader = 0;
-            this->compiledscript_eval_void = 0;
-            this->filereader_ctor = 0;
             this->status = 0;
             this->content = 0;
             this->client = 0;
@@ -145,13 +114,9 @@ namespace hi
     public:
         JNIEnv *env;
         int version;
-        jobject script_manager_instance;
-        jclass request, response, hashmap, arraylist, iterator, set, script_manager, script_engine, compilable, compiledscript, filereader;
-        jmethodID request_ctor, response_ctor, hashmap_put, hashmap_get, hashmap_keyset, arraylist_get, arraylist_size, arraylist_iterator, hasnext, next, set_iterator, script_manager_ctor, script_manager_get_engine_by_name, script_engine_put, script_engine_eval_filereader, script_engine_eval_string, compile_string, compile_filereader, compiledscript_eval_void, filereader_ctor;
+        jclass request, response, hashmap, arraylist, iterator, set;
+        jmethodID request_ctor, response_ctor, hashmap_put, hashmap_get, hashmap_keyset, arraylist_get, arraylist_size, arraylist_iterator, hasnext, next, set_iterator;
         jfieldID status, content, client, user_agent, method, uri, param, req_headers, form, cookies, req_session, req_cache, res_headers, res_session, res_cache;
-        std::vector<std::pair<jobject, jobject>> engines;
-        std::unordered_map<std::string, std::pair<time_t, jobject>> compiledscript_instances;
-        file_mmap script_mmap;
         static bool JAVA_IS_READY;
 
     private:

@@ -57,28 +57,6 @@ namespace hi
 
                         JAVA->set = JAVA->env->FindClass("java/util/Set");
                         JAVA->set_iterator = JAVA->env->GetMethodID(JAVA->set, "iterator", "()Ljava/util/Iterator;");
-
-                        JAVA->script_manager = JAVA->env->FindClass("javax/script/ScriptEngineManager");
-                        JAVA->script_engine = JAVA->env->FindClass("javax/script/ScriptEngine");
-
-                        JAVA->compilable = JAVA->env->FindClass("javax/script/Compilable");
-                        JAVA->compiledscript = JAVA->env->FindClass("javax/script/CompiledScript");
-
-                        JAVA->compile_string = JAVA->env->GetMethodID(JAVA->compilable, "compile", "(Ljava/lang/String;)Ljavax/script/CompiledScript;");
-                        JAVA->compile_filereader = JAVA->env->GetMethodID(JAVA->compilable, "compile", "(Ljava/io/Reader;)Ljavax/script/CompiledScript;");
-                        JAVA->compiledscript_eval_void = JAVA->env->GetMethodID(JAVA->compiledscript, "eval", "()Ljava/lang/Object;");
-
-                        JAVA->script_manager_ctor = JAVA->env->GetMethodID(JAVA->script_manager, "<init>", "()V");
-                        JAVA->script_manager_get_engine_by_name = JAVA->env->GetMethodID(JAVA->script_manager, "getEngineByName", "(Ljava/lang/String;)Ljavax/script/ScriptEngine;");
-                        JAVA->script_manager_instance = JAVA->env->NewObject(JAVA->script_manager, JAVA->script_manager_ctor);
-
-                        JAVA->script_engine_put = JAVA->env->GetMethodID(JAVA->script_engine, "put", "(Ljava/lang/String;Ljava/lang/Object;)V");
-                        JAVA->script_engine_eval_filereader = JAVA->env->GetMethodID(JAVA->script_engine, "eval", "(Ljava/io/Reader;)Ljava/lang/Object;");
-                        JAVA->script_engine_eval_string = JAVA->env->GetMethodID(JAVA->script_engine, "eval", "(Ljava/lang/String;)Ljava/lang/Object;");
-
-                        JAVA->filereader = JAVA->env->FindClass("java/io/FileReader");
-                        JAVA->filereader_ctor = JAVA->env->GetMethodID(JAVA->filereader, "<init>", "(Ljava/lang/String;)V");
-
                         hi::java::JAVA_IS_READY = true;
                     }
                 }
