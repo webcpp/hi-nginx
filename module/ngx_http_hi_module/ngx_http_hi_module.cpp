@@ -773,8 +773,9 @@ done:
 
     buf->pos = response.data;
     buf->last = buf->pos + response.len;
-    buf->memory = 1;
-    buf->last_buf = 1;
+    buf->memory = response.len ? 1 : 0;
+    buf->last_buf = (r == r->main) ? 1 : 0;
+    buf->last_in_chain = 1;
 
     ngx_chain_t out;
     out.buf = buf;
