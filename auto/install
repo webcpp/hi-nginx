@@ -248,7 +248,6 @@ ExecStop=/bin/kill -s QUIT \$MAINPID
 PrivateTmp=true
 #Restart=on-failure
 #RestartSec=10s
-#EnvironmentFile=$NGX_PREFIX/conf/env.conf
 
 [Install]
 WantedBy=multi-user.target

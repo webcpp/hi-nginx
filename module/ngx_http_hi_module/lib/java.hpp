@@ -2,11 +2,13 @@
 
 #include <jni.h>
 #include <string>
+#include <cstring>
 #include <ctime>
 #include <vector>
 #include <utility>
 #include <unordered_map>
 #include "file_mmap.hpp"
+#include "utils.hpp"
 
 namespace hi
 {
@@ -53,7 +55,7 @@ namespace hi
     {
     public:
         java(const std::string &classpath, const std::string &jvmoptions, int v)
-            : jvm(0), args(), options(), ok(false), env(0), version(v), request(0), response(0), hashmap(0), arraylist(0), iterator(0), set(0), request_ctor(0), response_ctor(0), hashmap_put(0), hashmap_get(0), hashmap_keyset(0), arraylist_get(0), arraylist_size(0), arraylist_iterator(0), hasnext(0), next(0), set_iterator(0), status(0), content(0), client(0), user_agent(0), method(0), uri(0), param(0), req_headers(0), form(0), cookies(0), req_session(0), req_cache(0), res_headers(0), res_session(0), res_cache(0)
+            : jvm(0), args(), options(0), ok(false), env(0), version(v), request(0), response(0), hashmap(0), arraylist(0), iterator(0), set(0), request_ctor(0), response_ctor(0), hashmap_put(0), hashmap_get(0), hashmap_keyset(0), arraylist_get(0), arraylist_size(0), arraylist_iterator(0), hasnext(0), next(0), set_iterator(0), status(0), content(0), client(0), user_agent(0), method(0), uri(0), param(0), req_headers(0), form(0), cookies(0), req_session(0), req_cache(0), res_headers(0), res_session(0), res_cache(0)
         {
             this->ok = this->create_vm(classpath, jvmoptions);
         }
@@ -63,6 +65,10 @@ namespace hi
             if (this->ok)
             {
                 this->free_vm();
+            }
+            if (this->options)
+            {
+                free(this->options);
             }
 
             this->request = 0;
@@ -108,7 +114,7 @@ namespace hi
     private:
         JavaVM *jvm;
         JavaVMInitArgs args;
-        JavaVMOption options[2];
+        JavaVMOption *options;
         bool ok;
 
     public:
@@ -122,6 +128,7 @@ namespace hi
     private:
         bool create_vm(const std::string &classpath, const std::string &jvmoptions)
         {
+            JNI_GetDefaultJavaVMInitArgs(&this->args);
             switch (this->version)
             {
             case 1:
@@ -152,40 +159,19 @@ namespace hi
 #endif
                 break;
             }
-            JNI_GetDefaultJavaVMInitArgs(&this->args);
-            this->args.nOptions = 2;
-            char *env_clspath = std::getenv("CLASSPATH");
-            std::string pre("-Djava.class.path=");
-            std::string clspath(pre);
-            if (env_clspath)
+            std::vector<std::string> opt_vec;
+            splite(classpath, opt_vec, " ");
+            splite(jvmoptions, opt_vec, " ");
+            this->args.nOptions = opt_vec.size();
+            this->options = (JavaVMOption *)calloc(sizeof(JavaVMOption), this->args.nOptions);
+            if (this->options == NULL)
             {
-                clspath.append(env_clspath).append(":");
-                size_t p = classpath.find(pre);
-                if (p == std::string::npos)
-                {
-                    clspath.append(classpath);
-                }
-                else
-                {
-                    clspath.append(classpath.substr(p + pre.size()));
-                }
-                this->options[0].optionString = const_cast<char *>(clspath.c_str());
+                return false;
             }
-            else
+            for (size_t i = 0; i < this->args.nOptions; ++i)
             {
-                this->options[0].optionString = const_cast<char *>(classpath.c_str());
+                this->options[i].optionString = const_cast<char *>(opt_vec[i].data());
             }
-
-            char *env_opt = std::getenv("JVMOPTIONS");
-            if (env_opt)
-            {
-                this->options[1].optionString = const_cast<char *>((jvmoptions + " " + env_opt).c_str());
-            }
-            else
-            {
-                this->options[1].optionString = const_cast<char *>(jvmoptions.c_str());
-            }
-
             this->args.options = this->options;
             this->args.ignoreUnrecognized = JNI_TRUE;
             int rv = JNI_CreateJavaVM(&this->jvm, (void **)&this->env, &this->args);

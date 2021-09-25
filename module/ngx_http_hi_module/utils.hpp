@@ -19,6 +19,7 @@ extern "C"
 #include <memory>
 #include <sstream>
 #include <string>
+#include <cstring>
 #include <unordered_map>
 #include <vector>
 
@@ -113,6 +114,17 @@ namespace hi
         return std::string((char *)tmp, SHA512_DIGEST_LENGTH * 2);
     }
 
+    static void splite(const std::string &str, std::vector<std::string> &v, const char *delimiters)
+    {
+        char tmp[str.size()];
+        strcpy(tmp, str.data());
+        char *p = strtok(tmp, delimiters);
+        while (p)
+        {
+            v.push_back(p);
+            p = strtok(NULL, delimiters);
+        }
+    }
     class aes
     {
     public:
@@ -220,7 +232,7 @@ namespace hi
         return std::string((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
     }
 
-    static bool upload(hi::request &req, const std::string& body, ngx_http_core_loc_conf_t *clcf, ngx_http_request_t *r, const std::string &temp_dir, std::string &err_msg)
+    static bool upload(hi::request &req, const std::string &body, ngx_http_core_loc_conf_t *clcf, ngx_http_request_t *r, const std::string &temp_dir, std::string &err_msg)
     {
         bool result = false;
         try
@@ -273,6 +285,6 @@ namespace hi
     static void deserialize(const std::string &str, std::unordered_map<std::string, std::string> &m)
     {
         jsoncons::json j = jsoncons::json::parse(str);
-        m = std::move(j.as<std::unordered_map<std::string,std::string>>());
+        m = std::move(j.as<std::unordered_map<std::string, std::string>>());
     }
 } // namespace hi
