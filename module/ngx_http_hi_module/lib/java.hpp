@@ -55,7 +55,16 @@ namespace hi
     {
     public:
         java(const std::string &classpath, const std::string &jvmoptions, int v)
-            : jvm(0), args(), options(0), ok(false), env(0), version(v), request(0), response(0), hashmap(0), arraylist(0), iterator(0), set(0), request_ctor(0), response_ctor(0), hashmap_put(0), hashmap_get(0), hashmap_keyset(0), arraylist_get(0), arraylist_size(0), arraylist_iterator(0), hasnext(0), next(0), set_iterator(0), status(0), content(0), client(0), user_agent(0), method(0), uri(0), param(0), req_headers(0), form(0), cookies(0), req_session(0), req_cache(0), res_headers(0), res_session(0), res_cache(0)
+            : jvm(0), args(), options(0), ok(false), inited(false), env(0), version(v),
+              request(0), response(0), hashmap(0), arraylist(0), iterator(0), set(0),
+              request_ctor(0), response_ctor(0),
+              hashmap_put(0), hashmap_get(0), hashmap_keyset(0),
+              arraylist_get(0), arraylist_size(0),
+              arraylist_iterator(0), hasnext(0), next(0), set_iterator(0),
+              status(0), content(0), client(0), user_agent(0), method(0), uri(0), param(0),
+              req_headers(0), form(0), cookies(0), req_session(0),
+              req_cache(0), res_headers(0), res_session(0),
+              res_cache(0), servlet()
         {
             this->ok = this->create_vm(classpath, jvmoptions);
         }
@@ -111,11 +120,21 @@ namespace hi
             return this->ok;
         }
 
+        void set_inined(bool b)
+        {
+            this->inited = b;
+        }
+
+        bool is_inited() const
+        {
+            return this->inited;
+        }
+
     private:
         JavaVM *jvm;
         JavaVMInitArgs args;
         JavaVMOption *options;
-        bool ok;
+        bool ok, inited;
 
     public:
         JNIEnv *env;
@@ -123,7 +142,7 @@ namespace hi
         jclass request, response, hashmap, arraylist, iterator, set;
         jmethodID request_ctor, response_ctor, hashmap_put, hashmap_get, hashmap_keyset, arraylist_get, arraylist_size, arraylist_iterator, hasnext, next, set_iterator;
         jfieldID status, content, client, user_agent, method, uri, param, req_headers, form, cookies, req_session, req_cache, res_headers, res_session, res_cache;
-        static bool JAVA_IS_READY;
+        java_servlet_t servlet;
 
     private:
         bool create_vm(const std::string &classpath, const std::string &jvmoptions)
@@ -183,5 +202,5 @@ namespace hi
             this->jvm->DestroyJavaVM();
         }
     };
-    bool java::JAVA_IS_READY = false;
+
 } // namespace hi

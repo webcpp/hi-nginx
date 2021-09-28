@@ -91,7 +91,6 @@ static std::shared_ptr<hi::lua> LUA;
 #ifdef HTTP_HI_JAVA
 #include "lib/java.hpp"
 static std::shared_ptr<hi::java> JAVA;
-static std::shared_ptr<hi::cache::lru_cache<std::string, hi::java_servlet_t>> JAVA_SERVLET_CACHE;
 #endif
 
 

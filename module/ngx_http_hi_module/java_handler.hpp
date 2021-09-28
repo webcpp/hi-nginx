@@ -8,12 +8,10 @@ namespace hi
 
     static bool java_init_handler(ngx_http_hi_loc_conf_t *conf)
     {
-        if (hi::java::JAVA_IS_READY)
-            return hi::java::JAVA_IS_READY;
         if (!JAVA)
         {
             JAVA = std::make_shared<hi::java>((char *)conf->java_classpath.data, (char *)conf->java_options.data, conf->java_version);
-            if (JAVA->is_ok())
+            if (JAVA && JAVA->is_ok())
             {
                 JAVA->request = JAVA->env->FindClass("hi/request");
                 if (JAVA->request != NULL)
@@ -57,12 +55,22 @@ namespace hi
 
                         JAVA->set = JAVA->env->FindClass("java/util/Set");
                         JAVA->set_iterator = JAVA->env->GetMethodID(JAVA->set, "iterator", "()Ljava/util/Iterator;");
-                        hi::java::JAVA_IS_READY = true;
+
+                        JAVA->servlet.SERVLET = JAVA->env->FindClass((const char *)conf->java_servlet.data);
+
+                        if (JAVA->servlet.SERVLET != NULL)
+                        {
+                            JAVA->servlet.CTOR = JAVA->env->GetMethodID(JAVA->servlet.SERVLET, "<init>", "()V");
+                            JAVA->servlet.GET_INSTANCE = JAVA->env->GetStaticMethodID(JAVA->servlet.SERVLET, "get_instance", "()Lhi/servlet;");
+                            JAVA->servlet.HANDLER = JAVA->env->GetMethodID(JAVA->servlet.SERVLET, "handler", "(Lhi/request;Lhi/response;)V");
+                            JAVA->servlet.t = time(0);
+                            JAVA->set_inined(true);
+                        }
                     }
                 }
             }
         }
-        return hi::java::JAVA_IS_READY;
+        return JAVA->is_inited();
     }
 
     static void java_input_handler(ngx_http_hi_loc_conf_t *conf, hi::request &req, hi::response &res, jobject request_instance, jobject response_instance)
@@ -267,40 +275,16 @@ namespace hi
 
             java_input_handler(conf, req, res, request_instance, response_instance);
 
-            hi::java_servlet_t jtmp;
-            if (JAVA_SERVLET_CACHE->exists((const char *)conf->java_servlet.data))
-            {
-                jtmp = JAVA_SERVLET_CACHE->get((const char *)conf->java_servlet.data);
-                time_t now = time(0);
-                if (difftime(now, jtmp.t) > conf->java_servlet_cache_expires)
-                {
-                    JAVA_SERVLET_CACHE->erase((const char *)conf->java_servlet.data);
-                    goto update_java_servlet;
-                }
-            }
-            else
-            {
-            update_java_servlet:
-                jtmp.SERVLET = JAVA->env->FindClass((const char *)conf->java_servlet.data);
-
-                if (jtmp.SERVLET == NULL)
-                    return;
-                jtmp.CTOR = JAVA->env->GetMethodID(jtmp.SERVLET, "<init>", "()V");
-                jtmp.GET_INSTANCE = JAVA->env->GetStaticMethodID(jtmp.SERVLET, "get_instance", "()Lhi/servlet;");
-                jtmp.HANDLER = JAVA->env->GetMethodID(jtmp.SERVLET, "handler", "(Lhi/request;Lhi/response;)V");
-                jtmp.t = time(0);
-                JAVA_SERVLET_CACHE->put((const char *)conf->java_servlet.data, jtmp);
-            }
             jobject servlet_instance;
-            if (jtmp.GET_INSTANCE == NULL)
+            if (JAVA->servlet.GET_INSTANCE == NULL)
             {
-                servlet_instance = JAVA->env->NewObject(jtmp.SERVLET, jtmp.CTOR);
+                servlet_instance = JAVA->env->NewObject(JAVA->servlet.SERVLET, JAVA->servlet.CTOR);
             }
             else
             {
-                servlet_instance = JAVA->env->CallStaticObjectMethod(jtmp.SERVLET, jtmp.GET_INSTANCE);
+                servlet_instance = JAVA->env->CallStaticObjectMethod(JAVA->servlet.SERVLET, JAVA->servlet.GET_INSTANCE);
             }
-            JAVA->env->CallVoidMethod(servlet_instance, jtmp.HANDLER, request_instance, response_instance);
+            JAVA->env->CallVoidMethod(servlet_instance, JAVA->servlet.HANDLER, request_instance, response_instance);
             JAVA->env->DeleteLocalRef(servlet_instance);
 
             java_output_handler(conf, req, res, request_instance, response_instance);

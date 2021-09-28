@@ -444,10 +444,6 @@ static char *ngx_http_hi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *chil
     if (conf->java_servlet.len > 0)
     {
         conf->app_type = application_t::__java__;
-        if (!JAVA_SERVLET_CACHE)
-        {
-            JAVA_SERVLET_CACHE = std::move(std::make_shared<hi::cache::lru_cache<std::string, hi::java_servlet_t>>(conf->java_servlet_cache_size));
-        }
     }
 #endif
 
@@ -495,8 +491,6 @@ static void ngx_http_hi_process_exit(ngx_cycle_t *cycle)
 #endif
 #ifdef HTTP_HI_JAVA
     JAVA.reset();
-    JAVA_SERVLET_CACHE.reset();
-    hi::java::JAVA_IS_READY = false;
 #endif
 }
 
