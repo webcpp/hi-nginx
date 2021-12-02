@@ -17,6 +17,8 @@ if ! test -f Makefile;then
                 --enable-http-hi-java=YES                           \
                 --with-http-hi-python-version=python-3.8-embed      \
                 --with-http-hi-lua-version=lua5.3                   \
+                --with-http_flv_module                              \
+                --with-http_mp4_module                              \
                 --add-module=module/ngx_http_hi_module              \
                 --add-module=module/ngx_http_autoblacklist_module   \
                 --add-module=3rd/ngx_http_concat_module             \
