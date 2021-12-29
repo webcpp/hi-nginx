@@ -106,12 +106,6 @@ HTTP_UPSTREAM_KEEPALIVE=YES
 HTTP_UPSTREAM_ZONE=YES
 
 
-HTTP_HI_CPP=YES
-HTTP_HI_PYTHON=NO
-HTTP_HI_LUA=NO
-HTTP_HI_JAVA=NO
-HTTP_HI_QJS=YES
-
 HTTP_HI_PYTHON_VERSION=python3
 HTTP_HI_LUA_VERSION=lua5.3
 
@@ -156,6 +150,7 @@ PCRE=NONE
 PCRE_OPT=
 PCRE_CONF_OPT=
 PCRE_JIT=NO
+PCRE2=YES
 
 USE_OPENSSL=NO
 OPENSSL=NONE
@@ -367,6 +362,7 @@ use the \"--with-mail_ssl_module\" option instead"
         --with-pcre=*)                   PCRE="$value"              ;;
         --with-pcre-opt=*)               PCRE_OPT="$value"          ;;
         --with-pcre-jit)                 PCRE_JIT=YES               ;;
+        --without-pcre2)                 PCRE2=DISABLED             ;;
 
         --with-openssl=*)                OPENSSL="$value"           ;;
         --with-openssl-opt=*)            OPENSSL_OPT="$value"       ;;
@@ -408,15 +404,8 @@ $0: warning: the \"--with-sha1-asm\" option is deprecated"
         --test-build-eventport)          NGX_TEST_BUILD_EVENTPORT=YES ;;
         --test-build-epoll)              NGX_TEST_BUILD_EPOLL=YES   ;;
         --test-build-solaris-sendfilev)  NGX_TEST_BUILD_SOLARIS_SENDFILEV=YES ;;
-
-        --enable-http-hi-cpp=*)                 HTTP_HI_CPP="$value"                        ;;
-        --enable-http-hi-python=*)              HTTP_HI_PYTHON="$value"                     ;;
-        --enable-http-hi-qjs=*)                 HTTP_HI_QJS="$value"                        ;;
-        --enable-http-hi-lua=*)                 HTTP_HI_LUA="$value"                        ;;
-        --enable-http-hi-java=*)                HTTP_HI_JAVA="$value"                       ;;
-        --with-http-hi-python-version=*)        HTTP_HI_PYTHON_VERSION="$value"               ;;
-        --with-http-hi-lua-version=*)           HTTP_HI_LUA_VERSION="$value"                  ;;
-
+        --with-http-hi-python-version=*)        HTTP_HI_PYTHON_VERSION="$value";;
+        --with-http-hi-lua-version=*)           HTTP_HI_LUA_VERSION="$value";;
         *)
             echo "$0: error: invalid option \"$option\""
             exit 1
@@ -591,6 +580,7 @@ cat << END
   --with-pcre=DIR                    set path to PCRE library sources
   --with-pcre-opt=OPTIONS            set additional build options for PCRE
   --with-pcre-jit                    build PCRE with JIT compilation support
+  --without-pcre2                    do not use PCRE2 library
 
   --with-zlib=DIR                    set path to zlib library sources
   --with-zlib-opt=OPTIONS            set additional build options for zlib
@@ -606,11 +596,6 @@ cat << END
 
   --with-debug                       enable debug logging
 
-  --enable-http-hi-cpp=YES           enable hi cpp language support,YES or NO,default: YES
-  --enable-http-hi-python=NO         enable hi python language support,YES or NO,default: NO
-  --enable-http-hi-qjs=YES            enable hi qjs language support,YES or NO,default: YES
-  --enable-http-hi-lua=NO            enable hi lua language support,YES or NO,default: NO
-  --enable-http-hi-java=NO           enable hi java language support,YES or NO,default: NO
   --with-http-hi-python-version      with python version,python2 or python3 ,default:python3
   --with-http-hi-lua-versioin        with lua version,lua,lua5.1,lua5.2,lua5.3 or luajit ,default:lua5.3
 
