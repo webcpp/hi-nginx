@@ -151,7 +151,7 @@ static ngx_int_t ngx_http_lua_handler(ngx_http_request_t *r)
             {
                 res.content = std::move(upload_err_msg);
                 res.status = 500;
-                return hi::set_output_headers_body(r, res);
+                return hi::set_output_headers_body(r, res, 0);
             }
         }
         else if (ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *)FORM_URLENCODED_TYPE, FORM_URLENCODED_TYPE_LEN) == 0)
@@ -179,7 +179,7 @@ static ngx_int_t ngx_http_lua_handler(ngx_http_request_t *r)
 
     lua_engine->main(req, res);
 
-    return hi::set_output_headers_body(r, res);
+    return hi::set_output_headers_body(r, res, conf->expires);
 }
 
 static char *ngx_http_lua_load(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)

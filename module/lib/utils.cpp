@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
 #include "request.hpp"
 #include "MPFDParser/Parser.h"
@@ -264,6 +265,14 @@ namespace hi
         m = std::move(j.as<std::unordered_map<std::string, std::string>>());
     }
 
+    std::string http_time(time_t *t)
+    {
+        struct tm *timeinfo = gmtime(t);
+        char buffer[32] = {0};
+        size_t n = strftime(buffer, 32, "%a, %d %b %Y %T GMT", timeinfo);
+        return std::string(buffer, n);
+    }
+
     void get_input_headers(ngx_http_request_t *r, std::unordered_map<std::string, std::string> &input_headers)
     {
         ngx_table_elt_t *th;
@@ -338,13 +347,19 @@ namespace hi
         return body;
     }
 
-    ngx_int_t set_output_headers_body(ngx_http_request_t *r, response &res)
+    ngx_int_t set_output_headers_body(ngx_http_request_t *r, response &res, ngx_int_t expires)
     {
-        time_t now = time(0);
-        struct tm *timeinfo = gmtime(&now);
-        char buffer[32] = {0};
-        size_t n = strftime(buffer, 32, "%a, %d %b %Y %T GMT", timeinfo);
-        res.headers.insert(std::make_pair("Last-Modified", std::string(buffer, n)));
+        if (expires > 0)
+        {
+            time_t now = time(0);
+            res.headers.insert(std::make_pair("Last-Modified", http_time(&now)));
+            std::chrono::system_clock::time_point now_time = std::chrono::system_clock::from_time_t(now);
+            std::time_t expire_time = std::chrono::system_clock::to_time_t(now_time + std::chrono::seconds(expires));
+            res.headers.insert(std::move(std::make_pair("Expires", http_time(&expire_time))));
+        }
+        res.headers.insert(std::move(std::make_pair("Age", std::to_string(expires))));
+        res.headers.insert(std::move(std::make_pair("Cache-Control", "max-age=" + std::to_string(expires))));
+        res.headers.insert(std::move(std::make_pair("X-Powered-By", "hi-nginx")));
 
         ngx_str_t resp;
         resp.data = (u_char *)res.content.c_str();

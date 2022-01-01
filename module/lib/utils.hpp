@@ -70,12 +70,14 @@ namespace hi
 
     void deserialize(const std::string &str, std::unordered_map<std::string, std::string> &m);
 
+    std::string http_time(time_t *t);
+
     void get_input_headers(ngx_http_request_t *r, std::unordered_map<std::string, std::string> &input_headers);
 
     void set_output_headers(ngx_http_request_t *r, std::unordered_multimap<std::string, std::string> &output_headers);
 
     std::string get_input_body(ngx_http_request_t *r);
 
-    ngx_int_t set_output_headers_body(ngx_http_request_t *r, response &res);
+    ngx_int_t set_output_headers_body(ngx_http_request_t *r, response &res, ngx_int_t expires);
 
 } // namespace hi
