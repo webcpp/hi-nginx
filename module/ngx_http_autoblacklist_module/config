@@ -9,7 +9,11 @@ if test $CC = clang ; then
     CXX=clang++
 fi
 
-CXXFLAGS="$CXXFLAGS -O3 -std=c++11 -Wno-error=free-nonheap-object"
+HTTP_HI_LIB=module/lib 
+
+CXXFLAGS="$CXXFLAGS -O3 -std=c++11"
 CORE_LIBS="$CORE_LIBS -lm -lstdc++"
+
+CXXFLAGS="$CXXFLAGS -I$HTTP_HI_LIB"
 
 NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_autoblacklist_module.cpp"

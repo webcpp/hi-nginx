@@ -1,0 +1,29 @@
+ngx_addon_name=ngx_http_cpp_module
+HTTP_MODULES="$HTTP_MODULES ngx_http_cpp_module"
+    
+
+if test $CC = gcc || test $CC = cc ; then
+    CXX=g++
+fi
+if test $CC = clang ; then
+    CXX=clang++
+fi
+
+
+HI_LIB_DIR=module/lib
+
+
+CXXFLAGS="$CXXFLAGS -O3 -std=c++11"
+CFLAGS="$CFLAGS -O3"
+
+CORE_LIBS="$CORE_LIBS -lpthread -ldl -lrt -lm -lstdc++"
+
+HI_LIB_SRCS="$HI_LIB_SRCS `find $HI_LIB_DIR -type f -name '*.cpp'`"
+HI_LIB_SRCS="$HI_LIB_SRCS `find $HI_LIB_DIR -type f -name '*.cc'`"
+
+if test $USED_HI_LIB = NO; then
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS $HI_LIB_SRCS"
+    USED_HI_LIB=YES
+fi
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/cpp.cpp"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_cpp_module.cpp"

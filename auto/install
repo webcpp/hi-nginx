@@ -104,7 +104,7 @@ $NGX_OBJS/nginx.8:	$NGX_MAN $NGX_AUTO_CONFIG_H
 		-e "s|%%ERROR_LOG_PATH%%|${NGX_ERROR_LOG_PATH:-stderr}|" \\
 		< $NGX_MAN > \$@
 
-DIRS=cpp python java lua temp doc leveldb
+DIRS=app temp doc
 
 install:	build $NGX_INSTALL_PERL_MODULES
 	test -d '\$(DESTDIR)$NGX_PREFIX' || mkdir -p '\$(DESTDIR)$NGX_PREFIX'
@@ -162,8 +162,6 @@ install:	build $NGX_INSTALL_PERL_MODULES
 
 	for i in \$(DIRS);do cp -R \$\$i '\$(DESTDIR)$NGX_PREFIX/';chmod -R a+w,a+r '\$(DESTDIR)$NGX_PREFIX/'\$\$i ;done
 	cp nginx.service /etc/systemd/system
-	cp -R module/ngx_http_hi_module/include '\$(DESTDIR)$NGX_PREFIX/'
-	cp auto/hi-project '\$(DESTDIR)`dirname "$NGX_SBIN_PATH"`'
 
 END
 
