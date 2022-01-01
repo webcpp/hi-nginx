@@ -356,9 +356,9 @@ namespace hi
             std::chrono::system_clock::time_point now_time = std::chrono::system_clock::from_time_t(now);
             std::time_t expire_time = std::chrono::system_clock::to_time_t(now_time + std::chrono::seconds(expires));
             res.headers.insert(std::move(std::make_pair("Expires", http_time(&expire_time))));
+            res.headers.insert(std::move(std::make_pair("Age", std::to_string(expires))));
+            res.headers.insert(std::move(std::make_pair("Cache-Control", "max-age=" + std::to_string(expires))));
         }
-        res.headers.insert(std::move(std::make_pair("Age", std::to_string(expires))));
-        res.headers.insert(std::move(std::make_pair("Cache-Control", "max-age=" + std::to_string(expires))));
         res.headers.insert(std::move(std::make_pair("X-Powered-By", "hi-nginx")));
 
         ngx_str_t resp;
