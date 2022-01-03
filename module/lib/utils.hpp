@@ -78,6 +78,8 @@ namespace hi
 
     std::string get_input_body(ngx_http_request_t *r);
 
-    ngx_int_t set_output_headers_body(ngx_http_request_t *r, response &res, ngx_int_t expires);
+    ngx_int_t set_output_headers_body(ngx_http_request_t *r, response &res, ngx_int_t expires, const std::string &lru_cache_key);
+
+    ngx_int_t set_output_headers_body_init(ngx_http_request_t *r, request &req, response &res, ngx_int_t expires, std::string &lru_cache_key);
 
 } // namespace hi

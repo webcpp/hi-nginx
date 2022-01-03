@@ -20,7 +20,8 @@
 #include "MPFDParser/Parser.h"
 #include "jsoncons/json.hpp"
 #include "file_mmap.hpp"
-
+#include "cache_t.hpp"
+#include "param.hpp"
 #include "utils.hpp"
 
 namespace hi
@@ -347,7 +348,7 @@ namespace hi
         return body;
     }
 
-    ngx_int_t set_output_headers_body(ngx_http_request_t *r, response &res, ngx_int_t expires)
+    ngx_int_t set_output_headers_body(ngx_http_request_t *r, response &res, ngx_int_t expires, const std::string &lru_cache_key)
     {
         if (expires > 0)
         {
@@ -358,6 +359,14 @@ namespace hi
             res.headers.insert(std::move(std::make_pair("Expires", http_time(&expire_time))));
             res.headers.insert(std::move(std::make_pair("Age", std::to_string(expires))));
             res.headers.insert(std::move(std::make_pair("Cache-Control", "max-age=" + std::to_string(expires))));
+
+            auto lru_cache_manager = cache_t::get_cache_manager();
+            cache_t ele;
+            ele.t = now;
+            ele.status = res.status;
+            ele.content = res.content;
+            ele.content_type = res.headers.find("Content-Type")->second;
+            lru_cache_manager->insert(lru_cache_key, ele);
         }
         res.headers.insert(std::move(std::make_pair("X-Powered-By", "hi-nginx")));
 
@@ -401,6 +410,82 @@ namespace hi
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
         return ngx_http_output_filter(r, &out);
+    }
+
+    ngx_int_t set_output_headers_body_init(ngx_http_request_t *r, request &req, response &res, ngx_int_t expires, std::string &lru_cache_key)
+    {
+        req.method.assign((char *)r->method_name.data, r->method_name.len);
+
+        if (expires > 0)
+        {
+            lru_cache_key = std::move(hi::md5(req.method + req.uri + "?" + req.param));
+            auto lru_cache_manager = hi::cache_t::get_cache_manager();
+            if (lru_cache_manager->contains(lru_cache_key))
+            {
+                auto ele = lru_cache_manager->get(lru_cache_key);
+
+                if (ele.expired(expires))
+                {
+                    lru_cache_manager->remove(lru_cache_key);
+                }
+                else
+                {
+                    res.status = ele.status;
+                    res.content = ele.content;
+                    res.set_header("Content-Type", ele.content_type);
+                    return NGX_DONE;
+                }
+            }
+        }
+
+        hi::get_input_headers(r, req.headers);
+        req.client.assign((char *)r->connection->addr_text.data, r->connection->addr_text.len);
+
+        if (r->headers_in.user_agent)
+        {
+            req.user_agent.assign((char *)r->headers_in.user_agent->value.data, r->headers_in.user_agent->value.len);
+        }
+        if (r->args.len > 0)
+        {
+            hi::parser_param(req.param, req.form);
+        }
+
+        if (r->headers_in.content_length_n > 0)
+        {
+            std::string input_body = std::move(hi::get_input_body(r));
+            ngx_str_t body = ngx_null_string;
+            body.data = (u_char *)input_body.c_str();
+            body.len = input_body.size();
+            if (ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *)FORM_MULTIPART_TYPE,
+                                FORM_MULTIPART_TYPE_LEN) == 0)
+            {
+                ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *)ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+                std::string upload_err_msg;
+                if (!hi::upload(req, input_body, clcf, r, "temp", upload_err_msg))
+                {
+                    res.content = std::move(upload_err_msg);
+                    res.status = 500;
+                    return hi::set_output_headers_body(r, res, 0, lru_cache_key);
+                }
+            }
+            else if (ngx_strncasecmp(r->headers_in.content_type->value.data, (u_char *)FORM_URLENCODED_TYPE, FORM_URLENCODED_TYPE_LEN) == 0)
+            {
+                hi::parser_param(std::string((char *)body.data, body.len), req.form);
+            }
+        }
+
+        if (r->headers_in.cookies.elts != NULL && r->headers_in.cookies.nelts != 0)
+        {
+            ngx_table_elt_t **cookies = (ngx_table_elt_t **)r->headers_in.cookies.elts;
+            for (size_t i = 0; i < r->headers_in.cookies.nelts; ++i)
+            {
+                if (cookies[i]->value.data != NULL)
+                {
+                    hi::parser_param(std::string((char *)cookies[i]->value.data, cookies[i]->value.len), req.cookies, ';');
+                }
+            }
+        }
+        return NGX_OK;
     }
 
 } // namespace hi
