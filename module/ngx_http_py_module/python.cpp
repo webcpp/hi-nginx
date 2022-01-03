@@ -27,7 +27,17 @@ namespace hi
             .def_readonly("form", &request::form)
             .def_readonly("cache", &request::cache)
             .def_readonly("cookies", &request::cookies)
-            .def_readonly("session", &request::session);
+            .def_readonly("session", &request::session)
+            .def("has_header", &request::has_header)
+            .def("has_cache", &request::has_cache)
+            .def("has_cookie", &request::has_cookie)
+            .def("has_session", &request::has_session)
+            .def("has_form", &request::has_form)
+            .def("get_header", &request::get_header)
+            .def("get_cache", &request::get_cache)
+            .def("get_cookie", &request::get_cookie)
+            .def("get_session", &request::get_session)
+            .def("get_form", &request::get_form);
 
         pybind11::class_<response> response(m, "response");
         response.def(pybind11::init<>())
