@@ -415,10 +415,19 @@ namespace hi
     ngx_int_t set_output_headers_body_init(ngx_http_request_t *r, request &req, response &res, ngx_int_t expires, std::string &lru_cache_key)
     {
         req.method.assign((char *)r->method_name.data, r->method_name.len);
-
+        if (r->args.len > 0)
+        {
+            req.param.assign((char *)r->args.data, r->args.len);
+        }
         if (expires > 0)
         {
-            lru_cache_key = std::move(hi::md5(req.method + req.uri + "?" + req.param));
+            lru_cache_key.assign((char *)r->headers_in.server.data, r->headers_in.server.len);
+            lru_cache_key.append(req.method).append(req.uri);
+            if (!req.param.empty())
+            {
+                lru_cache_key.append("?").append(req.param);
+            }
+            lru_cache_key = std::move(hi::md5(lru_cache_key));
             auto lru_cache_manager = hi::cache_t::get_cache_manager();
             if (lru_cache_manager->contains(lru_cache_key))
             {
@@ -445,6 +454,7 @@ namespace hi
         {
             req.user_agent.assign((char *)r->headers_in.user_agent->value.data, r->headers_in.user_agent->value.len);
         }
+        
         if (r->args.len > 0)
         {
             hi::parser_param(req.param, req.form);
