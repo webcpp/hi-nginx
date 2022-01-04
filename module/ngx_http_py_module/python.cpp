@@ -92,11 +92,11 @@ namespace hi
             std::string m_str;
             if (p != std::string::npos)
             {
-                m_str = req.uri.substr(1, p - 1);
+                m_str = std::move(req.uri.substr(1, p - 1));
             }
             else
             {
-                m_str = req.uri.substr(1);
+                m_str = std::move(req.uri.substr(1));
             }
 
             for (std::string::iterator item = m_str.begin(); item != m_str.end(); ++item)

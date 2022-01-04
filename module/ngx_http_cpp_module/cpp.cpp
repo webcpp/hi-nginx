@@ -43,10 +43,9 @@ namespace hi
         }
     }
     */
-    cpp::cpp():path(),modules(){}
+    cpp::cpp() : path(), modules() {}
     cpp::cpp(const std::string &path) : path(path), modules()
     {
-
     }
     cpp::~cpp() {}
 
@@ -60,11 +59,11 @@ namespace hi
             std::string m_str;
             if (p != std::string::npos)
             {
-                m_str = this->path + req.uri.substr(0, p).append(".so");
+                m_str = std::move(this->path + req.uri.substr(0, p).append(".so"));
             }
             else
             {
-                m_str = this->path + req.uri + ".so";
+                m_str = std::move(this->path + req.uri + ".so");
             }
 
             std::shared_ptr<module<servlet>> cb = std::make_shared<module<servlet>>(m_str);
@@ -83,4 +82,4 @@ namespace hi
         }
     }
 
-} //namespace anybyte
+} // namespace anybyte

@@ -63,11 +63,11 @@ namespace hi
         std::string m_str;
         if (p != std::string::npos)
         {
-            m_str = req.uri.substr(1, p - 1);
+            m_str = std::move(req.uri.substr(1, p - 1));
         }
         else
         {
-            m_str = req.uri.substr(1);
+            m_str = std::move(req.uri.substr(1));
         }
 
         this->state["require"](m_str)["handler"](&req, &res);
