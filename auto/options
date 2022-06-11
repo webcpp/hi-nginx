@@ -406,8 +406,7 @@ $0: warning: the \"--with-sha1-asm\" option is deprecated"
         --test-build-eventport)          NGX_TEST_BUILD_EVENTPORT=YES ;;
         --test-build-epoll)              NGX_TEST_BUILD_EPOLL=YES   ;;
         --test-build-solaris-sendfilev)  NGX_TEST_BUILD_SOLARIS_SENDFILEV=YES ;;
-        --with-http-hi-python-version=*)        HTTP_HI_PYTHON_VERSION="$value";;
-        --with-http-hi-lua-version=*)           HTTP_HI_LUA_VERSION="$value";;
+
         *)
             echo "$0: error: invalid option \"$option\""
             exit 1
