@@ -454,7 +454,7 @@ namespace hi
         {
             req.user_agent.assign((char *)r->headers_in.user_agent->value.data, r->headers_in.user_agent->value.len);
         }
-        
+
         if (r->args.len > 0)
         {
             hi::parser_param(req.param, req.form);
@@ -484,16 +484,10 @@ namespace hi
             }
         }
 
-        if (r->headers_in.cookies.elts != NULL && r->headers_in.cookies.nelts != 0)
+        if (r->headers_in.cookie != NULL)
         {
-            ngx_table_elt_t **cookies = (ngx_table_elt_t **)r->headers_in.cookies.elts;
-            for (size_t i = 0; i < r->headers_in.cookies.nelts; ++i)
-            {
-                if (cookies[i]->value.data != NULL)
-                {
-                    hi::parser_param(std::string((char *)cookies[i]->value.data, cookies[i]->value.len), req.cookies, ';');
-                }
-            }
+            ngx_table_elt_t *cookies = (ngx_table_elt_t *)r->headers_in.cookie;
+            hi::parser_param(std::string((char *)cookies->value.data, cookies->value.len), req.cookies, ';');
         }
         return NGX_OK;
     }

@@ -369,6 +369,9 @@ use the \"--with-mail_ssl_module\" option instead"
         --with-openssl=*)                OPENSSL="$value"           ;;
         --with-openssl-opt=*)            OPENSSL_OPT="$value"       ;;
 
+        --with-http-hi-python-version=*) HTTP_HI_PYTHON_VERSION="$value" ;;
+        --with-http-hi-lua-version=*)    HTTP_HI_LUA_VERSION="$value"    ;;
+
         --with-md5=*)
             NGX_POST_CONF_MSG="$NGX_POST_CONF_MSG
 $0: warning: the \"--with-md5\" option is deprecated"

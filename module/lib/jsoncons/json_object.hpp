@@ -4,8 +4,8 @@
 
 // See https://github.com/danielaparker/jsoncons for latest version
 
-#ifndef JSONCONS_JSON_CONTAINER_TYPES_HPP
-#define JSONCONS_JSON_CONTAINER_TYPES_HPP
+#ifndef JSONCONS_JSON_OBJECT_HPP
+#define JSONCONS_JSON_OBJECT_HPP
 
 #include <string>
 #include <vector>
@@ -21,310 +21,14 @@
 #include <type_traits> // std::enable_if
 #include <jsoncons/json_exception.hpp>
 #include <jsoncons/allocator_holder.hpp>
+#include <jsoncons/json_array.hpp>
 
 namespace jsoncons {
-
-    // json_array
-
-    template <class Json>
-    class json_array : public allocator_holder<typename Json::allocator_type>
-    {
-    public:
-        using allocator_type = typename Json::allocator_type;
-        using value_type = Json;
-        using implementation_policy = typename Json::implementation_policy;
-    private:
-        using value_allocator_type = typename std::allocator_traits<allocator_type>:: template rebind_alloc<value_type>;                   
-        using value_container_type = typename implementation_policy::template sequence_container_type<value_type,value_allocator_type>;
-        value_container_type elements_;
-    public:
-        using iterator = typename value_container_type::iterator;
-        using const_iterator = typename value_container_type::const_iterator;
-        using reference = typename std::iterator_traits<iterator>::reference;
-        using const_reference = typename std::iterator_traits<const_iterator>::reference;
-
-        using allocator_holder<allocator_type>::get_allocator;
-
-        json_array()
-        {
-        }
-
-        explicit json_array(const allocator_type& alloc)
-            : allocator_holder<allocator_type>(alloc), 
-              elements_(value_allocator_type(alloc))
-        {
-        }
-
-        explicit json_array(std::size_t n, 
-                            const allocator_type& alloc = allocator_type())
-            : allocator_holder<allocator_type>(alloc), 
-              elements_(n,Json(),value_allocator_type(alloc))
-        {
-        }
-
-        explicit json_array(std::size_t n, 
-                            const Json& value, 
-                            const allocator_type& alloc = allocator_type())
-            : allocator_holder<allocator_type>(alloc), 
-              elements_(n,value,value_allocator_type(alloc))
-        {
-        }
-
-        template <class InputIterator>
-        json_array(InputIterator begin, InputIterator end, const allocator_type& alloc = allocator_type())
-            : allocator_holder<allocator_type>(alloc), 
-              elements_(begin,end,value_allocator_type(alloc))
-        {
-        }
-        json_array(const json_array& val)
-            : allocator_holder<allocator_type>(val.get_allocator()),
-              elements_(val.elements_)
-        {
-        }
-        json_array(const json_array& val, const allocator_type& alloc)
-            : allocator_holder<allocator_type>(alloc), 
-              elements_(val.elements_,value_allocator_type(alloc))
-        {
-        }
-
-        json_array(json_array&& val) noexcept
-            : allocator_holder<allocator_type>(val.get_allocator()), 
-              elements_(std::move(val.elements_))
-        {
-        }
-        json_array(json_array&& val, const allocator_type& alloc)
-            : allocator_holder<allocator_type>(alloc), 
-              elements_(std::move(val.elements_),value_allocator_type(alloc))
-        {
-        }
-
-        json_array(const std::initializer_list<Json>& init, 
-                   const allocator_type& alloc = allocator_type())
-            : allocator_holder<allocator_type>(alloc), 
-              elements_(init,value_allocator_type(alloc))
-        {
-        }
-        ~json_array() noexcept
-        {
-            destroy();
-        }
-
-        reference back()
-        {
-            return elements_.back();
-        }
-
-        const_reference back() const
-        {
-            return elements_.back();
-        }
-
-        void pop_back()
-        {
-            elements_.pop_back();
-        }
-
-        bool empty() const
-        {
-            return elements_.empty();
-        }
-
-        void swap(json_array<Json>& val) noexcept
-        {
-            elements_.swap(val.elements_);
-        }
-
-        std::size_t size() const {return elements_.size();}
-
-        std::size_t capacity() const {return elements_.capacity();}
-
-        void clear() {elements_.clear();}
-
-        void shrink_to_fit() 
-        {
-            for (std::size_t i = 0; i < elements_.size(); ++i)
-            {
-                elements_[i].shrink_to_fit();
-            }
-            elements_.shrink_to_fit();
-        }
-
-        void reserve(std::size_t n) {elements_.reserve(n);}
-
-        void resize(std::size_t n) {elements_.resize(n);}
-
-        void resize(std::size_t n, const Json& val) {elements_.resize(n,val);}
-
-    #if !defined(JSONCONS_NO_DEPRECATED)
-        JSONCONS_DEPRECATED_MSG("Instead, use erase(const_iterator, const_iterator)")
-        void remove_range(std::size_t from_index, std::size_t to_index) 
-        {
-            JSONCONS_ASSERT(from_index <= to_index);
-            JSONCONS_ASSERT(to_index <= elements_.size());
-            elements_.erase(elements_.cbegin()+from_index,elements_.cbegin()+to_index);
-        }
-    #endif
-        void erase(const_iterator pos) 
-        {
-    #if defined(JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR)
-            iterator it = elements_.begin() + (pos - elements_.begin());
-            elements_.erase(it);
-    #else
-            elements_.erase(pos);
-    #endif
-        }
-
-        void erase(const_iterator first, const_iterator last) 
-        {
-    #if defined(JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR)
-            iterator it1 = elements_.begin() + (first - elements_.begin());
-            iterator it2 = elements_.begin() + (last - elements_.begin());
-            elements_.erase(it1,it2);
-    #else
-            elements_.erase(first,last);
-    #endif
-        }
-
-        Json& operator[](std::size_t i) {return elements_[i];}
-
-        const Json& operator[](std::size_t i) const {return elements_[i];}
-
-        // push_back
-
-        template <class T, class A=allocator_type>
-        typename std::enable_if<type_traits::is_stateless<A>::value,void>::type 
-        push_back(T&& value)
-        {
-            elements_.emplace_back(std::forward<T>(value));
-        }
-
-        template <class T, class A=allocator_type>
-        typename std::enable_if<!type_traits::is_stateless<A>::value,void>::type 
-        push_back(T&& value)
-        {
-            elements_.emplace_back(std::forward<T>(value),get_allocator());
-        }
-
-        template <class T, class A=allocator_type>
-        typename std::enable_if<type_traits::is_stateless<A>::value,iterator>::type 
-        insert(const_iterator pos, T&& value)
-        {
-    #if defined(JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR)
-            iterator it = elements_.begin() + (pos - elements_.begin());
-            return elements_.emplace(it, std::forward<T>(value));
-    #else
-            return elements_.emplace(pos, std::forward<T>(value));
-    #endif
-        }
-        template <class T, class A=allocator_type>
-        typename std::enable_if<!type_traits::is_stateless<A>::value,iterator>::type 
-        insert(const_iterator pos, T&& value)
-        {
-    #if defined(JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR)
-            iterator it = elements_.begin() + (pos - elements_.begin());
-            return elements_.emplace(it, std::forward<T>(value), get_allocator());
-    #else
-            return elements_.emplace(pos, std::forward<T>(value), get_allocator());
-    #endif
-        }
-
-        template <class InputIt>
-        iterator insert(const_iterator pos, InputIt first, InputIt last)
-        {
-    #if defined(JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR)
-            iterator it = elements_.begin() + (pos - elements_.begin());
-            elements_.insert(it, first, last);
-            return first == last ? it : it + 1;
-    #else
-            return elements_.insert(pos, first, last);
-    #endif
-        }
-
-        template <class A=allocator_type, class... Args>
-        typename std::enable_if<type_traits::is_stateless<A>::value,iterator>::type 
-        emplace(const_iterator pos, Args&&... args)
-        {
-    #if defined(JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR)
-            iterator it = elements_.begin() + (pos - elements_.begin());
-            return elements_.emplace(it, std::forward<Args>(args)...);
-    #else
-            return elements_.emplace(pos, std::forward<Args>(args)...);
-    #endif
-        }
-
-        template <class... Args>
-        Json& emplace_back(Args&&... args)
-        {
-            elements_.emplace_back(std::forward<Args>(args)...);
-            return elements_.back();
-        }
-
-        iterator begin() {return elements_.begin();}
-
-        iterator end() {return elements_.end();}
-
-        const_iterator begin() const {return elements_.begin();}
-
-        const_iterator end() const {return elements_.end();}
-
-        bool operator==(const json_array<Json>& rhs) const noexcept
-        {
-            return elements_ == rhs.elements_;
-        }
-
-        bool operator<(const json_array<Json>& rhs) const noexcept
-        {
-            return elements_ < rhs.elements_;
-        }
-    private:
-
-        json_array& operator=(const json_array<Json>&) = delete;
-
-        void destroy() noexcept
-        {
-            while (!elements_.empty())
-            {
-                value_type current = std::move(elements_.back());
-                elements_.pop_back();
-                switch (current.storage())
-                {
-                    case storage_kind::array_value:
-                    {
-                        for (auto&& item : current.array_range())
-                        {
-                            if (item.size() > 0) // non-empty object or array
-                            {
-                                elements_.push_back(std::move(item));
-                            }
-                        }
-                        current.clear();                           
-                        break;
-                    }
-                    case storage_kind::object_value:
-                    {
-                        for (auto&& kv : current.object_range())
-                        {
-                            if (kv.value().size() > 0) // non-empty object or array
-                            {
-                                elements_.push_back(std::move(kv.value()));
-                            }
-                        }
-                        current.clear();                           
-                        break;
-                    }
-                    default:
-                        break;
-                }
-            }
-        }
-    };
 
     struct sorted_unique_range_tag
     {
         explicit sorted_unique_range_tag() = default; 
     };
-
-    // json_object
 
     // key_value
 
@@ -337,6 +41,7 @@ namespace jsoncons {
         using allocator_type = typename ValueT::allocator_type;
         using string_view_type = typename value_type::string_view_type;
     private:
+
         key_type key_;
         value_type value_;
     public:
@@ -520,27 +225,26 @@ namespace jsoncons {
         explicit preserve_key_order() = default; 
     };
 
-    template <class KeyT,class Json,class Enable = void>
-    class json_object
-    {
-    };
 
     // Sort keys
-    template <class KeyT,class Json>
-    class json_object<KeyT,Json,typename std::enable_if<std::is_same<typename Json::implementation_policy::key_order,sort_key_order>::value>::type> : 
-        public allocator_holder<typename Json::allocator_type>
+    template <class KeyT,class Json,template<typename,typename> class SequenceContainer = std::vector>
+    class sorted_json_object : public allocator_holder<typename Json::allocator_type>    
     {
     public:
         using allocator_type = typename Json::allocator_type;
         using key_type = KeyT;
-        //using mapped_type = Json;
         using key_value_type = key_value<KeyT,Json>;
         using char_type = typename Json::char_type;
         using string_view_type = typename Json::string_view_type;
-        using implementation_policy = typename Json::implementation_policy;
     private:
-        using key_value_allocator_type = typename std::allocator_traits<allocator_type>:: template rebind_alloc<key_value_type>;                       
-        using key_value_container_type = typename implementation_policy::template sequence_container_type<key_value_type,key_value_allocator_type>;
+        struct Comp
+        {
+            bool operator() (const key_value_type& kv, string_view_type k) const { return kv.key() < k; }
+            bool operator() (string_view_type k, const key_value_type& kv) const { return k < kv.key(); }
+        };
+
+        using key_value_allocator_type = typename std::allocator_traits<allocator_type>:: template rebind_alloc<key_value_type>;
+        using key_value_container_type = SequenceContainer<key_value_type,key_value_allocator_type>;
 
         key_value_container_type members_;
     public:
@@ -549,54 +253,54 @@ namespace jsoncons {
 
         using allocator_holder<allocator_type>::get_allocator;
 
-        json_object()
+        sorted_json_object()
         {
         }
 
-        explicit json_object(const allocator_type& alloc)
+        explicit sorted_json_object(const allocator_type& alloc)
             : allocator_holder<allocator_type>(alloc), 
               members_(key_value_allocator_type(alloc))
         {
         }
 
-        json_object(const json_object& val)
+        sorted_json_object(const sorted_json_object& val)
             : allocator_holder<allocator_type>(val.get_allocator()),
               members_(val.members_)
         {
         }
 
-        json_object(json_object&& val)
+        sorted_json_object(sorted_json_object&& val)
             : allocator_holder<allocator_type>(val.get_allocator()), 
               members_(std::move(val.members_))
         {
         }
 
-        json_object& operator=(const json_object& val)
+        sorted_json_object& operator=(const sorted_json_object& val)
         {
             allocator_holder<allocator_type>::operator=(val.get_allocator());
             members_ = val.members_;
             return *this;
         }
 
-        json_object& operator=(json_object&& val)
+        sorted_json_object& operator=(sorted_json_object&& val)
         {
             val.swap(*this);
             return *this;
         }
 
-        json_object(const json_object& val, const allocator_type& alloc) 
+        sorted_json_object(const sorted_json_object& val, const allocator_type& alloc) 
             : allocator_holder<allocator_type>(alloc), 
               members_(val.members_,key_value_allocator_type(alloc))
         {
         }
 
-        json_object(json_object&& val,const allocator_type& alloc) 
+        sorted_json_object(sorted_json_object&& val,const allocator_type& alloc) 
             : allocator_holder<allocator_type>(alloc), members_(std::move(val.members_),key_value_allocator_type(alloc))
         {
         }
 
         template<class InputIt>
-        json_object(InputIt first, InputIt last)
+        sorted_json_object(InputIt first, InputIt last)
         {
             std::size_t count = std::distance(first,last);
             members_.reserve(count);
@@ -612,7 +316,7 @@ namespace jsoncons {
         }
 
         template<class InputIt>
-        json_object(InputIt first, InputIt last, 
+        sorted_json_object(InputIt first, InputIt last, 
                     const allocator_type& alloc)
             : allocator_holder<allocator_type>(alloc), 
               members_(key_value_allocator_type(alloc))
@@ -630,7 +334,7 @@ namespace jsoncons {
             members_.erase(it, members_.end());
         }
 
-        json_object(const std::initializer_list<std::pair<std::basic_string<char_type>,Json>>& init, 
+        sorted_json_object(const std::initializer_list<std::pair<std::basic_string<char_type>,Json>>& init, 
                     const allocator_type& alloc = allocator_type())
             : allocator_holder<allocator_type>(alloc), 
               members_(key_value_allocator_type(alloc))
@@ -642,9 +346,9 @@ namespace jsoncons {
             }
         }
 
-        ~json_object() noexcept
+        ~sorted_json_object() noexcept
         {
-            destroy();
+            flatten_and_destroy();
         }
 
         bool empty() const
@@ -652,7 +356,7 @@ namespace jsoncons {
             return members_.empty();
         }
 
-        void swap(json_object& val) noexcept
+        void swap(sorted_json_object& val) noexcept
         {
             members_.swap(val.members_);
         }
@@ -714,47 +418,43 @@ namespace jsoncons {
 
         iterator find(const string_view_type& name) noexcept
         {
-            auto it = std::lower_bound(members_.begin(),members_.end(), name, 
-                                       [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
-            auto result = (it != members_.end() && it->key() == name) ? it : members_.end();
-            return result;
+            auto p = std::equal_range(members_.begin(),members_.end(), name, 
+                                       Comp());        
+            return p.first == p.second ? members_.end() : p.first;
         }
 
         const_iterator find(const string_view_type& name) const noexcept
         {
-            auto it = std::lower_bound(members_.begin(),members_.end(), 
-                                       name, 
-                                       [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});
-            auto result = (it != members_.end() && it->key() == name) ? it : members_.end();
-            return result;
+            auto p = std::equal_range(members_.begin(),members_.end(), name, 
+                                       Comp());        
+            return p.first == p.second ? members_.end() : p.first;
         }
 
-        void erase(const_iterator pos) 
+        iterator erase(const_iterator pos) 
         {
     #if defined(JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR)
             iterator it = members_.begin() + (pos - members_.begin());
-            members_.erase(it);
+            return members_.erase(it);
     #else
-            members_.erase(pos);
+            return members_.erase(pos);
     #endif
         }
 
-        void erase(const_iterator first, const_iterator last) 
+        iterator erase(const_iterator first, const_iterator last) 
         {
     #if defined(JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR)
             iterator it1 = members_.begin() + (first - members_.begin());
             iterator it2 = members_.begin() + (last - members_.begin());
-            members_.erase(it1,it2);
+            return members_.erase(it1,it2);
     #else
-            members_.erase(first,last);
+            return members_.erase(first,last);
     #endif
         }
 
         void erase(const string_view_type& name) 
         {
-            auto it = std::lower_bound(members_.begin(),members_.end(), name, 
-                                       [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
-            if (it != members_.end() && it->key() == name)
+            auto it = find(name);
+            if (it != members_.end())
             {
                 members_.erase(it);
             }
@@ -810,7 +510,7 @@ namespace jsoncons {
         {
             bool inserted;
             auto it = std::lower_bound(members_.begin(),members_.end(), name, 
-                                       [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                       Comp());        
             if (it == members_.end())
             {
                 members_.emplace_back(key_type(name.begin(),name.end()), 
@@ -839,7 +539,7 @@ namespace jsoncons {
         {
             bool inserted;
             auto it = std::lower_bound(members_.begin(),members_.end(), name, 
-                                       [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                       Comp());        
             if (it == members_.end())
             {
                 members_.emplace_back(key_type(name.begin(),name.end(), get_allocator()), 
@@ -870,7 +570,7 @@ namespace jsoncons {
         {
             bool inserted;
             auto it = std::lower_bound(members_.begin(),members_.end(), name, 
-                                       [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                       Comp());        
             if (it == members_.end())
             {
                 members_.emplace_back(key_type(name.begin(),name.end()), 
@@ -898,7 +598,7 @@ namespace jsoncons {
         {
             bool inserted;
             auto it = std::lower_bound(members_.begin(),members_.end(), name, 
-                                       [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                       Comp());        
             if (it == members_.end())
             {
                 members_.emplace_back(key_type(name.begin(),name.end(), get_allocator()), 
@@ -929,12 +629,12 @@ namespace jsoncons {
             if (hint != members_.end() && hint->key() <= name)
             {
                 it = std::lower_bound(hint,members_.end(), name, 
-                                      [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                      Comp());        
             }
             else
             {
                 it = std::lower_bound(members_.begin(),members_.end(), name, 
-                                      [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                      Comp());        
             }
 
             if (it == members_.end())
@@ -964,12 +664,12 @@ namespace jsoncons {
             if (hint != members_.end() && hint->key() <= name)
             {
                 it = std::lower_bound(hint,members_.end(), name, 
-                                      [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                      Comp());        
             }
             else
             {
                 it = std::lower_bound(members_.begin(),members_.end(), name, 
-                                      [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                      Comp());        
             }
 
             if (it == members_.end())
@@ -1035,12 +735,12 @@ namespace jsoncons {
             if (hint != members_.end() && hint->key() <= name)
             {
                 it = std::lower_bound(hint,members_.end(), name, 
-                                      [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                      Comp());        
             }
             else
             {
                 it = std::lower_bound(members_.begin(),members_.end(), name, 
-                                      [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                      Comp());        
             }
 
             if (it == members_.end())
@@ -1064,7 +764,7 @@ namespace jsoncons {
 
         // merge
 
-        void merge(const json_object& source)
+        void merge(const sorted_json_object& source)
         {
             for (auto it = source.begin(); it != source.end(); ++it)
             {
@@ -1072,14 +772,14 @@ namespace jsoncons {
             }
         }
 
-        void merge(json_object&& source)
+        void merge(sorted_json_object&& source)
         {
             auto it = std::make_move_iterator(source.begin());
             auto end = std::make_move_iterator(source.end());
             for (; it != end; ++it)
             {
                 auto pos = std::lower_bound(members_.begin(),members_.end(), (*it).key(), 
-                                            [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});   
+                                            Comp());   
                 if (pos == members_.end() )
                 {
                     members_.emplace_back(*it);
@@ -1091,7 +791,7 @@ namespace jsoncons {
             }
         }
 
-        void merge(iterator hint, const json_object& source)
+        void merge(iterator hint, const sorted_json_object& source)
         {
             for (auto it = source.begin(); it != source.end(); ++it)
             {
@@ -1099,7 +799,7 @@ namespace jsoncons {
             }
         }
 
-        void merge(iterator hint, json_object&& source)
+        void merge(iterator hint, sorted_json_object&& source)
         {
             auto it = std::make_move_iterator(source.begin());
             auto end = std::make_move_iterator(source.end());
@@ -1109,12 +809,12 @@ namespace jsoncons {
                 if (hint != members_.end() && hint->key() <= (*it).key())
                 {
                     pos = std::lower_bound(hint,members_.end(), (*it).key(), 
-                                          [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                          Comp());        
                 }
                 else
                 {
                     pos = std::lower_bound(members_.begin(),members_.end(), (*it).key(), 
-                                          [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                          Comp());        
                 }
                 if (pos == members_.end() )
                 {
@@ -1130,7 +830,7 @@ namespace jsoncons {
 
         // merge_or_update
 
-        void merge_or_update(const json_object& source)
+        void merge_or_update(const sorted_json_object& source)
         {
             for (auto it = source.begin(); it != source.end(); ++it)
             {
@@ -1138,14 +838,14 @@ namespace jsoncons {
             }
         }
 
-        void merge_or_update(json_object&& source)
+        void merge_or_update(sorted_json_object&& source)
         {
             auto it = std::make_move_iterator(source.begin());
             auto end = std::make_move_iterator(source.end());
             for (; it != end; ++it)
             {
                 auto pos = std::lower_bound(members_.begin(),members_.end(), (*it).key(), 
-                                            [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});   
+                                            Comp());   
                 if (pos == members_.end() )
                 {
                     members_.emplace_back(*it);
@@ -1157,7 +857,7 @@ namespace jsoncons {
             }
         }
 
-        void merge_or_update(iterator hint, const json_object& source)
+        void merge_or_update(iterator hint, const sorted_json_object& source)
         {
             for (auto it = source.begin(); it != source.end(); ++it)
             {
@@ -1165,7 +865,7 @@ namespace jsoncons {
             }
         }
 
-        void merge_or_update(iterator hint, json_object&& source)
+        void merge_or_update(iterator hint, sorted_json_object&& source)
         {
             auto it = std::make_move_iterator(source.begin());
             auto end = std::make_move_iterator(source.end());
@@ -1175,12 +875,12 @@ namespace jsoncons {
                 if (hint != members_.end() && hint->key() <= (*it).key())
                 {
                     pos = std::lower_bound(hint,members_.end(), (*it).key(), 
-                                          [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                          Comp());        
                 }
                 else
                 {
                     pos = std::lower_bound(members_.begin(),members_.end(), (*it).key(), 
-                                          [](const key_value_type& a, const string_view_type& k) -> bool {return string_view_type(a.key()).compare(k) < 0;});        
+                                          Comp());        
                 }
                 if (pos == members_.end() )
                 {
@@ -1195,28 +895,36 @@ namespace jsoncons {
             }
         }
 
-        bool operator==(const json_object& rhs) const
+        bool operator==(const sorted_json_object& rhs) const
         {
             return members_ == rhs.members_;
         }
 
-        bool operator<(const json_object& rhs) const
+        bool operator<(const sorted_json_object& rhs) const
         {
             return members_ < rhs.members_;
         }
     private:
 
-        void destroy() noexcept
+        void flatten_and_destroy() noexcept
         {
             if (!members_.empty())
             {
                 json_array<Json> temp(get_allocator());
 
-                for (auto&& kv : members_)
+                for (auto& kv : members_)
                 {
-                    if (kv.value().size() > 0)
+                    switch (kv.value().storage_kind())
                     {
-                        temp.emplace_back(std::move(kv.value()));
+                        case json_storage_kind::array_value:
+                        case json_storage_kind::object_value:
+                            if (!kv.value().empty())
+                            {
+                                temp.emplace_back(std::move(kv.value()));
+                            }
+                            break;
+                        default:
+                            break;
                     }
                 }
             }
@@ -1224,9 +932,8 @@ namespace jsoncons {
     };
 
     // Preserve order
-    template <class KeyT,class Json>
-    class json_object<KeyT,Json,typename std::enable_if<std::is_same<typename Json::implementation_policy::key_order,preserve_key_order>::value>::type> : 
-        public allocator_holder<typename Json::allocator_type>
+    template <class KeyT,class Json,template<typename,typename> class SequenceContainer = std::vector>
+    class order_preserving_json_object : public allocator_holder<typename Json::allocator_type>
     {
     public:
         using allocator_type = typename Json::allocator_type;
@@ -1235,53 +942,68 @@ namespace jsoncons {
         //using mapped_type = Json;
         using string_view_type = typename Json::string_view_type;
         using key_value_type = key_value<KeyT,Json>;
-        using implementation_policy = typename Json::implementation_policy;
+        //using implementation_policy = typename Json::implementation_policy;
     private:
+
         using key_value_allocator_type = typename std::allocator_traits<allocator_type>:: template rebind_alloc<key_value_type>;                       
-        using key_value_container_type = typename implementation_policy::template sequence_container_type<key_value_type,key_value_allocator_type>;
+        using key_value_container_type = SequenceContainer<key_value_type,key_value_allocator_type>;
         typedef typename std::allocator_traits<allocator_type>:: template rebind_alloc<std::size_t> index_allocator_type;
-        using index_container_type = typename implementation_policy::template sequence_container_type<std::size_t,index_allocator_type>;
+        //using index_container_type = typename implementation_policy::template sequence_container_type<std::size_t,index_allocator_type>;
+        using index_container_type = SequenceContainer<std::size_t,index_allocator_type>;
 
         key_value_container_type members_;
         index_container_type index_;
+
+        struct Comp
+        {
+            const key_value_container_type& members_;
+
+            Comp(const key_value_container_type& members_)
+                : members_(members_)
+            {
+            }
+
+            bool operator() (std::size_t i, string_view_type k) const { return members_.at(i).key() < k; }
+            bool operator() (string_view_type k, std::size_t i) const { return k < members_.at(i).key(); }
+        };
     public:
         using iterator = typename key_value_container_type::iterator;
         using const_iterator = typename key_value_container_type::const_iterator;
 
         using allocator_holder<allocator_type>::get_allocator;
 
-        json_object()
+        order_preserving_json_object()
         {
         }
-        json_object(const allocator_type& alloc)
+        order_preserving_json_object(const allocator_type& alloc)
             : allocator_holder<allocator_type>(alloc), 
               members_(key_value_allocator_type(alloc)), 
               index_(index_allocator_type(alloc))
         {
         }
 
-        json_object(const json_object& val)
+        order_preserving_json_object(const order_preserving_json_object& val)
             : allocator_holder<allocator_type>(val.get_allocator()), 
               members_(val.members_),
               index_(val.index_)
         {
         }
 
-        json_object(json_object&& val)
+        order_preserving_json_object(order_preserving_json_object&& val)
             : allocator_holder<allocator_type>(val.get_allocator()), 
               members_(std::move(val.members_)),
               index_(std::move(val.index_))
         {
         }
 
-        json_object(const json_object& val, const allocator_type& alloc) 
+        order_preserving_json_object(const order_preserving_json_object& val, const allocator_type& alloc) 
             : allocator_holder<allocator_type>(alloc), 
               members_(val.members_,key_value_allocator_type(alloc)),
               index_(val.index_,index_allocator_type(alloc))
         {
         }
 
-        json_object(json_object&& val,const allocator_type& alloc) 
+        order_preserving_json_object(order_preserving_json_object&& val,const allocator_type& alloc) 
             : allocator_holder<allocator_type>(alloc), 
               members_(std::move(val.members_),key_value_allocator_type(alloc)),
               index_(std::move(val.index_),index_allocator_type(alloc))
@@ -1289,7 +1011,7 @@ namespace jsoncons {
         }
 
         template<class InputIt>
-        json_object(InputIt first, InputIt last)
+        order_preserving_json_object(InputIt first, InputIt last)
         {
             std::size_t count = std::distance(first,last);
             members_.reserve(count);
@@ -1324,7 +1046,7 @@ namespace jsoncons {
         }
 
         template<class InputIt>
-        json_object(InputIt first, InputIt last, 
+        order_preserving_json_object(InputIt first, InputIt last, 
                     const allocator_type& alloc)
             : allocator_holder<allocator_type>(alloc), 
               members_(key_value_allocator_type(alloc)), 
@@ -1362,7 +1084,7 @@ namespace jsoncons {
             build_index();
         }
 
-        json_object(std::initializer_list<std::pair<std::basic_string<char_type>,Json>> init, 
+        order_preserving_json_object(std::initializer_list<std::pair<std::basic_string<char_type>,Json>> init, 
                     const allocator_type& alloc = allocator_type())
             : allocator_holder<allocator_type>(alloc), 
               members_(key_value_allocator_type(alloc)), 
@@ -1375,18 +1097,18 @@ namespace jsoncons {
             }
         }
 
-        ~json_object() noexcept
+        ~order_preserving_json_object() noexcept
         {
-            destroy();
+            flatten_and_destroy();
         }
 
-        json_object& operator=(json_object&& val)
+        order_preserving_json_object& operator=(order_preserving_json_object&& val)
         {
             val.swap(*this);
             return *this;
         }
 
-        json_object& operator=(const json_object& val)
+        order_preserving_json_object& operator=(const order_preserving_json_object& val)
         {
             allocator_holder<allocator_type>::operator=(val.get_allocator());
             members_ = val.members_;
@@ -1394,7 +1116,7 @@ namespace jsoncons {
             return *this;
         }
 
-        void swap(json_object& val) noexcept
+        void swap(order_preserving_json_object& val) noexcept
         {
             members_.swap(val.members_);
         }
@@ -1466,25 +1188,32 @@ namespace jsoncons {
 
         iterator find(const string_view_type& name) noexcept
         {
-            auto it = std::lower_bound(index_.begin(),index_.end(), name, 
-                                        [&](std::size_t i, const string_view_type& k) -> bool {return string_view_type(members_.at(i).key()).compare(k) < 0;});        
-            if (it != index_.end() && members_.at(*it).key() == name)
-            {
-                return members_.begin() + *it;
-            }
-            else
-            {
-                return members_.end();
-            }
+            auto p = std::equal_range(index_.begin(),index_.end(), name, 
+                                        Comp(members_));        
+            return p.first == p.second ? members_.end() : members_.begin() + *p.first;
         }
 
         const_iterator find(const string_view_type& name) const noexcept
         {
-            auto it = std::lower_bound(index_.begin(),index_.end(), name, 
-                                        [&](std::size_t i, const string_view_type& k) -> bool {return string_view_type(members_.at(i).key()).compare(k) < 0;});        
-            if (it != index_.end() && members_.at(*it).key() == name)
+            auto p = std::equal_range(index_.begin(),index_.end(), name, 
+                                        Comp(members_));        
+            return p.first == p.second ? members_.end() : members_.begin() + *p.first;
+        }
+
+        iterator erase(const_iterator pos) 
+        {
+            if (pos != members_.end())
             {
-                return members_.begin() + *it;
+                std::size_t pos1 = pos - members_.begin();
+                std::size_t pos2 = pos1 + 1;
+
+                erase_index_entries(pos1, pos2);
+    #if defined(JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR)
+                iterator it = members_.begin() + (pos - members_.begin());
+                return members_.erase(it);
+    #else
+                return members_.erase(pos);
+    #endif
             }
             else
             {
@@ -1492,7 +1221,7 @@ namespace jsoncons {
             }
         }
 
-        void erase(const_iterator first, const_iterator last) 
+        iterator erase(const_iterator first, const_iterator last) 
         {
             std::size_t pos1 = first == members_.end() ? members_.size() : first - members_.begin();
             std::size_t pos2 = last == members_.end() ? members_.size() : last - members_.begin();
@@ -1504,11 +1233,14 @@ namespace jsoncons {
     #if defined(JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR)
                 iterator it1 = members_.begin() + (first - members_.begin());
                 iterator it2 = members_.begin() + (last - members_.begin());
-                members_.erase(it1,it2);
+                return members_.erase(it1,it2);
     #else
-                members_.erase(first,last);
+                return members_.erase(first,last);
     #endif
-                //build_index();
+            }
+            else
+            {
+                return members_.end();
             }
         }
 
@@ -1678,7 +1410,7 @@ namespace jsoncons {
 
         // merge
 
-        void merge(const json_object& source)
+        void merge(const order_preserving_json_object& source)
         {
             for (auto it = source.begin(); it != source.end(); ++it)
             {
@@ -1686,7 +1418,7 @@ namespace jsoncons {
             }
         }
 
-        void merge(json_object&& source)
+        void merge(order_preserving_json_object&& source)
         {
             auto it = std::make_move_iterator(source.begin());
             auto end = std::make_move_iterator(source.end());
@@ -1700,7 +1432,7 @@ namespace jsoncons {
             }
         }
 
-        void merge(iterator hint, const json_object& source)
+        void merge(iterator hint, const order_preserving_json_object& source)
         {
             std::size_t pos = hint - members_.begin();
             for (auto it = source.begin(); it != source.end(); ++it)
@@ -1719,7 +1451,7 @@ namespace jsoncons {
             }
         }
 
-        void merge(iterator hint, json_object&& source)
+        void merge(iterator hint, order_preserving_json_object&& source)
         {
             std::size_t pos = hint - members_.begin();
 
@@ -1743,7 +1475,7 @@ namespace jsoncons {
 
         // merge_or_update
 
-        void merge_or_update(const json_object& source)
+        void merge_or_update(const order_preserving_json_object& source)
         {
             for (auto it = source.begin(); it != source.end(); ++it)
             {
@@ -1751,7 +1483,7 @@ namespace jsoncons {
             }
         }
 
-        void merge_or_update(json_object&& source)
+        void merge_or_update(order_preserving_json_object&& source)
         {
             auto it = std::make_move_iterator(source.begin());
             auto end = std::make_move_iterator(source.end());
@@ -1769,7 +1501,7 @@ namespace jsoncons {
             }
         }
 
-        void merge_or_update(iterator hint, const json_object& source)
+        void merge_or_update(iterator hint, const order_preserving_json_object& source)
         {
             std::size_t pos = hint - members_.begin();
             for (auto it = source.begin(); it != source.end(); ++it)
@@ -1788,7 +1520,7 @@ namespace jsoncons {
             }
         }
 
-        void merge_or_update(iterator hint, json_object&& source)
+        void merge_or_update(iterator hint, order_preserving_json_object&& source)
         {
             std::size_t pos = hint - members_.begin();
             auto it = std::make_move_iterator(source.begin());
@@ -1904,18 +1636,18 @@ namespace jsoncons {
             }
         }
 
-        bool operator==(const json_object& rhs) const
+        bool operator==(const order_preserving_json_object& rhs) const
         {
             return members_ == rhs.members_;
         }
      
-        bool operator<(const json_object& rhs) const
+        bool operator<(const order_preserving_json_object& rhs) const
         {
             return members_ < rhs.members_;
         }
     private:
 
-        void destroy() noexcept
+        void flatten_and_destroy() noexcept
         {
             if (!members_.empty())
             {
@@ -1936,7 +1668,7 @@ namespace jsoncons {
             JSONCONS_ASSERT(pos <= index_.size());
 
             auto it = std::lower_bound(index_.begin(),index_.end(), key, 
-                                        [&](std::size_t i, const string_view_type& k) -> bool {return string_view_type(members_.at(i).key()).compare(k) < 0;});        
+                                        Comp(members_));        
 
             if (it == index_.end())
             {
@@ -1981,14 +1713,10 @@ namespace jsoncons {
             const size_t n = index_.size() - offset;
             for (std::size_t i = 0; i < index_.size(); ++i)
             {
-                if (offset == index_.size())
-                {
-                    index_.erase(index_.begin()+i,index_.end());
-                    i += offset;
-                }
-                else if (index_[i] >= pos1 && index_[i] < pos2)
+                if (index_[i] >= pos1 && index_[i] < pos2)
                 {
                     index_.erase(index_.begin()+i);
+                    --i;
                 }
             }
             for (std::size_t i = 0; i < index_.size(); ++i)
