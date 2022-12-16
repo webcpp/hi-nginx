@@ -156,7 +156,7 @@ private:
     bool done_;
 
     std::basic_string<char_type,std::char_traits<char_type>,char_allocator_type> string_buffer_;
-    jsoncons::detail::to_double_t to_double_;
+    jsoncons::detail::chars_to to_double_;
 
     std::vector<json_parse_state,parse_state_allocator_type> state_stack_;
     std::vector<std::pair<string_view_type,double>> string_double_map_;
@@ -467,6 +467,18 @@ public:
         {
             state_ = json_parse_state::expect_comma_or_end;
         }
+    }
+
+    void reinitialize()
+    {
+        reset();
+        cp_ = 0;
+        cp2_ = 0;
+        saved_position_ = 0;
+        begin_input_ = nullptr;
+        end_input_ = nullptr;
+        input_ptr_ = nullptr;
+        string_buffer_.clear();
     }
 
     void reset()

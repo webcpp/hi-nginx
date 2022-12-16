@@ -18,7 +18,7 @@
 #include <jsoncons/json_options.hpp>
 #include <jsoncons/detail/grisu3.hpp>
 #include <jsoncons/detail/parse_number.hpp>
-#include <jsoncons/more_type_traits.hpp>
+#include <jsoncons/traits_extension.hpp>
 
 namespace jsoncons { 
 namespace detail {
@@ -32,7 +32,7 @@ namespace detail {
     // from_integer
 
     template<class Integer,class Result>
-    typename std::enable_if<type_traits::is_integer<Integer>::value,std::size_t>::type
+    typename std::enable_if<traits_extension::is_integer<Integer>::value,std::size_t>::type
     from_integer(Integer value, Result& result)
     {
         using char_type = typename Result::value_type;
@@ -79,7 +79,7 @@ namespace detail {
     // integer_to_string_hex
 
     template<class Integer,class Result>
-    typename std::enable_if<type_traits::is_integer<Integer>::value,std::size_t>::type
+    typename std::enable_if<traits_extension::is_integer<Integer>::value,std::size_t>::type
     integer_to_string_hex(Integer value, Result& result)
     {
         using char_type = typename Result::value_type;
@@ -294,7 +294,7 @@ namespace detail {
             return true;
         }
 
-        jsoncons::detail::to_double_t to_double_;
+        jsoncons::detail::chars_to to_double_;
 
         char buffer[100];
         int precision = std::numeric_limits<double>::digits10;
@@ -327,7 +327,7 @@ namespace detail {
             return true;
         }
 
-        jsoncons::detail::to_double_t to_double_;
+        jsoncons::detail::chars_to to_double_;
 
         char buffer[100];
         int precision = std::numeric_limits<double>::digits10;
@@ -394,7 +394,7 @@ namespace detail {
             return true;
         }
 
-        jsoncons::detail::to_double_t to_double_;
+        jsoncons::detail::chars_to to_double_;
 
         char buffer[100];
         int precision = std::numeric_limits<double>::digits10;
@@ -463,7 +463,7 @@ namespace detail {
     class write_double
     {
     private:
-        to_double_t to_double_;
+        chars_to to_double_;
         float_chars_format float_format_;
         int precision_;
         char decimal_point_;

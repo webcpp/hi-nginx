@@ -25,8 +25,8 @@
 
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=54577
 #if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 9
-#define JSONCONS_NO_ERASE_TAKING_CONST_ITERATOR 1
-#define JSONCONS_NO_MAP_TAKING_ALLOCATOR 1
+#define JSONCONS_NO_VECTOR_ERASE_TAKES_CONST_ITERATOR 1
+#define JSONCONS_NO_MAP_CONS_TAKES_ALLOCATOR 1
 #endif
 
 #if defined(__clang__)
@@ -104,6 +104,34 @@
 #define JSONCONS_HAS_FOPEN_S
 #endif
 
+#ifndef JSONCONS_HAS_CP14
+   #if defined(_MSVC_LANG) 
+       #if _MSVC_LANG >= 201402L
+           #define JSONCONS_HAS_CP14 
+       #endif
+   #elif __cplusplus >= 201402L
+        #define JSONCONS_HAS_CP14 
+   #endif
+#endif
+
+#if !defined(JSONCONS_HAS_STD_FROM_CHARS)
+#  if defined(__GNUC__)
+#   if (__GNUC__ >= 11)
+#    if (__cplusplus >= 201703)
+#     define JSONCONS_HAS_STD_FROM_CHARS 1
+#    endif // (__cplusplus >= 201703)
+#   endif // (__GNUC__ >= 11)
+#  endif // defined(__GNUC__)
+#  if defined(_MSC_VER)
+#   if (_MSC_VER >= 1924 && _MSVC_LANG >= 201703)
+#    define JSONCONS_HAS_STD_FROM_CHARS 1
+#   endif // (_MSC_VER >= 1924 && MSVC_LANG >= 201703)
+#  endif // defined(_MSC_VER)
+#endif
+#if defined(JSONCONS_HAS_STD_FROM_CHARS)
+#include <charconv>
+#endif
+
 #if !defined(JSONCONS_HAS_2017)
 #  if defined(__clang__)
 #   if (__cplusplus >= 201703)
@@ -122,6 +150,14 @@
 #    define JSONCONS_HAS_2017 1
 #   endif // (_MSC_VER >= 1910 && MSVC_LANG >= 201703)
 #  endif // defined(_MSC_VER)
+#endif
+
+#if defined(JSONCONS_HAS_2017)
+    #define JSONCONS_NODISCARD [[nodiscard]]
+    #define JSONCONS_IF_CONSTEXPR if constexpr
+#else
+    #define JSONCONS_NODISCARD
+    #define JSONCONS_IF_CONSTEXPR if 
 #endif
 
 #if !defined(JSONCONS_HAS_STD_STRING_VIEW)
@@ -246,6 +282,7 @@
       #endif
    #endif
 #endif
+
 #if defined(JSONCONS_HAS_CP14_CONSTEXPR)
 #  define JSONCONS_CPP14_CONSTEXPR constexpr
 #else
@@ -305,6 +342,18 @@ namespace jsoncons {
    typedef __float128 float128_type;
 #  endif
 }
+#endif
+    
+#if defined(_MSC_VER) && _MSC_VER <= 1900
+    #define JSONCONS_COPY(first,last,d_first) std::copy(first, last, stdext::make_checked_array_iterator(d_first, static_cast<std::size_t>(std::distance(first, last))))
+#else 
+    #define JSONCONS_COPY(first,last,d_first) std::copy(first, last, d_first)
+#endif
+
+#if defined(_MSC_VER) && _MSC_VER <= 1900 
+#define JSONCONS_CONSTEXPR
+#else
+#define JSONCONS_CONSTEXPR constexpr
 #endif
 
 namespace jsoncons {

@@ -9,6 +9,12 @@
 
 #pragma once
 
+#include "common.h"
+
+#if defined(WITH_THREAD) && defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#    include "../gil.h"
+#endif
+
 #include "../pytypes.h"
 
 #include <exception>
@@ -49,7 +55,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 // `Py_LIMITED_API` anyway.
 #    if PYBIND11_INTERNALS_VERSION > 4
 #        define PYBIND11_TLS_KEY_REF Py_tss_t &
-#        ifdef __GNUC__
+#        if defined(__GNUC__) && !defined(__INTEL_COMPILER)
 // Clang on macOS warns due to `Py_tss_NEEDS_INIT` not specifying an initializer
 // for every field.
 #            define PYBIND11_TLS_KEY_INIT(var)                                                    \
@@ -82,7 +88,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 #    define PYBIND11_TLS_KEY_INIT(var) PYBIND11_TLS_KEY_REF var = 0;
 #    define PYBIND11_TLS_KEY_CREATE(var) (((var) = PyThread_create_key()) != -1)
 #    define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
-#    if PY_MAJOR_VERSION < 3 || defined(PYPY_VERSION)
+#    if defined(PYPY_VERSION)
 // On CPython < 3.4 and on PyPy, `PyThread_set_key_value` strangely does not set
 // the value if it has already been set.  Instead, it must first be deleted and
 // then set again.
@@ -169,10 +175,12 @@ struct internals {
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
 #if defined(WITH_THREAD)
+    // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PYBIND11_TLS_KEY_INIT(tstate)
 #    if PYBIND11_INTERNALS_VERSION > 4
     PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
 #    endif // PYBIND11_INTERNALS_VERSION > 4
+    // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
     ~internals() {
 #    if PYBIND11_INTERNALS_VERSION > 4
@@ -294,7 +302,6 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
-#if PY_VERSION_HEX >= 0x03030000
 // forward decl
 inline void translate_exception(std::exception_ptr);
 
@@ -318,21 +325,11 @@ bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
     return false;
 }
 
-#else
-
-template <class T>
-bool handle_nested_exception(const T &, std::exception_ptr &) {
-    return false;
-}
-#endif
-
 inline bool raise_err(PyObject *exc_type, const char *msg) {
-#if PY_VERSION_HEX >= 0x03030000
     if (PyErr_Occurred()) {
         raise_from(exc_type, msg);
         return true;
     }
-#endif
     PyErr_SetString(exc_type, msg);
     return false;
 }
@@ -419,13 +416,22 @@ PYBIND11_NOINLINE internals &get_internals() {
         return **internals_pp;
     }
 
+#if defined(WITH_THREAD)
+#    if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+    gil_scoped_acquire gil;
+#    else
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
     struct gil_scoped_acquire_local {
         gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
+        gil_scoped_acquire_local(const gil_scoped_acquire_local &) = delete;
+        gil_scoped_acquire_local &operator=(const gil_scoped_acquire_local &) = delete;
         ~gil_scoped_acquire_local() { PyGILState_Release(state); }
         const PyGILState_STATE state;
     } gil;
+#    endif
+#endif
+    error_scope err_scope;
 
     PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
     auto builtins = handle(PyEval_GetBuiltins());
@@ -522,8 +528,13 @@ struct local_internals {
 
 /// Works like `get_internals`, but for things which are locally registered.
 inline local_internals &get_local_internals() {
-    static local_internals locals;
-    return locals;
+    // Current static can be created in the interpreter finalization routine. If the later will be
+    // destroyed in another static variable destructor, creation of this static there will cause
+    // static deinitialization fiasco. In order to avoid it we avoid destruction of the
+    // local_internals static. One can read more about the problem and current solution here:
+    // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
+    static auto *locals = new local_internals();
+    return *locals;
 }
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its

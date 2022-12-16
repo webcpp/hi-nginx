@@ -4,8 +4,8 @@
 
 // See https://github.com/danielaparker/jsoncons for latest version
 
-#ifndef JSONCONS_STAJ_READER_HPP
-#define JSONCONS_STAJ_READER_HPP
+#ifndef JSONCONS_STAJ_CURSOR_HPP
+#define JSONCONS_STAJ_CURSOR_HPP
 
 #include <memory> // std::allocator
 #include <string>
@@ -23,7 +23,8 @@
 #include <jsoncons/sink.hpp>
 #include <jsoncons/detail/write_number.hpp>
 #include <jsoncons/json_type_traits.hpp>
-#include <jsoncons/converter.hpp>
+#include <jsoncons/typed_array_view.hpp>
+#include <jsoncons/value_converter.hpp>
 
 namespace jsoncons {
 
@@ -135,6 +136,9 @@ std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, staj_event_
     return os;
 }
 
+template <class CharT>
+class basic_staj_visitor;
+
 template<class CharT>
 class basic_staj_event
 {
@@ -157,6 +161,11 @@ public:
 
     basic_staj_event(staj_event_type event_type, semantic_tag tag = semantic_tag::none)
         : event_type_(event_type), tag_(tag), ext_tag_(0), value_(), length_(0)
+    {
+    }
+
+    basic_staj_event(staj_event_type event_type, std::size_t length, semantic_tag tag = semantic_tag::none)
+        : event_type_(event_type), tag_(tag), ext_tag_(0), value_(), length_(length)
     {
     }
 
@@ -219,6 +228,11 @@ public:
         value_.byte_string_data_ = s.data();
     }
 
+    std::size_t size() const
+    {
+        return length_;
+    }
+
     template <class T>
     T get() const
     {
@@ -231,45 +245,58 @@ public:
         return val;
     }
 
-    template<class T, class CharT_ = CharT>
-    typename std::enable_if<type_traits::is_basic_string<T>::value && std::is_same<typename T::value_type, CharT_>::value, T>::type
-    get(std::error_code& ec) const
+    template <class T>
+    T get(std::error_code& ec) const
     {
-        converter<T> conv;
+        return get_<T>(std::allocator<char>{}, ec);
+    }
+
+    template<class T, class Allocator, class CharT_ = CharT>
+    typename std::enable_if<traits_extension::is_string<T>::value && std::is_same<typename T::value_type, CharT_>::value, T>::type
+    get_(Allocator,std::error_code& ec) const
+    {
         switch (event_type_)
         {
             case staj_event_type::key:
             case staj_event_type::string_value:
-                return conv.from(jsoncons::basic_string_view<CharT>(value_.string_data_, length_), tag(), ec);
+            {
+                value_converter<jsoncons::basic_string_view<CharT>,T> converter;
+                return converter.convert(jsoncons::basic_string_view<CharT>(value_.string_data_, length_), tag(), ec);
+            }
             case staj_event_type::byte_string_value:
             {
-                return conv.from(byte_string_view(value_.byte_string_data_,length_),
-                                               tag(),
-                                               ec);
+                value_converter<jsoncons::byte_string_view,T> converter;
+                return converter.convert(byte_string_view(value_.byte_string_data_,length_),tag(),ec);
             }
             case staj_event_type::uint64_value:
             {
-                return conv.from(value_.uint64_value_, tag(), ec);
+                value_converter<uint64_t,T> converter;
+                return converter.convert(value_.uint64_value_, tag(), ec);
             }
             case staj_event_type::int64_value:
             {
-                return conv.from(value_.int64_value_, tag(), ec);
+                value_converter<int64_t,T> converter;
+                return converter.convert(value_.int64_value_, tag(), ec);
             }
             case staj_event_type::half_value:
             {
-                return conv.from(half_arg, value_.half_value_, tag(), ec);
+                value_converter<half_arg_t,T> converter;
+                return converter.convert(value_.half_value_, tag(), ec);
             }
             case staj_event_type::double_value:
             {
-                return conv.from(value_.double_value_, tag(), ec);
+                value_converter<double,T> converter;
+                return converter.convert(value_.double_value_, tag(), ec);
             }
             case staj_event_type::bool_value:
             {
-                return conv.from(value_.bool_value_,tag(),ec);
+                value_converter<bool,T> converter;
+                return converter.convert(value_.bool_value_,tag(),ec);
             }
             case staj_event_type::null_value:
             {
-                return conv.from(null_type(),tag(),ec);
+                value_converter<null_type,T> converter;
+                return converter.convert(tag(), ec);
             }
             default:
             {
@@ -279,9 +306,9 @@ public:
         }
     }
 
-    template<class T, class CharT_ = CharT>
-    typename std::enable_if<type_traits::is_basic_string_view<T>::value && std::is_same<typename T::value_type, CharT_>::value, T>::type
-        get(std::error_code& ec) const
+    template<class T, class Allocator, class CharT_ = CharT>
+    typename std::enable_if<traits_extension::is_string_view<T>::value && std::is_same<typename T::value_type, CharT_>::value, T>::type
+        get_(Allocator, std::error_code& ec) const
     {
         T s;
         switch (event_type_)
@@ -297,9 +324,9 @@ public:
         return s;
     }
 
-    template<class T>
+    template<class T, class Allocator>
     typename std::enable_if<std::is_same<T, byte_string_view>::value, T>::type
-        get(std::error_code& ec) const
+        get_(Allocator, std::error_code& ec) const
     {
         T s;
         switch (event_type_)
@@ -314,27 +341,32 @@ public:
         return s;
     }
 
-    template<class T>
-    typename std::enable_if<type_traits::is_list_like<T>::value &&
+    template<class T, class Allocator>
+    typename std::enable_if<traits_extension::is_list_like<T>::value &&
                             std::is_same<typename T::value_type,uint8_t>::value,T>::type
-    get(std::error_code& ec) const
+    get_(Allocator, std::error_code& ec) const
     {
-        converter<T> conv;
         switch (event_type_)
         {
-            case staj_event_type::byte_string_value:
-                return conv.from(byte_string_view(value_.byte_string_data_, length_), tag(), ec);
-            case staj_event_type::string_value:
-                return conv.from(jsoncons::basic_string_view<CharT>(value_.string_data_, length_), tag(), ec);
+        case staj_event_type::byte_string_value:
+            {
+                value_converter<byte_string_view,T> converter;
+                return converter.convert(byte_string_view(value_.byte_string_data_, length_), tag(), ec);
+            }
+        case staj_event_type::string_value:
+            {
+                value_converter<jsoncons::basic_string_view<CharT>,T> converter;
+                return converter.convert(jsoncons::basic_string_view<CharT>(value_.string_data_, length_), tag(), ec);
+            }
             default:
                 ec = conv_errc::not_byte_string;
                 return T{};
         }
     }
 
-    template <class IntegerType>
-    typename std::enable_if<type_traits::is_integer<IntegerType>::value, IntegerType>::type
-    get(std::error_code& ec) const
+    template <class IntegerType, class Allocator>
+    typename std::enable_if<traits_extension::is_integer<IntegerType>::value, IntegerType>::type
+    get_(Allocator, std::error_code& ec) const
     {
         switch (event_type_)
         {
@@ -365,16 +397,16 @@ public:
         }
     }
 
-    template<class T>
+    template<class T, class Allocator>
     typename std::enable_if<std::is_floating_point<T>::value, T>::type
-        get(std::error_code& ec) const
+        get_(Allocator, std::error_code& ec) const
     {
         return static_cast<T>(as_double(ec));
     }
 
-    template<class T>
-    typename std::enable_if<type_traits::is_bool<T>::value, T>::type
-        get(std::error_code& ec) const
+    template<class T, class Allocator>
+    typename std::enable_if<traits_extension::is_bool<T>::value, T>::type
+        get_(Allocator, std::error_code& ec) const
     {
         return as_bool(ec);
     }
@@ -404,7 +436,7 @@ private:
             case staj_event_type::key:
             case staj_event_type::string_value:
             {
-                jsoncons::detail::to_double_t f;
+                jsoncons::detail::chars_to f;
                 return f(value_.string_data_, length_);
             }
             case staj_event_type::double_value:
@@ -441,6 +473,44 @@ private:
                 return bool();
         }
     }
+
+    friend bool send_json_event(const basic_staj_event<CharT>& ev,
+        basic_json_visitor<CharT>& visitor,
+        const ser_context& context,
+        std::error_code& ec)
+    {
+        switch (ev.event_type())
+        {
+            case staj_event_type::begin_array:
+                return visitor.begin_array(ev.tag(), context);
+            case staj_event_type::end_array:
+                return visitor.end_array(context);
+            case staj_event_type::begin_object:
+                return visitor.begin_object(ev.tag(), context, ec);
+            case staj_event_type::end_object:
+                return visitor.end_object(context, ec);
+            case staj_event_type::key:
+                return visitor.key(string_view_type(ev.value_.string_data_,ev.length_), context);
+            case staj_event_type::string_value:
+                return visitor.string_value(string_view_type(ev.value_.string_data_,ev.length_), ev.tag(), context);
+            case staj_event_type::byte_string_value:
+                return visitor.byte_string_value(byte_string_view(ev.value_.byte_string_data_,ev.length_), ev.tag(), context);
+            case staj_event_type::null_value:
+                return visitor.null_value(ev.tag(), context);
+            case staj_event_type::bool_value:
+                return visitor.bool_value(ev.value_.bool_value_, ev.tag(), context);
+            case staj_event_type::int64_value:
+                return visitor.int64_value(ev.value_.int64_value_, ev.tag(), context);
+            case staj_event_type::uint64_value:
+                return visitor.uint64_value(ev.value_.uint64_value_, ev.tag(), context);
+            case staj_event_type::half_value:
+                return visitor.half_value(ev.value_.half_value_, ev.tag(), context);
+            case staj_event_type::double_value:
+                return visitor.double_value(ev.value_.double_value_, ev.tag(), context);
+            default:
+                return false;
+        }
+    }
 };
 
 // basic_staj_visitor
@@ -450,223 +520,6 @@ enum class staj_cursor_state
     typed_array = 1,
     multi_dim,
     shape
-};
-
-struct uint8_array_arg_t {explicit uint8_array_arg_t() = default; };
-constexpr uint8_array_arg_t uint8_array_arg = uint8_array_arg_t();
-struct uint16_array_arg_t {explicit uint16_array_arg_t() = default; };
-struct uint32_array_arg_t {explicit uint32_array_arg_t() = default; };
-constexpr uint32_array_arg_t uint32_array_arg = uint32_array_arg_t();
-struct uint64_array_arg_t {explicit uint64_array_arg_t() = default; };
-constexpr uint64_array_arg_t uint64_array_arg = uint64_array_arg_t();
-struct int8_array_arg_t {explicit int8_array_arg_t() = default; };
-constexpr int8_array_arg_t int8_array_arg = int8_array_arg_t();
-struct int16_array_arg_t {explicit int16_array_arg_t() = default; };
-constexpr int16_array_arg_t int16_array_arg = int16_array_arg_t();
-struct int32_array_arg_t {explicit int32_array_arg_t() = default; };
-constexpr int32_array_arg_t int32_array_arg = int32_array_arg_t();
-struct int64_array_arg_t {explicit int64_array_arg_t() = default; };
-constexpr int64_array_arg_t int64_array_arg = int64_array_arg_t();
-constexpr uint16_array_arg_t uint16_array_arg = uint16_array_arg_t();
-struct half_array_arg_t {explicit half_array_arg_t() = default; };
-constexpr half_array_arg_t half_array_arg = half_array_arg_t();
-struct float_array_arg_t {explicit float_array_arg_t() = default; };
-constexpr float_array_arg_t float_array_arg = float_array_arg_t();
-struct double_array_arg_t {explicit double_array_arg_t() = default; };
-constexpr double_array_arg_t double_array_arg = double_array_arg_t();
-struct float128_array_arg_t {explicit float128_array_arg_t() = default; };
-constexpr float128_array_arg_t float128_array_arg = float128_array_arg_t();
-
-enum class typed_array_type{uint8_value=1,uint16_value,uint32_value,uint64_value,
-                            int8_value,int16_value,int32_value,int64_value, 
-                            half_value, float_value,double_value};
-
-class typed_array_view
-{
-    typed_array_type type_;
-    union 
-    {
-        const uint8_t* uint8_data_;
-        const uint16_t* uint16_data_;
-        const uint32_t* uint32_data_;
-        const uint64_t* uint64_data_;
-        const int8_t* int8_data_;
-        const int16_t* int16_data_;
-        const int32_t* int32_data_;
-        const int64_t* int64_data_;
-        const float* float_data_;
-        const double* double_data_;
-    } data_;
-    std::size_t size_;
-public:
-
-    typed_array_view()
-        : type_(), data_(), size_(0)
-    {
-    }
-
-    typed_array_view(const typed_array_view& other)
-        : type_(other.type_), data_(other.data_), size_(other.size())
-    {
-    }
-
-    typed_array_view(typed_array_view&& other) noexcept
-    {
-        swap(*this,other);
-    }
-
-    typed_array_view(const uint8_t* data, std::size_t size)
-        : type_(typed_array_type::uint8_value), size_(size)
-    {
-        data_.uint8_data_ = data;
-    }
-
-    typed_array_view(const uint16_t* data, std::size_t size)
-        : type_(typed_array_type::uint16_value), size_(size)
-    {
-        data_.uint16_data_ = data;
-    }
-
-    typed_array_view(const uint32_t* data, std::size_t size)
-        : type_(typed_array_type::uint32_value), size_(size)
-    {
-        data_.uint32_data_ = data;
-    }
-
-    typed_array_view(const uint64_t* data, std::size_t size)
-        : type_(typed_array_type::uint64_value), size_(size)
-    {
-        data_.uint64_data_ = data;
-    }
-
-    typed_array_view(const int8_t* data, std::size_t size)
-        : type_(typed_array_type::int8_value), size_(size)
-    {
-        data_.int8_data_ = data;
-    }
-
-    typed_array_view(const int16_t* data, std::size_t size)
-        : type_(typed_array_type::int16_value), size_(size)
-    {
-        data_.int16_data_ = data;
-    }
-
-    typed_array_view(const int32_t* data, std::size_t size)
-        : type_(typed_array_type::int32_value), size_(size)
-    {
-        data_.int32_data_ = data;
-    }
-
-    typed_array_view(const int64_t* data, std::size_t size)
-        : type_(typed_array_type::int64_value), size_(size)
-    {
-        data_.int64_data_ = data;
-    }
-
-    typed_array_view(half_array_arg_t, const uint16_t* data, std::size_t size)
-        : type_(typed_array_type::half_value), size_(size)
-    {
-        data_.uint16_data_ = data;
-    }
-
-    typed_array_view(const float* data, std::size_t size)
-        : type_(typed_array_type::float_value), size_(size)
-    {
-        data_.float_data_ = data;
-    }
-
-    typed_array_view(const double* data, std::size_t size)
-        : type_(typed_array_type::double_value), size_(size)
-    {
-        data_.double_data_ = data;
-    }
-
-    typed_array_view& operator=(const typed_array_view& other)
-    {
-        typed_array_view temp(other);
-        swap(*this,temp);
-        return *this;
-    }
-
-    typed_array_type type() const {return type_;}
-
-    std::size_t size() const
-    {
-        return size_;
-    }
-
-    jsoncons::span<const uint8_t> data(uint8_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::uint8_value);
-        return jsoncons::span<const uint8_t>(data_.uint8_data_, size_);
-    }
-
-    jsoncons::span<const uint16_t> data(uint16_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::uint16_value);
-        return jsoncons::span<const uint16_t>(data_.uint16_data_, size_);
-    }
-
-    jsoncons::span<const uint32_t> data(uint32_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::uint32_value);
-        return jsoncons::span<const uint32_t>(data_.uint32_data_, size_);
-    }
-
-    jsoncons::span<const uint64_t> data(uint64_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::uint64_value);
-        return jsoncons::span<const uint64_t>(data_.uint64_data_, size_);
-    }
-
-    jsoncons::span<const int8_t> data(int8_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::int8_value);
-        return jsoncons::span<const int8_t>(data_.int8_data_, size_);
-    }
-
-    jsoncons::span<const int16_t> data(int16_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::int16_value);
-        return jsoncons::span<const int16_t>(data_.int16_data_, size_);
-    }
-
-    jsoncons::span<const int32_t> data(int32_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::int32_value);
-        return jsoncons::span<const int32_t>(data_.int32_data_, size_);
-    }
-
-    jsoncons::span<const int64_t> data(int64_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::int64_value);
-        return jsoncons::span<const int64_t>(data_.int64_data_, size_);
-    }
-
-    jsoncons::span<const uint16_t> data(half_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::half_value);
-        return jsoncons::span<const uint16_t>(data_.uint16_data_, size_);
-    }
-
-    jsoncons::span<const float> data(float_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::float_value);
-        return jsoncons::span<const float>(data_.float_data_, size_);
-    }
-
-    jsoncons::span<const double> data(double_array_arg_t) const
-    {
-        JSONCONS_ASSERT(type_ == typed_array_type::double_value);
-        return jsoncons::span<const double>(data_.double_data_, size_);
-    }
-
-    friend void swap(typed_array_view& a, typed_array_view& b) noexcept
-    {
-        std::swap(a.data_,b.data_);
-        std::swap(a.type_,b.type_);
-        std::swap(a.size_,b.size_);
-    }
 };
 
 template <class CharT>
@@ -695,6 +548,15 @@ public:
         : pred_(pred), event_(staj_event_type::null_value),
           state_(), data_(), shape_(), index_(0)
     {
+    }
+
+    void reset()
+    {
+        event_ = staj_event_type::null_value;
+        state_ = {};
+        data_ = {};
+        shape_ = {};
+        index_ = 0;
     }
 
     const basic_staj_event<CharT>& event() const
@@ -842,7 +704,7 @@ public:
         {
             if (index_ != 0)
             {
-                more = staj_to_saj_event(event(), visitor, context, ec);
+                more = send_json_event(event(), visitor, context, ec);
                 while (more && is_typed_array())
                 {
                     if (index_ < data_.size())
@@ -977,7 +839,7 @@ public:
         }
         else
         {
-            more = staj_to_saj_event(event(), visitor, context, ec);
+            more = send_json_event(event(), visitor, context, ec);
         }
         return more;
     }
@@ -994,6 +856,12 @@ private:
         return !pred_(event_, context);
     }
 
+    bool visit_begin_object(std::size_t length, semantic_tag tag, const ser_context& context, std::error_code&) override
+    {
+        event_ = basic_staj_event<CharT>(staj_event_type::begin_object, length, tag);
+        return !pred_(event_, context);
+    }
+
     bool visit_end_object(const ser_context& context, std::error_code&) override
     {
         event_ = basic_staj_event<CharT>(staj_event_type::end_object);
@@ -1003,6 +871,12 @@ private:
     bool visit_begin_array(semantic_tag tag, const ser_context& context, std::error_code&) override
     {
         event_ = basic_staj_event<CharT>(staj_event_type::begin_array, tag);
+        return !pred_(event_, context);
+    }
+
+    bool visit_begin_array(std::size_t length, semantic_tag tag, const ser_context& context, std::error_code&) override
+    {
+        event_ = basic_staj_event<CharT>(staj_event_type::begin_array, length, tag);
         return !pred_(event_, context);
     }
 
@@ -1240,44 +1114,6 @@ private:
     }
 };
 
-template<class CharT>
-bool staj_to_saj_event(const basic_staj_event<CharT>& ev,
-                       basic_json_visitor<CharT>& visitor,
-                       const ser_context& context,
-                       std::error_code& ec)
-{
-    switch (ev.event_type())
-    {
-        case staj_event_type::begin_array:
-            return visitor.begin_array(ev.tag(), context);
-        case staj_event_type::end_array:
-            return visitor.end_array(context);
-        case staj_event_type::begin_object:
-            return visitor.begin_object(ev.tag(), context, ec);
-        case staj_event_type::end_object:
-            return visitor.end_object(context, ec);
-        case staj_event_type::key:
-            return visitor.key(ev.template get<jsoncons::basic_string_view<CharT>>(), context);
-        case staj_event_type::string_value:
-            return visitor.string_value(ev.template get<jsoncons::basic_string_view<CharT>>(), ev.tag(), context);
-        case staj_event_type::byte_string_value:
-            return visitor.byte_string_value(ev.template get<byte_string_view>(), ev.tag(), context);
-        case staj_event_type::null_value:
-            return visitor.null_value(ev.tag(), context);
-        case staj_event_type::bool_value:
-            return visitor.bool_value(ev.template get<bool>(), ev.tag(), context);
-        case staj_event_type::int64_value:
-            return visitor.int64_value(ev.template get<int64_t>(), ev.tag(), context);
-        case staj_event_type::uint64_value:
-            return visitor.uint64_value(ev.template get<uint64_t>(), ev.tag(), context);
-        case staj_event_type::half_value:
-            return visitor.half_value(ev.template get<uint16_t>(), ev.tag(), context);
-        case staj_event_type::double_value:
-            return visitor.double_value(ev.template get<double>(), ev.tag(), context);
-        default:
-            return false;
-    }
-}
 
 // basic_staj_cursor
 

@@ -17,7 +17,7 @@
 #include <jsoncons/json_type_traits.hpp>
 #include <jsoncons/staj_cursor.hpp>
 #include <jsoncons/conv_error.hpp>
-#include <jsoncons/more_type_traits.hpp>
+#include <jsoncons/traits_extension.hpp>
 
 namespace jsoncons {
 
@@ -51,7 +51,7 @@ namespace jsoncons {
 
     template <class T, class CharT>
     struct decode_traits<T,CharT,
-        typename std::enable_if<type_traits::is_primitive<T>::value
+        typename std::enable_if<traits_extension::is_primitive<T>::value
     >::type>
     {
         template <class Json,class TempAllocator>
@@ -68,7 +68,7 @@ namespace jsoncons {
 
     template <class T, class CharT>
     struct decode_traits<T,CharT,
-        typename std::enable_if<type_traits::is_basic_string<T>::value &&
+        typename std::enable_if<traits_extension::is_string<T>::value &&
                                 std::is_same<typename T::value_type,CharT>::value
     >::type>
     {
@@ -84,7 +84,7 @@ namespace jsoncons {
 
     template <class T, class CharT>
     struct decode_traits<T,CharT,
-        typename std::enable_if<type_traits::is_basic_string<T>::value &&
+        typename std::enable_if<traits_extension::is_string<T>::value &&
                                 !std::is_same<typename T::value_type,CharT>::value
     >::type>
     {
@@ -151,9 +151,9 @@ namespace jsoncons {
     template <class T, class CharT>
     struct decode_traits<T,CharT,
         typename std::enable_if<!is_json_type_traits_declared<T>::value && 
-                 type_traits::is_list_like<T>::value &&
-                 type_traits::is_back_insertable<T>::value &&
-                 !type_traits::is_typed_array<T>::value 
+                 traits_extension::is_list_like<T>::value &&
+                 traits_extension::is_back_insertable<T>::value &&
+                 !traits_extension::is_typed_array<T>::value 
     >::type>
     {
         using value_type = typename T::value_type;
@@ -221,7 +221,10 @@ namespace jsoncons {
                 ec = conv_errc::not_vector;
                 return false;
             }
-            v_.reserve(size);
+            if (size > 0)
+            {
+                reserve_storage(typename std::integral_constant<bool, traits_extension::has_reserve<T>::value>::type(), v_, size);
+            }
             return true;
         }
 
@@ -291,14 +294,25 @@ namespace jsoncons {
             v_ = std::vector<value_type>(data.begin(),data.end());
             return false;
         }
+
+        static
+        void reserve_storage(std::true_type, T& v, std::size_t new_cap)
+        {
+            v.reserve(new_cap);
+        }
+
+        static
+        void reserve_storage(std::false_type, T&, std::size_t)
+        {
+        }
     };
 
     template <class T, class CharT>
     struct decode_traits<T,CharT,
         typename std::enable_if<!is_json_type_traits_declared<T>::value && 
-                 type_traits::is_list_like<T>::value &&
-                 type_traits::is_back_insertable_byte_container<T>::value &&
-                 type_traits::is_typed_array<T>::value
+                 traits_extension::is_list_like<T>::value &&
+                 traits_extension::is_back_insertable_byte_container<T>::value &&
+                 traits_extension::is_typed_array<T>::value
     >::type>
     {
         using value_type = typename T::value_type;
@@ -321,6 +335,10 @@ namespace jsoncons {
                     if (!ec) 
                     {
                         T v;
+                        if (cursor.current().size() > 0)
+                        {
+                            reserve_storage(typename std::integral_constant<bool, traits_extension::has_reserve<T>::value>::type(), v, cursor.current().size());
+                        }
                         for (auto ch : bytes)
                         {
                             v.push_back(static_cast<value_type>(ch));
@@ -336,6 +354,10 @@ namespace jsoncons {
                 case staj_event_type::begin_array:
                 {
                     T v;
+                    if (cursor.current().size() > 0)
+                    {
+                        reserve_storage(typename std::integral_constant<bool, traits_extension::has_reserve<T>::value>::type(), v, cursor.current().size());
+                    }
                     typed_array_visitor<T> visitor(v);
                     cursor.read_to(visitor, ec);
                     return v;
@@ -347,15 +369,24 @@ namespace jsoncons {
                 }
             }
         }
+
+        static void reserve_storage(std::true_type, T& v, std::size_t new_cap)
+        {
+            v.reserve(new_cap);
+        }
+
+        static void reserve_storage(std::false_type, T&, std::size_t)
+        {
+        }
     };
 
     template <class T, class CharT>
     struct decode_traits<T,CharT,
         typename std::enable_if<!is_json_type_traits_declared<T>::value && 
-                 type_traits::is_list_like<T>::value &&
-                 type_traits::is_back_insertable<T>::value &&
-                 !type_traits::is_back_insertable_byte_container<T>::value &&
-                 type_traits::is_typed_array<T>::value
+                 traits_extension::is_list_like<T>::value &&
+                 traits_extension::is_back_insertable<T>::value &&
+                 !traits_extension::is_back_insertable_byte_container<T>::value &&
+                 traits_extension::is_typed_array<T>::value
     >::type>
     {
         using value_type = typename T::value_type;
@@ -375,6 +406,10 @@ namespace jsoncons {
                 case staj_event_type::begin_array:
                 {
                     T v;
+                    if (cursor.current().size() > 0)
+                    {
+                        reserve_storage(typename std::integral_constant<bool, traits_extension::has_reserve<T>::value>::type(), v, cursor.current().size());
+                    }
                     typed_array_visitor<T> visitor(v);
                     cursor.read_to(visitor, ec);
                     return v;
@@ -386,15 +421,24 @@ namespace jsoncons {
                 }
             }
         }
+
+        static void reserve_storage(std::true_type, T& v, std::size_t new_cap)
+        {
+            v.reserve(new_cap);
+        }
+
+        static void reserve_storage(std::false_type, T&, std::size_t)
+        {
+        }
     };
 
     // set like
     template <class T, class CharT>
     struct decode_traits<T,CharT,
         typename std::enable_if<!is_json_type_traits_declared<T>::value && 
-                 type_traits::is_list_like<T>::value &&
-                 !type_traits::is_back_insertable<T>::value &&
-                 type_traits::is_insertable<T>::value 
+                 traits_extension::is_list_like<T>::value &&
+                 !traits_extension::is_back_insertable<T>::value &&
+                 traits_extension::is_insertable<T>::value 
     >::type>
     {
         using value_type = typename T::value_type;
@@ -416,6 +460,10 @@ namespace jsoncons {
                 ec = conv_errc::not_vector;
                 return v;
             }
+            if (cursor.current().size() > 0)
+            {
+                reserve_storage(typename std::integral_constant<bool, traits_extension::has_reserve<T>::value>::type(), v, cursor.current().size());
+            }
             cursor.next(ec);
             while (cursor.current().event_type() != staj_event_type::end_array && !ec)
             {
@@ -425,6 +473,15 @@ namespace jsoncons {
                 if (ec) {return T{};}
             }
             return v;
+        }
+
+        static void reserve_storage(std::true_type, T& v, std::size_t new_cap)
+        {
+            v.reserve(new_cap);
+        }
+
+        static void reserve_storage(std::false_type, T&, std::size_t)
+        {
         }
     };
 
@@ -470,8 +527,8 @@ namespace jsoncons {
     template <class T, class CharT>
     struct decode_traits<T,CharT,
         typename std::enable_if<!is_json_type_traits_declared<T>::value && 
-                                type_traits::is_map_like<T>::value &&
-                                type_traits::is_constructible_from_const_pointer_and_size<typename T::key_type>::value
+                                traits_extension::is_map_like<T>::value &&
+                                traits_extension::is_constructible_from_const_pointer_and_size<typename T::key_type>::value
     >::type>
     {
         using mapped_type = typename T::mapped_type;
@@ -488,6 +545,10 @@ namespace jsoncons {
             {
                 ec = conv_errc::not_map;
                 return val;
+            }
+            if (cursor.current().size() > 0)
+            {
+                reserve_storage(typename std::integral_constant<bool, traits_extension::has_reserve<T>::value>::type(), val, cursor.current().size());
             }
             cursor.next(ec);
 
@@ -509,12 +570,21 @@ namespace jsoncons {
             }
             return val;
         }
+
+        static void reserve_storage(std::true_type, T& v, std::size_t new_cap)
+        {
+            v.reserve(new_cap);
+        }
+
+        static void reserve_storage(std::false_type, T&, std::size_t)
+        {
+        }
     };
 
     template <class T, class CharT>
     struct decode_traits<T,CharT,
         typename std::enable_if<!is_json_type_traits_declared<T>::value && 
-                                type_traits::is_map_like<T>::value &&
+                                traits_extension::is_map_like<T>::value &&
                                 std::is_integral<typename T::key_type>::value
     >::type>
     {
@@ -532,6 +602,10 @@ namespace jsoncons {
             {
                 ec = conv_errc::not_map;
                 return val;
+            }
+            if (cursor.current().size() > 0)
+            {
+                reserve_storage(typename std::integral_constant<bool, traits_extension::has_reserve<T>::value>::type(), val, cursor.current().size());
             }
             cursor.next(ec);
 
@@ -559,6 +633,15 @@ namespace jsoncons {
                 if (ec) {return val;}
             }
             return val;
+        }
+
+        static void reserve_storage(std::true_type, T& v, std::size_t new_cap)
+        {
+            v.reserve(new_cap);
+        }
+
+        static void reserve_storage(std::false_type, T&, std::size_t)
+        {
         }
     };
 

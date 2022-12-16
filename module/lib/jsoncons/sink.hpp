@@ -16,7 +16,7 @@
 #include <memory> // std::addressof
 #include <cstring> // std::memcpy
 #include <jsoncons/config/jsoncons_config.hpp>
-#include <jsoncons/more_type_traits.hpp>
+#include <jsoncons/traits_extension.hpp>
 
 namespace jsoncons { 
 
@@ -210,7 +210,6 @@ namespace jsoncons {
         // Noncopyable
         string_sink(const string_sink&) = delete;
         string_sink& operator=(const string_sink&) = delete;
-        string_sink& operator=(string_sink&& val) = delete;
     public:
         string_sink(string_sink&& val) noexcept
             : buf_ptr(nullptr)
@@ -221,6 +220,14 @@ namespace jsoncons {
         string_sink(container_type& buf)
             : buf_ptr(std::addressof(buf))
         {
+        }
+
+        string_sink& operator=(string_sink&& val) noexcept
+        {
+            // TODO: Shouldn't val.buf_ptr be nullified?
+            //       Also see move constructor above.
+            std::swap(buf_ptr,val.buf_ptr);
+            return *this;
         }
 
         void flush()
@@ -246,7 +253,7 @@ namespace jsoncons {
     };
 
     template <class Container>
-    class bytes_sink<Container,typename std::enable_if<type_traits::is_back_insertable_byte_container<Container>::value>::type> 
+    class bytes_sink<Container,typename std::enable_if<traits_extension::is_back_insertable_byte_container<Container>::value>::type> 
     {
     public:
         using container_type = Container;
