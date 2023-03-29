@@ -15,33 +15,35 @@
 #include <jsoncons/detail/write_number.hpp>
 #include <jsoncons_ext/jsonpath/jsonpath_error.hpp>
 #include <jsoncons/json_type.hpp>
+#include <jsoncons_ext/jsonpath/jsonpath_utilities.hpp>
 
 namespace jsoncons { 
 namespace jsonpath {
 
-    template <class CharT>
+    template <class StringT>
     class json_location; 
 
     enum class json_location_node_kind { root, index, name };
 
-    template <class CharT>
+    template <class StringT>
     class json_location_node 
     {
-        friend class json_location<CharT>;
+        friend class json_location<StringT>;
     public:
-        using char_type = CharT;
-        using string_type = std::basic_string<CharT>;
+        using string_type = StringT;
+        using char_type = typename StringT::value_type;
     private:
 
         const json_location_node* parent_;
         json_location_node_kind node_kind_;
-        string_type name_;
+        jsoncons::optional<string_type> name_;
         std::size_t index_;
     public:
-        json_location_node(char_type c)
-            : parent_(nullptr), node_kind_(json_location_node_kind::root), index_(0)
+        json_location_node(string_type&& name)
+            : parent_(nullptr), 
+              node_kind_(json_location_node_kind::root), 
+              name_(std::forward<string_type>(name)), index_(0)
         {
-            name_.push_back(c);
         }
 
         json_location_node(const json_location_node* parent, const string_type& name)
@@ -63,7 +65,7 @@ namespace jsonpath {
 
         const string_type& name() const
         {
-            return name_;
+            return *name_;
         }
 
         std::size_t index() const 
@@ -83,7 +85,7 @@ namespace jsonpath {
 
         std::size_t node_hash() const
         {
-            std::size_t h = node_kind_ == json_location_node_kind::index ? std::hash<std::size_t>{}(index_) : std::hash<string_type>{}(name_);
+            std::size_t h = node_kind_ == json_location_node_kind::index ? std::hash<std::size_t>{}(index_) : std::hash<string_type>{}(*name_);
 
             return h;
         }
@@ -100,13 +102,13 @@ namespace jsonpath {
                 switch (node_kind_)
                 {
                     case json_location_node_kind::root:
-                        diff = name_.compare(other.name_);
+                        diff = (*name_).compare(*(other.name_));
                         break;
                     case json_location_node_kind::index:
                         diff = index_ < other.index_ ? -1 : index_ > other.index_ ? 1 : 0;
                         break;
                     case json_location_node_kind::name:
-                        diff = name_.compare(other.name_);
+                        diff = (*name_).compare(*(other.name_));
                         break;
                 }
             }
@@ -263,20 +265,22 @@ namespace jsonpath {
 
     } // namespace detail
 
-    template <class CharT>
+    template <class StringT>
     class json_location
     {
     public:
-        using char_type = CharT;
-        using string_type = std::basic_string<CharT>;
-        using json_location_node_type = json_location_node<CharT>;
+        using allocator_type = typename StringT::allocator_type;
+        using string_type = StringT;
+        using json_location_node_type = json_location_node<StringT>;
     private:
+        allocator_type alloc_;
         std::vector<const json_location_node_type*> nodes_;
     public:
         using iterator = typename detail::json_location_iterator<typename std::vector<const json_location_node_type*>::iterator>;
         using const_iterator = typename detail::json_location_iterator<typename std::vector<const json_location_node_type*>::const_iterator>;
 
-        json_location(const json_location_node_type& node)
+        json_location(const json_location_node_type& node, const allocator_type& alloc = allocator_type())
+            : alloc_(alloc)
         {
             const json_location_node_type* p = std::addressof(node);
             do
@@ -316,7 +320,7 @@ namespace jsonpath {
 
         string_type to_string() const
         {
-            string_type buffer;
+            string_type buffer(alloc_);
 
             for (const auto& node : nodes_)
             {
@@ -328,18 +332,7 @@ namespace jsonpath {
                     case json_location_node_kind::name:
                         buffer.push_back('[');
                         buffer.push_back('\'');
-                        for (auto c : node->name())
-                        {
-                            if (c == '\'')
-                            {
-                                buffer.push_back('\\');
-                                buffer.push_back('\'');
-                            }
-                            else
-                            {
-                                buffer.push_back(c);
-                            }
-                        }
+                        jsoncons::jsonpath::escape_string(node->name().data(), node->name().size(), buffer);
                         buffer.push_back('\'');
                         buffer.push_back(']');
                         break;
@@ -409,7 +402,7 @@ namespace jsonpath {
     };
 
     template <class Json>
-    Json* select(Json& root, const json_location<typename Json::char_type>& path)
+    Json* select(Json& root, const json_location<typename Json::string_type>& path)
     {
         Json* current = std::addressof(root);
         for (const auto& json_location_node : path)

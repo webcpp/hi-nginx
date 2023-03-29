@@ -1,4 +1,4 @@
-// Copyright 2013 Daniel Parker
+// Copyright 2013-2023 Daniel Parker
 // Distributed under the Boost license, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -114,21 +114,7 @@
    #endif
 #endif
 
-#if !defined(JSONCONS_HAS_STD_FROM_CHARS)
-#  if defined(__GNUC__)
-#   if (__GNUC__ >= 11)
-#    if (__cplusplus >= 201703)
-#     define JSONCONS_HAS_STD_FROM_CHARS 1
-#    endif // (__cplusplus >= 201703)
-#   endif // (__GNUC__ >= 11)
-#  endif // defined(__GNUC__)
-#  if defined(_MSC_VER)
-#   if (_MSC_VER >= 1924 && _MSVC_LANG >= 201703)
-#    define JSONCONS_HAS_STD_FROM_CHARS 1
-#   endif // (_MSC_VER >= 1924 && MSVC_LANG >= 201703)
-#  endif // defined(_MSC_VER)
-#endif
-#if defined(JSONCONS_HAS_STD_FROM_CHARS)
+#if defined(JSONCONS_HAS_STD_FROM_CHARS) && JSONCONS_HAS_STD_FROM_CHARS
 #include <charconv>
 #endif
 

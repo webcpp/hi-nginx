@@ -1,4 +1,4 @@
-// Copyright 2013 Daniel Parker
+// Copyright 2013-2023 Daniel Parker
 // Distributed under the Boost license, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -42,6 +42,19 @@
 namespace jsoncons { 
 
     namespace traits_extension {
+
+        template <class Container>
+        using 
+        container_array_iterator_type_t = decltype(Container::array_iterator_type);
+        template <class Container>
+        using 
+        container_const_array_iterator_type_t = decltype(Container::const_array_iterator_type);
+        template <class Container>
+        using 
+        container_object_iterator_type_t = decltype(Container::object_iterator_type);
+        template <class Container>
+        using 
+        container_const_object_iterator_type_t = decltype(Container::const_object_iterator_type);
 
         namespace detail {
 
@@ -245,11 +258,11 @@ namespace jsoncons {
 
         template <class Json>
         using array = json_array<Json,std::vector>;
-
-        using parse_error_handler_type = default_json_parsing;
         
         template <class CharT, class CharTraits, class Allocator>
         using string = std::basic_string<CharT, CharTraits, Allocator>;
+
+        using parse_error_handler_type = default_json_parsing;
     };
 
     struct order_preserving_policy
@@ -259,11 +272,57 @@ namespace jsoncons {
 
         template <class Json>
         using array = json_array<Json,std::vector>;
-
-        using parse_error_handler_type = default_json_parsing;
         
         template <class CharT, class CharTraits, class Allocator>
         using string = std::basic_string<CharT, CharTraits, Allocator>;
+
+        using parse_error_handler_type = default_json_parsing;
+    };
+
+    template<class ImplementationPolicy, class KeyT,class Json, class Enable=void>
+    struct object_iterator_typedefs
+    {
+    };
+
+    template<class ImplementationPolicy, class KeyT,class Json>
+    struct object_iterator_typedefs<ImplementationPolicy, KeyT, Json, typename std::enable_if<
+        !traits_extension::is_detected<traits_extension::container_object_iterator_type_t, ImplementationPolicy>::value ||
+        !traits_extension::is_detected<traits_extension::container_const_object_iterator_type_t, ImplementationPolicy>::value>::type>
+    {
+        using object_iterator_type = jsoncons::detail::random_access_iterator_wrapper<typename ImplementationPolicy::template object<KeyT,Json>::iterator>;                    
+        using const_object_iterator_type = jsoncons::detail::random_access_iterator_wrapper<typename ImplementationPolicy::template object<KeyT,Json>::const_iterator>;
+    };
+
+    template<class ImplementationPolicy,class KeyT,class Json>
+    struct object_iterator_typedefs<ImplementationPolicy, KeyT, Json, typename std::enable_if<
+        traits_extension::is_detected<traits_extension::container_object_iterator_type_t, ImplementationPolicy>::value &&
+        traits_extension::is_detected<traits_extension::container_const_object_iterator_type_t, ImplementationPolicy>::value>::type>
+    {
+        using object_iterator_type = jsoncons::detail::random_access_iterator_wrapper<typename ImplementationPolicy::template object_iterator<KeyT,Json>>;
+        using const_object_iterator_type = jsoncons::detail::random_access_iterator_wrapper<typename ImplementationPolicy::template const_object_iterator<KeyT,Json>>;
+    };
+
+    template<class ImplementationPolicy, class KeyT,class Json, class Enable=void>
+    struct array_iterator_typedefs
+    {
+    };
+
+    template<class ImplementationPolicy, class KeyT,class Json>
+    struct array_iterator_typedefs<ImplementationPolicy, KeyT, Json, typename std::enable_if<
+        !traits_extension::is_detected<traits_extension::container_array_iterator_type_t, ImplementationPolicy>::value ||
+        !traits_extension::is_detected<traits_extension::container_const_array_iterator_type_t, ImplementationPolicy>::value>::type>
+    {
+        using array_iterator_type = typename ImplementationPolicy::template array<Json>::iterator;
+        using const_array_iterator_type = typename ImplementationPolicy::template array<Json>::const_iterator;
+    };
+
+    template<class ImplementationPolicy,class KeyT,class Json>
+    struct array_iterator_typedefs<ImplementationPolicy, KeyT, Json, typename std::enable_if<
+        traits_extension::is_detected<traits_extension::container_array_iterator_type_t, ImplementationPolicy>::value &&
+        traits_extension::is_detected<traits_extension::container_const_array_iterator_type_t, ImplementationPolicy>::value>::type>
+    {
+        using array_iterator_type = typename ImplementationPolicy::template array_iterator_type<Json>;
+        using const_array_iterator_type = typename ImplementationPolicy::template const_array_iterator_type<Json>;
     };
 
     #if !defined(JSONCONS_NO_DEPRECATED)
@@ -350,7 +409,7 @@ namespace jsoncons {
 
         using implementation_policy = ImplementationPolicy;
 
-        using parse_error_handler_type = typename ImplementationPolicy::parse_error_handler_type;
+        using parse_error_handler_type = typename implementation_policy::parse_error_handler_type;
 
         using char_type = CharT;
         using char_traits_type = std::char_traits<char_type>;
@@ -358,7 +417,9 @@ namespace jsoncons {
 
         using char_allocator_type = typename std::allocator_traits<allocator_type>:: template rebind_alloc<char_type>;
 
-        using key_type = typename ImplementationPolicy::template string<char_type,char_traits_type,char_allocator_type>;
+        using string_type = std::basic_string<char_type,char_traits_type,char_allocator_type>;
+
+        using key_type = typename implementation_policy::template string<char_type,char_traits_type,char_allocator_type>;
 
 
         using reference = basic_json&;
@@ -370,21 +431,21 @@ namespace jsoncons {
 
     #if !defined(JSONCONS_NO_DEPRECATED)
         JSONCONS_DEPRECATED_MSG("no replacement") typedef basic_json value_type;
-        JSONCONS_DEPRECATED_MSG("no replacement") typedef std::basic_string<char_type> string_type;
+        //JSONCONS_DEPRECATED_MSG("no replacement") typedef std::basic_string<char_type> string_type;
         JSONCONS_DEPRECATED_MSG("Instead, use key_value_type") typedef key_value_type kvp_type;
         JSONCONS_DEPRECATED_MSG("Instead, use key_value_type") typedef key_value_type member_type;
     #endif
 
-        using array = typename ImplementationPolicy::template array<basic_json>;
+        using array = typename implementation_policy::template array<basic_json>;
 
         using key_value_allocator_type = typename std::allocator_traits<allocator_type>:: template rebind_alloc<key_value_type>;                       
 
-        using object = typename ImplementationPolicy::template object<key_type,basic_json>;
+        using object = typename implementation_policy::template object<key_type,basic_json>;
 
-        using object_iterator = jsoncons::detail::random_access_iterator_wrapper<typename object::iterator>;              
-        using const_object_iterator = jsoncons::detail::random_access_iterator_wrapper<typename object::const_iterator>;                    
-        using array_iterator = typename array::iterator;
-        using const_array_iterator = typename array::const_iterator;
+        using object_iterator = typename object_iterator_typedefs<implementation_policy,key_type,basic_json>::object_iterator_type;                    
+        using const_object_iterator = typename object_iterator_typedefs<implementation_policy,key_type,basic_json>::const_object_iterator_type;                    
+        using array_iterator = typename array_iterator_typedefs<implementation_policy,key_type,basic_json>::array_iterator_type;                    
+        using const_array_iterator = typename array_iterator_typedefs<implementation_policy,key_type,basic_json>::const_array_iterator_type;                    
 
     private:
 
@@ -3009,6 +3070,16 @@ namespace jsoncons {
         {
         }
 
+        basic_json(const string_type& s)
+            : basic_json(s.data(), s.size(), semantic_tag::none, s.get_allocator())
+        {
+        }
+
+        basic_json(const string_type& s, semantic_tag tag)
+            : basic_json(s.data(), s.size(), tag, s.get_allocator())
+        {
+        }
+
         basic_json(const char_type* s, semantic_tag tag = semantic_tag::none)
             : basic_json(s, char_traits_type::length(s), tag)
         {
@@ -4065,7 +4136,7 @@ namespace jsoncons {
         template <class SAllocator=std::allocator<char_type>>
         std::basic_string<char_type,char_traits_type,SAllocator> as_string(const SAllocator& alloc) const 
         {
-            using string_type = std::basic_string<char_type,char_traits_type,SAllocator>;
+            using string_type2 = std::basic_string<char_type,char_traits_type,SAllocator>;
 
             std::error_code ec;
             switch (storage_kind())
@@ -4073,11 +4144,11 @@ namespace jsoncons {
                 case json_storage_kind::short_string_value:
                 case json_storage_kind::long_string_value:
                 {
-                    return string_type(as_string_view().data(),as_string_view().length(),alloc);
+                    return string_type2(as_string_view().data(),as_string_view().length(),alloc);
                 }
                 case json_storage_kind::byte_string_value:
                 {
-                    value_converter<byte_string_view,string_type> converter;
+                    value_converter<byte_string_view,string_type2> converter;
                     auto s = converter.convert(as_byte_string_view(), tag(), ec);
                     if (ec)
                     {
@@ -4087,9 +4158,9 @@ namespace jsoncons {
                 }
                 case json_storage_kind::array_value:
                 {
-                    string_type s(alloc);
+                    string_type2 s(alloc);
                     {
-                        basic_compact_json_encoder<char_type,jsoncons::string_sink<string_type>> encoder(s);
+                        basic_compact_json_encoder<char_type,jsoncons::string_sink<string_type2>> encoder(s);
                         dump(encoder);
                     }
                     return s;
@@ -4098,8 +4169,8 @@ namespace jsoncons {
                     return cast<json_const_pointer_storage>().value()->as_string(alloc);
                 default:
                 {
-                    string_type s(alloc);
-                    basic_compact_json_encoder<char_type,jsoncons::string_sink<string_type>> encoder(s);
+                    string_type2 s(alloc);
+                    basic_compact_json_encoder<char_type,jsoncons::string_sink<string_type2>> encoder(s);
                     dump(encoder);
                     return s;
                 }
@@ -4789,9 +4860,9 @@ namespace jsoncons {
 
         std::basic_string<char_type> to_string() const noexcept
         {
-            using string_type = std::basic_string<char_type>;
-            string_type s;
-            basic_compact_json_encoder<char_type, jsoncons::string_sink<string_type>> encoder(s);
+            using string_type2 = std::basic_string<char_type>;
+            string_type2 s;
+            basic_compact_json_encoder<char_type, jsoncons::string_sink<string_type2>> encoder(s);
             dump(encoder);
             return s;
         }

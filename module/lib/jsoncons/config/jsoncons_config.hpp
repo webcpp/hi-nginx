@@ -1,4 +1,4 @@
-// Copyright 2019 Daniel Parker
+// Copyright 2013-2023 Daniel Parker
 // Distributed under the Boost license, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -290,10 +290,11 @@ namespace jsoncons {
 
 #define JSONCONS_EXPAND(X) X    
 #define JSONCONS_QUOTE(Prefix, A) JSONCONS_EXPAND(Prefix ## #A)
+#define JSONCONS_WIDEN(A) JSONCONS_EXPAND(L ## A)
 
-#define JSONCONS_CSTRING_CONSTANT(CharT, Str) cstring_constant_of_type<CharT>(Str, JSONCONS_QUOTE(L, Str))
-#define JSONCONS_STRING_CONSTANT(CharT, Str) string_constant_of_type<CharT>(Str, JSONCONS_QUOTE(L, Str))
-#define JSONCONS_STRING_VIEW_CONSTANT(CharT, Str) string_view_constant_of_type<CharT>(Str, JSONCONS_QUOTE(L, Str))
+#define JSONCONS_CSTRING_CONSTANT(CharT, Str) cstring_constant_of_type<CharT>(Str, JSONCONS_WIDEN(Str))
+#define JSONCONS_STRING_CONSTANT(CharT, Str) string_constant_of_type<CharT>(Str, JSONCONS_WIDEN(Str))
+#define JSONCONS_STRING_VIEW_CONSTANT(CharT, Str) string_view_constant_of_type<CharT>(Str, JSONCONS_WIDEN(Str))
 
 #if defined(__clang__) 
 #define JSONCONS_HAS_STD_REGEX 1

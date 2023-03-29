@@ -1,4 +1,4 @@
-// Copyright 2013 Daniel Parker
+// Copyright 2013-2023 Daniel Parker
 // Distributed under the Boost license, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -608,7 +608,7 @@ public:
     basic_json_options& inf_to_str(const string_type& value, bool enable_inverse = true)
     {
         this->enable_inf_to_str_ = true;
-        this->enable_inf_to_str_ = enable_inverse;
+        this->enable_str_to_inf_ = enable_inverse;
         this->inf_to_num_.clear();
         this->inf_to_str_ = value;
         return *this;
@@ -617,7 +617,7 @@ public:
     basic_json_options& neginf_to_str(const string_type& value, bool enable_inverse = true)
     {
         this->enable_neginf_to_str_ = true;
-        this->enable_neginf_to_str_ = enable_inverse;
+        this->enable_str_to_neginf_ = enable_inverse;
         this->neginf_to_num_.clear();
         this->neginf_to_str_ = value;
         return *this;

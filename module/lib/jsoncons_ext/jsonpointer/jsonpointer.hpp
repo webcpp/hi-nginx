@@ -1,4 +1,4 @@
-// Copyright 2017 Daniel Parker
+// Copyright 2013-2023 Daniel Parker
 // Distributed under the Boost license, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -413,7 +413,7 @@ namespace jsoncons { namespace jsonpointer {
 
         friend bool operator==( const basic_json_pointer& lhs, const basic_json_pointer& rhs )
         {
-            return lhs.tokens_ == rhs.okens_;
+            return lhs.tokens_ == rhs.tokens_;
         }
 
         friend bool operator!=( const basic_json_pointer& lhs, const basic_json_pointer& rhs )
