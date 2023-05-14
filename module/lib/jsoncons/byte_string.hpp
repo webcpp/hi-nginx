@@ -21,7 +21,7 @@
 #include <jsoncons/config/jsoncons_config.hpp>
 #include <jsoncons/json_exception.hpp>
 #include <jsoncons/conv_error.hpp>
-#include <jsoncons/traits_extension.hpp>
+#include <jsoncons/extension_traits.hpp>
 
 namespace jsoncons {
 
@@ -90,7 +90,7 @@ namespace detail {
     }
 
     template <class InputIt, class F, class Container>
-    typename std::enable_if<traits_extension::is_back_insertable_byte_container<Container>::value,decode_result<InputIt>>::type 
+    typename std::enable_if<extension_traits::is_back_insertable_byte_container<Container>::value,decode_result<InputIt>>::type 
     decode_base64_generic(InputIt first, InputIt last, 
                           const uint8_t reverse_alphabet[256],
                           F f,
@@ -107,7 +107,7 @@ namespace detail {
                 return decode_result<InputIt>{first, conv_errc::conversion_failed};
             }
 
-            a4[i++] = *first++; 
+            a4[i++] = static_cast<uint8_t>(*first++); 
             if (i == 4)
             {
                 for (i = 0; i < 4; ++i) 
@@ -205,7 +205,7 @@ namespace detail {
     // decode
 
     template <class InputIt, class Container>
-    typename std::enable_if<traits_extension::is_back_insertable_byte_container<Container>::value,decode_result<InputIt>>::type 
+    typename std::enable_if<extension_traits::is_back_insertable_byte_container<Container>::value,decode_result<InputIt>>::type 
     decode_base64url(InputIt first, InputIt last, Container& result)
     {
         static constexpr uint8_t reverse_alphabet[256] = {
@@ -233,7 +233,7 @@ namespace detail {
     }
 
     template <class InputIt, class Container>
-    typename std::enable_if<traits_extension::is_back_insertable_byte_container<Container>::value,decode_result<InputIt>>::type 
+    typename std::enable_if<extension_traits::is_back_insertable_byte_container<Container>::value,decode_result<InputIt>>::type 
     decode_base64(InputIt first, InputIt last, Container& result)
     {
         static constexpr uint8_t reverse_alphabet[256] = {
@@ -261,7 +261,7 @@ namespace detail {
     }
 
     template <class InputIt,class Container>
-    typename std::enable_if<traits_extension::is_back_insertable_byte_container<Container>::value,decode_result<InputIt>>::type 
+    typename std::enable_if<extension_traits::is_back_insertable_byte_container<Container>::value,decode_result<InputIt>>::type 
     decode_base16(InputIt first, InputIt last, Container& result)
     {
         std::size_t len = std::distance(first,last);
@@ -277,11 +277,11 @@ namespace detail {
             auto a = *it++;
             if (a >= '0' && a <= '9') 
             {
-                val = (a - '0') << 4;
+                val = static_cast<uint8_t>(a - '0') << 4;
             } 
             else if ((a | 0x20) >= 'a' && (a | 0x20) <= 'f') 
             {
-                val = ((a | 0x20) - 'a' + 10) << 4;
+                val = (static_cast<uint8_t>((a | 0x20) - 'a') + 10) << 4;
             } 
             else 
             {
@@ -357,7 +357,7 @@ namespace detail {
     
         template <class Container>
         constexpr explicit byte_string_view(const Container& cont,
-                          typename std::enable_if<traits_extension::is_byte_sequence<Container>::value,int>::type = 0) 
+                          typename std::enable_if<extension_traits::is_byte_sequence<Container>::value,int>::type = 0) 
             : data_(reinterpret_cast<const uint8_t*>(cont.data())), size_(cont.size())
         {
         }
@@ -576,12 +576,12 @@ namespace detail {
         void assign(const uint8_t* s, std::size_t count)
         {
             data_.clear();
-            data_.insert(s, s+count);
+            data_.insert(data_.end(), s, s+count);
         }
 
         void append(const uint8_t* s, std::size_t count)
         {
-            data_.insert(s, s+count);
+            data_.insert(data_.end(), s, s+count);
         }
 
         void clear()
@@ -801,7 +801,7 @@ namespace detail {
 
     using byte_string = basic_byte_string<std::allocator<uint8_t>>;
 
-    namespace traits_extension {
+    namespace extension_traits {
 
         template <typename T>
         struct is_basic_byte_string
@@ -813,7 +813,7 @@ namespace detail {
         : std::true_type
         {};
 
-    } // namespace traits_extension
+    } // namespace extension_traits
 
 } // namespace jsoncons
 

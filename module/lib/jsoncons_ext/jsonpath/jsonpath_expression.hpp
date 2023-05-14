@@ -1,4 +1,4 @@
-// Copyright 2021 Daniel Parker
+// Copyright 2013-2023 Daniel Parker
 // Distributed under the Boost license, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -629,7 +629,6 @@ namespace detail {
                                 push_token(resources, token_type(current_node_arg), ec);
                                 if (ec) {return path_expression_type(alloc_);}
                                 push_token(resources, token_type(begin_expression_arg), ec);
-                                if (ec) {return path_expression_type(alloc_);}
                                 if (ec) {return path_expression_type(alloc_);}
                                 state_stack_.emplace_back(path_state::argument);
                                 state_stack_.emplace_back(path_state::expression_rhs);
@@ -2536,7 +2535,7 @@ namespace detail {
         jsonpath_expression& operator=(jsonpath_expression&&) = default;
 
         template <class BinaryCallback>
-        typename std::enable_if<traits_extension::is_binary_function_object<BinaryCallback,const string_type&,reference>::value,void>::type
+        typename std::enable_if<extension_traits::is_binary_function_object<BinaryCallback,const string_type&,reference>::value,void>::type
         evaluate(reference instance, BinaryCallback callback, result_options options = result_options()) const
         {
             jsoncons::jsonpath::detail::dynamic_resources<Json,reference> resources{alloc_};

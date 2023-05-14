@@ -1,4 +1,4 @@
-// Copyright 2020 Daniel Parker
+// Copyright 2013-2023 Daniel Parker
 // Distributed under the Boost license, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -11,7 +11,7 @@
 #include <jsoncons/uri.hpp>
 #include <jsoncons/json.hpp>
 #include <jsoncons_ext/jsonpointer/jsonpointer.hpp>
-#include <jsoncons_ext/jsonschema/keyword_validator_factory.hpp>
+#include <jsoncons_ext/jsonschema/schema.hpp>
 #include <cassert>
 #include <set>
 #include <sstream>
@@ -102,7 +102,7 @@ namespace jsonschema {
 
         // Validate input JSON against a JSON Schema with a provided error reporter
         template <class Reporter>
-        typename std::enable_if<traits_extension::is_unary_function_object_exact<Reporter,void,validation_output>::value,Json>::type
+        typename std::enable_if<extension_traits::is_unary_function_object_exact<Reporter,void,validation_output>::value,Json>::type
         validate(const Json& instance, const Reporter& reporter) const
         {
             jsonpointer::json_pointer instance_location("#");

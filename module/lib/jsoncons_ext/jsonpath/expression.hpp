@@ -1,4 +1,4 @@
-// Copyright 2021 Daniel Parker
+// Copyright 2013-2023 Daniel Parker
 // Distributed under the Boost license, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -3053,7 +3053,7 @@ namespace detail {
         }
 
         path_expression(const allocator_type& alloc)
-            : alloc_(alloc), required_options_()
+            : alloc_(alloc), selector_(nullptr), required_options_()
         {
         }
 
@@ -3090,7 +3090,7 @@ namespace detail {
         }
 
         template <class Callback>
-        typename std::enable_if<traits_extension::is_binary_function_object<Callback,const json_location_type&,reference>::value,void>::type
+        typename std::enable_if<extension_traits::is_binary_function_object<Callback,const json_location_type&,reference>::value,void>::type
         evaluate(dynamic_resources<Json,JsonReference>& resources, 
                  reference root,
                  const json_location_node_type& path, 
@@ -3104,7 +3104,7 @@ namespace detail {
 
             const result_options require_more = result_options::nodups | result_options::sort;
 
-            if ((options & require_more) != result_options())
+            if (selector_ != nullptr && (options & require_more) != result_options())
             {
                 path_value_receiver<Json,JsonReference> receiver{alloc_};
                 selector_->select(resources, root, path, current, receiver, options);
@@ -3173,7 +3173,10 @@ namespace detail {
                 s.append(level*2, ' ');
             }
             s.append("expression ");
-            s.append(selector_->to_string(level+1));
+            if (selector_ != nullptr)
+            {
+                s.append(selector_->to_string(level+1));
+            }
 
             return s;
 

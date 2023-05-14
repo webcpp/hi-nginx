@@ -11,7 +11,7 @@
 #include <limits> // std::numeric_limits
 #include <cwchar>
 #include <jsoncons/json_exception.hpp>
-#include <jsoncons/traits_extension.hpp>
+#include <jsoncons/extension_traits.hpp>
 
 namespace jsoncons {
 
@@ -821,8 +821,6 @@ private:
                     state = input_state::begin_quote;
                     break;
                 case input_state::begin_quote:
-                    state = input_state::end_quote;
-                    break;
                 case input_state::character:
                     state = input_state::end_quote;
                     break;

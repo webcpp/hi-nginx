@@ -1,4 +1,4 @@
-/// Copyright 2020 Daniel Parker
+/// Copyright 2013-2023 Daniel Parker
 // Distributed under the Boost license, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -44,29 +44,29 @@ namespace jsonschema {
     class validation_output 
     {
         std::string keyword_;
-        std::string absolute_keyword_location_;
+        std::string schema_path_;
         std::string instance_location_;
         std::string message_;
         std::vector<validation_output> nested_errors_;
     public:
         validation_output(std::string keyword,
-                          std::string absolute_keyword_location,
+                          std::string schema_path,
                           std::string instance_location,
                           std::string message)
             : keyword_(std::move(keyword)), 
-              absolute_keyword_location_(std::move(absolute_keyword_location)),
+              schema_path_(std::move(schema_path)),
               instance_location_(std::move(instance_location)),
               message_(std::move(message))
         {
         }
 
         validation_output(const std::string& keyword,
-                          const std::string& absolute_keyword_location,
+                          const std::string& schema_path,
                           const std::string& instance_location,
                           const std::string& message,
                           const std::vector<validation_output>& nested_errors)
             : keyword_(keyword),
-              absolute_keyword_location_(absolute_keyword_location),
+              schema_path_(schema_path),
               instance_location_(instance_location), 
               message_(message),
               nested_errors_(nested_errors)
@@ -83,9 +83,9 @@ namespace jsonschema {
             return message_;
         }
 
-        const std::string& absolute_keyword_location() const
+        const std::string& schema_path() const
         {
-            return absolute_keyword_location_;
+            return schema_path_;
         }
 
         const std::string& keyword() const

@@ -355,9 +355,11 @@ private:
         }
         std::size_t offset = (r.ptr - sv.data());
         parser_.update(sv.data()+offset,sv.size()-offset);
-        if (!done())
+
+        bool is_done = parser_.done() || done_;
+        if (!is_done)
         {
-            next();
+            read_next();
         }
     }
 
@@ -371,9 +373,20 @@ private:
         }
         std::size_t offset = (r.ptr - sv.data());
         parser_.update(sv.data()+offset,sv.size()-offset);
-        if (!done())
+        bool is_done = parser_.done() || done_;
+        if (!is_done)
         {
-            next(ec);
+            read_next(ec);
+        }
+    }
+
+    void read_next()
+    {
+        std::error_code ec;
+        read_next(cursor_visitor_, ec);
+        if (ec)
+        {
+            JSONCONS_THROW(ser_error(ec,parser_.line(),parser_.column()));
         }
     }
 
@@ -429,8 +442,8 @@ using wjson_cursor = basic_json_cursor<wchar_t>;
 template<class CharT,class Source,class Allocator=std::allocator<CharT>>
 using basic_json_pull_reader = basic_json_cursor<CharT,Source,Allocator>;
 
-JSONCONS_DEPRECATED_MSG("Instead, use json_cursor") typedef json_cursor json_pull_reader;
-JSONCONS_DEPRECATED_MSG("Instead, use wjson_cursor") typedef wjson_cursor wjson_pull_reader;
+JSONCONS_DEPRECATED_MSG("Instead, use json_stream_cursor") typedef json_cursor json_pull_reader;
+JSONCONS_DEPRECATED_MSG("Instead, use wjson_stream_cursor") typedef wjson_cursor wjson_pull_reader;
 
 template<class CharT,class Source,class Allocator=std::allocator<CharT>>
 using basic_json_stream_reader = basic_json_cursor<CharT,Source,Allocator>;

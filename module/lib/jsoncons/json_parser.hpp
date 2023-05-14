@@ -159,7 +159,7 @@ private:
     jsoncons::detail::chars_to to_double_;
 
     std::vector<json_parse_state,parse_state_allocator_type> state_stack_;
-    std::vector<std::pair<string_view_type,double>> string_double_map_;
+    std::vector<std::pair<std::basic_string<char_type>,double>> string_double_map_;
 
     // Noncopyable and nonmoveable
     basic_json_parser(const basic_json_parser&) = delete;
@@ -601,9 +601,6 @@ public:
                     if (ec) return;
                     break;
                 case json_parse_state::fraction2:
-                    end_fraction_value(visitor, ec);
-                    if (ec) return;
-                    break;
                 case json_parse_state::exp3:
                     end_fraction_value(visitor, ec);
                     if (ec) return;
@@ -1607,8 +1604,6 @@ public:
                     switch (*input_ptr_)
                     {
                     case '\r':
-                        state_ = pop_state();
-                        break;
                     case '\n':
                         state_ = pop_state();
                         break;
@@ -1832,10 +1827,6 @@ zero:
                 state_ = json_parse_state::slash;
                 return;
             case '}':
-                end_integer_value(visitor, ec);
-                if (ec) return;
-                state_ = json_parse_state::expect_comma_or_end;
-                return;
             case ']':
                 end_integer_value(visitor, ec);
                 if (ec) return;
@@ -1910,10 +1901,6 @@ integer:
                 state_ = json_parse_state::slash;
                 return;
             case '}':
-                end_integer_value(visitor, ec);
-                if (ec) return;
-                state_ = json_parse_state::expect_comma_or_end;
-                return;
             case ']':
                 end_integer_value(visitor, ec);
                 if (ec) return;
