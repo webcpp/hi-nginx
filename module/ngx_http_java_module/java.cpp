@@ -91,9 +91,19 @@ namespace hi
             this->args.version = JNI_VERSION_9;
             break;
 #endif
-        default:
 #ifdef JNI_VERSION_10
+        case 10:
             this->args.version = JNI_VERSION_10;
+            break;
+#endif
+#ifdef JNI_VERSION_19
+        case 19:
+            this->args.version = JNI_VERSION_19;
+            break;
+#endif
+        default:
+#ifdef JNI_VERSION_20
+            this->args.version = JNI_VERSION_20;
 #else
             this->args.version = JNI_VERSION_1_8;
 #endif
