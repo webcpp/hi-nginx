@@ -1,7 +1,7 @@
 
-Changes with nginx 1.24.0                                        11 Apr 2023
+Changes with nginx 1.25.0                                        23 May 2023
 
-    *) 1.24.x stable branch.
+    *) Feature: experimental HTTP/3 support.
 
 
 Changes with nginx 1.23.4                                        28 Mar 2023
