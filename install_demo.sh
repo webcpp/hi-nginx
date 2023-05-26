@@ -4,7 +4,7 @@ if ! test -f Makefile;then
                 --with-cc=clang                                     \
                 --with-http_ssl_module                              \
                 --with-http_v2_module                               \
-                --with-http_ssl_module                              \
+                --with-http_v3_module                               \
                 --with-http_gzip_static_module                      \
                 --with-stream                                       \
                 --with-stream_ssl_module                            \
