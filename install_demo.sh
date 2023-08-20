@@ -10,8 +10,8 @@ if ! test -f Makefile;then
                 --with-stream_ssl_module                            \
                 --with-http_realip_module                           \
                 --prefix=/usr/local/nginx                           \
-                --with-http-hi-python-version=python-3.8-embed      \
-                --with-http-hi-lua-version=lua5.3                   \
+                --with-http-hi-python-version=python-3.10-embed      \
+                --with-http-hi-lua-version=lua5.4                   \
                 --add-module=module/ngx_http_autoblacklist_module   \
                 --add-module=module/ngx_http_lua_module             \
                 --add-module=module/ngx_http_py_module              \
