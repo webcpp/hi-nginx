@@ -4,7 +4,7 @@
 
 # Document
 
-[https://doc.hi-nginx.com/](https://doc.hi-nginx.com/)
+[https://github.com/webcpp/hi-nginx-tutorial](https://github.com/webcpp/hi-nginx-tutorial)
 
 # Installation
 `./configure --help` or see `install_demo.sh` or 
