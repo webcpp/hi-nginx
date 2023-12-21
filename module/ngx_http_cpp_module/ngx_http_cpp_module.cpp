@@ -78,7 +78,7 @@ static void *ngx_http_cpp_create_conf(ngx_conf_t *cf)
     return NGX_CONF_ERROR;
 }
 
-static ngx_int_t ngx_http_cpp_handler(ngx_http_request_t *r)
+static ngx_int_t ngx_http_cpp_module_handler(ngx_http_request_t *r)
 {
     ngx_http_cpp_loc_conf_t *conf = (ngx_http_cpp_loc_conf_t *)ngx_http_get_module_loc_conf(r, ngx_http_cpp_module);
 
@@ -121,6 +121,36 @@ static ngx_int_t ngx_http_cpp_handler(ngx_http_request_t *r)
     cpp_engine->main(req, res);
 done:
     return hi::set_output_headers_body(r, res, conf->expires, lru_cache_key);
+}
+
+static void ngx_http_cpp_body_handler(ngx_http_request_t *r)
+{
+    ngx_http_finalize_request(r, ngx_http_cpp_module_handler(r));
+}
+
+static ngx_int_t ngx_http_cpp_handler(ngx_http_request_t *r)
+{
+    if (r->headers_in.content_length_n > 0)
+    {
+        ngx_http_core_loc_conf_t *clcf = (ngx_http_core_loc_conf_t *)ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+        if (clcf->client_body_buffer_size < (size_t)clcf->client_max_body_size)
+        {
+            clcf->client_body_buffer_size = clcf->client_max_body_size;
+        }
+        r->request_body_in_single_buf = 1;
+        r->request_body_file_log_level = 0;
+        ngx_int_t rc = ngx_http_read_client_request_body(r, ngx_http_cpp_body_handler);
+        if (rc >= NGX_HTTP_SPECIAL_RESPONSE)
+        {
+            return rc;
+        }
+        return NGX_DONE;
+    }
+    else
+    {
+        ngx_http_discard_request_body(r);
+        return ngx_http_cpp_module_handler(r);
+    }
 }
 
 static char *ngx_http_cpp_load(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
