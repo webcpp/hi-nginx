@@ -1135,6 +1135,9 @@ ngx_quic_parse_frame(ngx_quic_header_t *pkt, u_char *start, u_char *end,
     }
 
     f->level = pkt->level;
+#if (NGX_DEBUG)
+    f->pnum = pkt->pn;
+#endif
 
     return p - start;
 
@@ -1985,7 +1988,7 @@ ngx_quic_init_transport_params(ngx_quic_tp_t *tp, ngx_quic_conf_t *qcf)
      *     tp->preferred_address = NULL
      */
 
-    tp->max_idle_timeout = qcf->timeout;
+    tp->max_idle_timeout = qcf->idle_timeout;
 
     tp->max_udp_payload_size = NGX_QUIC_MAX_UDP_PAYLOAD_SIZE;
 
